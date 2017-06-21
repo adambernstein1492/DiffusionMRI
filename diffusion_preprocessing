@@ -70,7 +70,7 @@ if args.eddycurrentcorrection:
     # Check for Appropriate Software
     if args.software == "FSL":
         try:
-            subprocess.call(["which", "eddy"])
+            subprocess.call(["which", "eddy_openmp"])
         except:
             print "Error: eddy not found on path"
             quit()
@@ -199,7 +199,7 @@ if args.software == "FSL":
         # Run EDDY if specified
         if args.eddycurrentcorrection:
             print "Running EDDY"
-            subprocess.call(["eddy", "--imain=dwi.nii", "--mask=mask.nii", "--index=index.txt", "--acqp=acqp.txt", "--bvecs=bvec", "--bvals=bval", "--out=dwi_eddy", "--topup=topup_results", "-v"])
+            subprocess.call(["eddy_openmp", "--imain=dwi.nii", "--mask=mask.nii", "--index=index.txt", "--acqp=acqp.txt", "--bvecs=bvec", "--bvals=bval", "--out=dwi_eddy", "--topup=topup_results", "--data_is_shelled", "-v"])
             os.remove("dwi.nii")
             shutil.move("dwi_eddy.nii", "dwi.nii")
 
@@ -228,7 +228,7 @@ if args.software == "FSL":
         diffusion_preprocessing_functions.no_topup_index_acqp('bval', 'bvec')
 
         print "Running EDDY"
-        subprocess.call(["eddy", "--imain=dwi.nii", "--mask=mask.nii", "--index=index.txt", "--acqp=acqp.txt", "--bvecs=bvec", "--bvals=bval", "--out=dwi", "-v"])
+        subprocess.call(["eddy", "--imain=dwi.nii", "--mask=mask.nii", "--index=index.txt", "--acqp=acqp.txt", "--bvecs=bvec", "--bvals=bval", "--out=dwi", "--data_is_shelled", "-v"])
 
         # Replace old bvec file with rotated_bvec file
         os.remove("bvec")
@@ -369,8 +369,3 @@ if args.biasfieldcorrection:
     os.remove("mean_b0.nii")
 ################################################################################
 
-
-
-### FUNCTIONS ##################################################################
-
-################################################################################
