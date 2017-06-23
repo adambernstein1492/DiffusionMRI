@@ -1,0 +1,93 @@
+Bootstrap: docker
+From: ubuntu:xenial
+
+#%setup
+
+#%files
+
+#%labels
+
+%environment
+     PATH=$PATH:/software/dcm2niix/bin/bin:/software/mrtrix3/bin:/software/ANTs/bin/bin:/software/mrtrix3/bin:/software/anaconda2/bin:/software/DiffusionMRI:/software/fsl/bin
+     FREESURFER_HOME=/software/freesurfer
+     FSLDIR=/software/FSL
+
+%post
+    ### UPDATE AND INSTALL DEPENDENCIES ########################################
+    apt-get update -y && apt-get upgrade -y
+    apt-get install -y build-essential wget cmake git g++ libeigen3-dev zlib1g-dev libqt4-opengl-dev libgl1-mesa-dev python python-numpy
+
+    mkdir /software
+    cd /software
+
+    ### INSTALL MINICONDA AND SELECT PACKAGES ##################################
+    #wget https://repo.continuum.io/miniconda/Miniconda2-latest-Linux-x86_64.sh -O miniconda.sh
+    #bash miniconda.sh -b -p /software/anaconda2
+    #rm miniconda.sh
+
+    # Add extra python packages for neuroimaging
+    #/software/anaconda2/bin/conda install numpy -y
+    #/software/anaconda2/bin/conda install scipy -y
+    #/software/anaconda2/bin/pip install nibabel
+    #/software/anaconda2/bin/pip install nipy
+    #/software/anaconda2/bin/pip install dipy
+    #/software/anaconda2/bin/conda install -c conda-forge python-spams=2.6 -y
+
+
+    ### INSTALL FSL ############################################################
+    wget https://fsl.fmrib.ox.ac.uk/fsldownloads/fsl-5.0.10-centos6_64.tar.gz -O FSL.tar.gz
+    tar xzvf FSL.tar.gz
+    rm FSL.tar.gz
+    #/software/fsl/etc/fslconf/fslpython_install.sh -f /software/fsl
+
+
+    ### INSTALL FREESURFER #####################################################
+    wget ftp://surfer.nmr.mgh.harvard.edu/pub/dist/freesurfer/6.0.0/freesurfer-Linux-centos6_x86_64-stable-pub-v6.0.0.tar.gz -O FreeSurfer.tar.gz
+    tar -xvzf FreeSurfer.tar.gz
+    rm FreeSurfer.tar.gz
+
+
+    #echo "asb2@email.arizona.edu" >> freesurfer/license.txt
+    echo "24674" >> freesurfer/license.txt
+    echo "*CcBpGJNWROql" >> freesurfer/license.txt
+    echo "FSyEi0S90AVr2" >> freesurfer/license.txt
+
+
+    ### INSTALL DCM2NIIX #######################################################
+    #git clone https://github.com/rordenlab/dcm2niix
+    #mkdir dcm2niix/bin
+    #cd dcm2niix/bin
+    #cmake ../
+    #make
+    #cd /software
+
+
+    ### INSTALL ANTS ###########################################################
+    #git clone https://github.com/stnava/ANTs
+    #cd ANTs
+    #mkdir bin
+    #cd bin
+    #cmake ../
+    #make
+    #cd /software
+
+
+    ### INSTALL MRTRIX3 ########################################################
+    #git clone https://github.com/MRtrix3/mrtrix3.git
+    #cd mrtrix3
+    #./configure
+    #./build
+    #cd /software
+
+    ### ADD PYTHON CODE ########################################################
+    git clone https://github.com/adambernstein1492/DiffusionMRI
+
+
+%runscript
+      export PATH=$PATH:/software/dcm2niix/bin/bin:/software/mrtrix3/bin:/software/ANTs/bin/bin:/software/mrtrix3/bin:/software/anaconda2/bin:/software/DiffusionMRI:/software/fsl/bin
+      export FREESURFER_HOME=/software/freesurfer
+      export FSLDIR=/software/FSL
+      source ${FSLDIR}/etc/fslconf/fsl.sh
+      source ${FREESURFER_HOME}/SetUpFreeSurfer.sh
+
+#%test

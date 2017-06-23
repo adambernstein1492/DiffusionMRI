@@ -11,11 +11,10 @@ import matplotlib.pyplot as plt
 
 ### DEFINE INPUTS ##############################################################
 parser = argparse.ArgumentParser(description="Estimate Statistics on Parameter Values with FreeSurfer ROIs")
-parser.add_argument("-l", "--denoising", action="store_true", help="Perform LPCA denoising if set. Default=False", default=False)
-parser.add_argumetn("-i", "--dwi", type=str, help="Input the Diffusion weighted image to perform registration", default="None")
+parser.add_argument("-i", "--dwi", type=str, help="Input the Diffusion weighted image to perform registration", default="None")
 parser.add_argument("-s", "--t1", type=str, help="FreeSurfer Subject Directory", default="None")
 parser.add_argument("-p", "--parameter_maps", type=str, nargs="+", help="Paths to all parameter_maps to be analyzed", default="None")
-parser.add_argumetn("-o", "--output", type=str, help="Output Directory", default="None")
+parser.add_argument("-o", "--output", type=str, help="Output Directory", default="None")
 
 args = parser.parse_args()
 ################################################################################
@@ -39,6 +38,7 @@ else:
     t1_path = args.t1
 
 os.makedirs(outpath)
+#subprocess.call(["export", "FSLOUTPUTTYPE=NIFTI"])
 subprocess.call(["mri_convert", (t1_path + "mri/aparc+aseg.mgz"), (outpath + "aparc+aseg.nii")])
 subprocess.call(["mri_convert", (t1_path + "mri/orig.mgz"), (outpath + "t1.nii")])
 shutil.copyfile(args.dwi, (outpath + "dwi.nii"))
@@ -47,9 +47,21 @@ os.chdir(outpath)
 ################################################################################
 
 
-
+### REGISTER T1 TO DWI #########################################################
 # Run BET on T1
 subprocess.call(["bet", "t1.nii", "brain.nii", "-f", "0.5"])
 
 # Register dwi to T1
-subprocess.call(["epi_reg", "--epi=dwi.nii", "--t1=t1.nii", "--t1brain=brain.nii", "--out=output"])
+subprocess.call(["epi_reg", "--epi=dwi.nii", "--t1=t1.nii", "--t1brain=brain.nii", "--out=b02t1"])
+
+# Invert Registration to put T1 in dwi space
+subprocess.call(["convert_xfm", "-omat", "t12b0.mat", "-inverse", "b02t1.mat"])
+subprocess.call(["flirt", "-interp", "nearestneighbour", "-in", "aparc+aseg.nii", "-ref", "dwi.nii", "-applyxfm", "-init", "t12b0.mat", "-out", "aparc+aseg_reg"])
+################################################################################
+
+
+### CLEAN UP EXTRA FILES #######################################################
+################################################################################
+
+
+print args.parameter_maps
