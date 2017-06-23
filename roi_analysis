@@ -38,7 +38,7 @@ else:
     t1_path = args.t1
 
 os.makedirs(outpath)
-#subprocess.call(["export", "FSLOUTPUTTYPE=NIFTI"])
+os.environ["FSLOUTPUTTYPE"] = "NIFTI"
 subprocess.call(["mri_convert", (t1_path + "mri/aparc+aseg.mgz"), (outpath + "aparc+aseg.nii")])
 subprocess.call(["mri_convert", (t1_path + "mri/orig.mgz"), (outpath + "t1.nii")])
 shutil.copyfile(args.dwi, (outpath + "dwi.nii"))
@@ -60,8 +60,11 @@ subprocess.call(["flirt", "-interp", "nearestneighbour", "-in", "aparc+aseg.nii"
 ################################################################################
 
 
-### CLEAN UP EXTRA FILES #######################################################
+
+### PEROFM ROI ANALYSIS FOR ALL PARAMETER MAPS #################################
 ################################################################################
 
+### CLEAN UP EXTRA FILES #######################################################
 
+################################################################################
 print args.parameter_maps

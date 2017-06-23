@@ -218,6 +218,8 @@ if args.software == "FSL":
         os.remove("dwi_eddy.eddy_outlier_report")
         os.remove("dwi_eddy.eddy_parameters")
         os.remove("dwi_eddy.eddy_post_eddy_shell_alignment_parameters")
+        os.remove("dwi_eddy.eddy_outlier_n_sqr_stdev_map")
+        os.remove("dwi_eddy.eddy_restricted_movement_rms")
         os.remove("index.txt")
         os.remove("rpe.nii")
         os.remove("topup_results_fieldcoef.nii")
@@ -368,4 +370,3 @@ if args.biasfieldcorrection:
     os.remove("bias_correct.nii")
     os.remove("mean_b0.nii")
 ################################################################################
-
