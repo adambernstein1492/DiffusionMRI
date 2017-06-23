@@ -11,7 +11,7 @@ def main_dti(dwi_file, bval_file, bvec_file, mask_file, out_path, b_thresh=10000
     mask = mask.get_data()
 
     # Filter b-values
-    data, bvals, bvecs = filter_bvals(data, bvals, bvecs)
+    data, bvals, bvecs = filter_bvals(data, bvals, bvecs, bval_threshold=b_thresh)
 
     # Fit the data
     eigen_values, eigen_vectors = fit_dti(data, bvals, bvecs, mask)

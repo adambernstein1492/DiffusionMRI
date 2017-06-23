@@ -6,7 +6,7 @@ import dti
 
 
 def main_map(dwi_file, bval_file, bvec_file, mask_file, little_delta, big_delta,
-             out_path, order = 6, b_thresh_dti = 1000, calc_rtps = True,
+             out_path, order = 6, b_thresh_dti = 2100, calc_rtps = True,
              calc_ng = True, calc_pa = True, calc_dki = False, return_dti = False):
 
     # Load in Data
@@ -16,7 +16,7 @@ def main_map(dwi_file, bval_file, bvec_file, mask_file, little_delta, big_delta,
 
     # Fit DTI
     eigen_values, eigen_vectors = dti.main_dti(dwi_file, bval_file, bvec_file,
-                        mask_file, "", b_thresh_dti, False, False, False, False)
+                        mask_file, "", b_thresh=b_thresh_dti, False, False, False, False)
     eigen_values[eigen_values <= 0] = np.finfo(float).eps
 
     # Determine Diffusion Time
