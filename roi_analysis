@@ -4,7 +4,8 @@ import os
 import subprocess
 import argparse
 import shutil
-import matplotlib.pyplot as plt
+import csv
+import roi_functions
 
 
 
@@ -53,21 +54,33 @@ os.chdir(outpath)
 subprocess.call(["bet", "t1.nii", "brain.nii", "-f", "0.5"])
 
 # Register dwi to T1
-subprocess.call(["epi_reg", "--epi=dwi.nii", "--t1=t1.nii", "--t1brain=brain.nii", "--out=b02t1"])
+subprocess.call(["epi_reg", "--epi=dwi.nii", "--t1=t1.nii", "--t1brain=brain.nii", "--out=dwi2t1"])
 
 # Apply Transformation to all parameter maps
 for param_map in args.parameter_maps:
-    subprocess.call(["flirt", "-interp", "spline", "-in", param_map, "-ref", "t1.nii", "-applyxfm", "-init", "dwi2t1.mat", "-out", param_map + "_reg"])
+    subprocess.call(["flirt", "-interp", "spline", "-in", param_map, "-ref", "t1.nii", "-applyxfm", "-init", "dwi2t1.mat", "-out", param_map[:-4] + "_reg"])
 ################################################################################
 
 
 
 ### PEROFM ROI ANALYSIS FOR ALL PARAMETER MAPS #################################
 for param_map in args.parameter_maps:
-    calc_roi_stats((param_map + "_reg.nii"), args.t1)
+    aparc_aseg, aparc_aseg_2009, aparc_aseg_wm = roi_functions.calc_roi_stats((param_map[:-4] + "_reg.nii"), outpath)
+
+    # Save as .csv files
+    with open(outpath + param_map[:-4] + "_aparc_aseg.csv") as f:
+        writer = csv.writer(f)
+        writer.writerows(aparc_aseg)
+
+    with open(outpath + param_map[:-4] + "_aparc_aseg_2009.csv") as f:
+        writer = csv.writer(f)
+        writer.writerows(aparc_aseg_2009)
+
+    with open(outpath + param_map[:-4] + "_aparc_aseg_wm.csv") as f:
+        writer = csv.writer(f)
+        writer.writerows(aparc_aseg_wm)
 ################################################################################
 
 ### CLEAN UP EXTRA FILES #######################################################
 
 ################################################################################
-print args.parameter_maps

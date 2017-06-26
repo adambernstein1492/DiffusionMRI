@@ -4,15 +4,10 @@ def parse_freesurfer_stats(filename, output):
     with open(filename) as f:
         lines = f.readlines()
 
-    numlines = 0
-    for i in range(len(lines)):
-        if lines[i][0] != "#":
-            numlines += 1
-
     stats = [['StructureName', 'NumberVoxels', 'Volume', 'Mean', 'STD', 'Min', 'Max', 'Range']]
     index = 1
     for i in range(len(lines)):
-        if lines[i][0] != "#":
+        if lines[i][0] != "#" and lines[i][0] != "\n":
             line_stats = lines[i].split()
             stats.append([])
             stats[index].append(line_stats[4])

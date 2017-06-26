@@ -2,7 +2,7 @@ import numpy as np
 import nibabel as nib
 import util
 
-def main_dti(dwi_file, bval_file, bvec_file, mask_file, out_path, b_thresh=10000,
+def main_dti(dwi_file, bval_file, bvec_file, mask_file, out_path, b_thresh=2100,
              calc_FA = True, calc_MD = True, calc_AD = True, calc_RD = True):
 
     # Load in data

@@ -6,7 +6,7 @@ import dti
 
 
 def main_map(dwi_file, bval_file, bvec_file, mask_file, little_delta, big_delta,
-             out_path, order = 6, b_thresh_dti = 2100, calc_rtps = True,
+             out_path, order = 6, b_thresh_dti = 1100, calc_rtps = True,
              calc_ng = True, calc_pa = True, calc_dki = False, return_dti = False):
 
     # Load in Data
@@ -40,6 +40,11 @@ def main_map(dwi_file, bval_file, bvec_file, mask_file, little_delta, big_delta,
                      order, lam=0.2)
 
     num_coeffs = int(round(1.0/6 * (order/2 + 1) * (order/2 + 2) * (2*order + 3)))
+
+    img = nib.Nifti1Image(coeffs, dwi.affine, dwi.header)
+    nib.save(img, (out_path + 'coeffs.nii'))
+    img = nib.Nifti1Image(uvectors, dwi.affine, dwi.header)
+    nib.save(img, (out_path + 'uvecs.nii'))
 
     # Calculate and Save Scalar MAPs
     if calc_pa:
@@ -347,32 +352,67 @@ def calc_return_to_probabilities(coeffs, uvectors, order, num_coeffs, mask):
     rtap = np.zeros((mask.shape[0], mask.shape[1], mask.shape[2], 3))
     rtpp = np.zeros((mask.shape[0], mask.shape[1], mask.shape[2], 3))
 
-    b_sign = signs[0,:] * signs[1,:] * signs[2,:] * b[0,:] * b[1,:] * b[2,:]
-    b_signx = signs[1,:] * signs[2,:] * b[0,:] * b[1,:] * b[2,:]
-    b_signy = signs[0,:] * signs[2,:] * b[0,:] * b[1,:] * b[2,:]
-    b_signz = signs[0,:] * signs[1,:] * b[0,:] * b[1,:] * b[2,:]
-    b_signxx = signs[0,:] * b[0,:] * b[1,:] * b[2,:]
-    b_signyy = signs[1,:] * b[0,:] * b[1,:] * b[2,:]
-    b_signzz = signs[2,:] * b[0,:] * b[1,:] * b[2,:]
+    b = np.zeros(num_coeffs)
+    b12 = np.zeros(num_coeffs)
+    b13 = np.zeros(num_coeffs)
+    b23 = np.zeros(num_coeffs)
+    b1 = np.zeros(num_coeffs)
+    b2 = np.zeros(num_coeffs)
+    b3 = np.zeros(num_coeffs)
+    index = 0
+    for N in range(0, order+1, 2):
+        for n1 in range(N+1):
+            for n2 in range(N+1):
+                for n3 in range(N+1):
+                    if((n1+n2+n3) == N):
+                        if((n1%2 == 0) and (n2%2 == 0) and (n3%2 == 0)):
+                            b[index] = (-1)**((n1+n2+n3)/2) * (np.sqrt(util.factn(n1,1) * util.factn(n2,1) * util.factn(n3,1)) /
+                                        (util.factn(n1,2) * util.factn(n2,2) * util.factn(n3,2)))
+
+                            b12[index] = (-1)**((n1+n2)/2) * (np.sqrt(util.factn(n1,1) * util.factn(n2,1) * util.factn(n3,1)) /
+                                        (util.factn(n1,2) * util.factn(n2,2) * util.factn(n3,2)))
+
+                            b13[index] = (-1)**((n1+n3)/2) * (np.sqrt(util.factn(n1,1) * util.factn(n2,1) * util.factn(n3,1)) /
+                                        (util.factn(n1,2) * util.factn(n2,2) * util.factn(n3,2)))
+
+                            b23[index] = (-1)**((n2+n3)/2) * (np.sqrt(util.factn(n1,1) * util.factn(n2,1) * util.factn(n3,1)) /
+                                        (util.factn(n1,2) * util.factn(n2,2) * util.factn(n3,2)))
+
+                            b1[index] = (-1)**(n1/2) * (np.sqrt(util.factn(n1,1) * util.factn(n2,1) * util.factn(n3,1)) /
+                                        (util.factn(n1,2) * util.factn(n2,2) * util.factn(n3,2)))
+
+                            b2[index] = (-1)**(n2/2) * (np.sqrt(util.factn(n1,1) * util.factn(n2,1) * util.factn(n3,1)) /
+                                        (util.factn(n1,2) * util.factn(n2,2) * util.factn(n3,2)))
+
+                            b3[index] = (-1)**(n3/2) * (np.sqrt(util.factn(n1,1) * util.factn(n2,1) * util.factn(n3,1)) /
+                                        (util.factn(n1,2) * util.factn(n2,2) * util.factn(n3,2)))
+
+                        index += 1
 
     for x in range(coeffs.shape[0]):
         for y in range(coeffs.shape[1]):
             for z in range(coeffs.shape[2]):
                 if(mask[x,y,z] != 0):
-                    rtop[x,y,z] = rtop_scale[x,y,z] * np.dot(b_sign, coeffs[x,y,z,:])
-                    rtap_x[x,y,z] = rtap_scale_x[x,y,z] * np.dot(b_signx, coeffs[x,y,z,:])
-                    rtap_y[x,y,z] = rtap_scale_y[x,y,z] * np.dot(b_signy, coeffs[x,y,z,:])
-                    rtap_z[x,y,z] = rtap_scale_z[x,y,z] * np.dot(b_signz, coeffs[x,y,z,:])
-                    rtpp_x[x,y,z] = rtpp_scale_x[x,y,z] * np.dot(b_signxx, coeffs[x,y,z,:])
-                    rtpp_y[x,y,z] = rtpp_scale_y[x,y,z] * np.dot(b_signyy, coeffs[x,y,z,:])
-                    rtpp_z[x,y,z] = rtpp_scale_z[x,y,z] * np.dot(b_signzz, coeffs[x,y,z,:])
+                    rtop[x,y,z] = rtop_scale[x,y,z] * np.dot(b, coeffs[x,y,z,:])
+                    rtap_x[x,y,z] = rtap_scale_x[x,y,z] * np.dot(b12, coeffs[x,y,z,:])
+                    rtap_y[x,y,z] = rtap_scale_y[x,y,z] * np.dot(b13, coeffs[x,y,z,:])
+                    rtap_z[x,y,z] = rtap_scale_z[x,y,z] * np.dot(b23, coeffs[x,y,z,:])
+                    rtpp_x[x,y,z] = rtpp_scale_x[x,y,z] * np.dot(b1, coeffs[x,y,z,:])
+                    rtpp_y[x,y,z] = rtpp_scale_y[x,y,z] * np.dot(b2, coeffs[x,y,z,:])
+                    rtpp_z[x,y,z] = rtpp_scale_z[x,y,z] * np.dot(b3, coeffs[x,y,z,:])
 
     rtop[rtop < 0] = 0
+    rtop[rtop > 1000] = 0
     rtap_x[rtap_x < 0] = 0
+    rtap_x[rtap_x > 1000] = 0
     rtap_y[rtap_y < 0] = 0
+    rtap_y[rtap_y > 1000] = 0
     rtap_z[rtap_z < 0] = 0
+    rtap_z[rtap_z > 1000] = 0
     rtpp_x[rtpp_x < 0] = 0
+    rtpp_x[rtpp_x > 1000] = 0
     rtpp_y[rtpp_y < 0] = 0
+    rtpp_y[rtpp_y > 1000] = 0
     rtpp_z[rtpp_z < 0] = 0
 
     rtop = rtop ** (1.0/3)
