@@ -4,7 +4,6 @@ import os
 import subprocess
 import argparse
 import shutil
-import nibabel as nib
 import matplotlib.pyplot as plt
 
 
@@ -40,6 +39,8 @@ else:
 os.makedirs(outpath)
 os.environ["FSLOUTPUTTYPE"] = "NIFTI"
 subprocess.call(["mri_convert", (t1_path + "mri/aparc+aseg.mgz"), (outpath + "aparc+aseg.nii")])
+subprocess.call(["mri_convert", (t1_path + "mri/aparc.a2009s+aseg.mgz"), (outpath + "aparc.a2009s+aseg.nii")])
+subprocess.call(["mri_convert", (t1_path + "mri/wmparc.mgz"), (outpath + "wmparc.nii")])
 subprocess.call(["mri_convert", (t1_path + "mri/orig.mgz"), (outpath + "t1.nii")])
 shutil.copyfile(args.dwi, (outpath + "dwi.nii"))
 
@@ -47,21 +48,23 @@ os.chdir(outpath)
 ################################################################################
 
 
-### REGISTER T1 TO DWI #########################################################
+### REGISTER DWI TO T1 #########################################################
 # Run BET on T1
 subprocess.call(["bet", "t1.nii", "brain.nii", "-f", "0.5"])
 
 # Register dwi to T1
 subprocess.call(["epi_reg", "--epi=dwi.nii", "--t1=t1.nii", "--t1brain=brain.nii", "--out=b02t1"])
 
-# Invert Registration to put T1 in dwi space
-subprocess.call(["convert_xfm", "-omat", "t12b0.mat", "-inverse", "b02t1.mat"])
-subprocess.call(["flirt", "-interp", "nearestneighbour", "-in", "aparc+aseg.nii", "-ref", "dwi.nii", "-applyxfm", "-init", "t12b0.mat", "-out", "aparc+aseg_reg"])
+# Apply Transformation to all parameter maps
+for param_map in args.parameter_maps:
+    subprocess.call(["flirt", "-interp", "spline", "-in", param_map, "-ref", "t1.nii", "-applyxfm", "-init", "dwi2t1.mat", "-out", param_map + "_reg"])
 ################################################################################
 
 
 
 ### PEROFM ROI ANALYSIS FOR ALL PARAMETER MAPS #################################
+for param_map in args.parameter_maps:
+    calc_roi_stats((param_map + "_reg.nii"), args.t1)
 ################################################################################
 
 ### CLEAN UP EXTRA FILES #######################################################
