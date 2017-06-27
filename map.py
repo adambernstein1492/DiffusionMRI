@@ -6,8 +6,8 @@ import dti
 
 
 def main_map(dwi_file, bval_file, bvec_file, mask_file, little_delta, big_delta,
-             out_path, order = 6, b_thresh_dti = 1100, calc_rtps = True,
-             calc_ng = True, calc_pa = True, calc_dki = False, return_dti = False):
+             out_path, order=6, b_thresh_dti=2100, calc_rtps=True, calc_ng=True,
+             calc_pa=True, calc_dki=False, return_dti=True):
 
     # Load in Data
     dwi, mask, bvals, bvecs = util.load_diffusion_data(dwi_file, bval_file, bvec_file, mask_file)
@@ -15,9 +15,14 @@ def main_map(dwi_file, bval_file, bvec_file, mask_file, little_delta, big_delta,
     mask = mask.get_data()
 
     # Fit DTI
-    eigen_values, eigen_vectors = dti.main_dti(dwi_file, bval_file, bvec_file,
-                        mask_file, "", b_thresh_dti, False, False, False, False)
-    eigen_values[eigen_values <= 0] = np.finfo(float).eps
+    if return_dti:
+        eigen_values, eigen_vectors = dti.main_dti(dwi_file, bval_file, bvec_file,
+                            mask_file, (out_path + "DTI_"), b_thresh_dti, True, True, True, True)
+        eigen_values[eigen_values <= 0] = np.finfo(float).eps
+    else:
+        eigen_values, eigen_vectors = dti.main_dti(dwi_file, bval_file, bvec_file,
+                            mask_file, "", b_thresh_dti, False, False, False, False)
+        eigen_values[eigen_values <= 0] = np.finfo(float).eps
 
     # Determine Diffusion Time
     diffusion_time = big_delta - little_delta / 3
@@ -41,6 +46,7 @@ def main_map(dwi_file, bval_file, bvec_file, mask_file, little_delta, big_delta,
 
     num_coeffs = int(round(1.0/6 * (order/2 + 1) * (order/2 + 2) * (2*order + 3)))
 
+    # Save Coefficients and UVectors
     img = nib.Nifti1Image(coeffs, dwi.affine, dwi.header)
     nib.save(img, (out_path + 'coeffs.nii'))
     img = nib.Nifti1Image(uvectors, dwi.affine, dwi.header)
@@ -85,8 +91,12 @@ def main_map(dwi_file, bval_file, bvec_file, mask_file, little_delta, big_delta,
 
     if calc_dki:
         pass
+
     if return_dti:
-        pass
+        img = nib.Nifti1Image(eigen_vectors, dwi.affine, dwi.header)
+        nib.save(img, (out_path + 'dti_eigen_vectors.nii'))
+        img = nib.Nifti1Image(eigen_values, dwi.affine, dwi.header)
+        nib.save(img, (out_path + 'dti_eigen_values.nii'))
 
 def fit_map(data, qvectors, mask, diffusion_time, uvectors, eigen_vectors,
             order = 6, lam = 0.2):
@@ -401,24 +411,19 @@ def calc_return_to_probabilities(coeffs, uvectors, order, num_coeffs, mask):
                     rtpp_y[x,y,z] = rtpp_scale_y[x,y,z] * np.dot(b2, coeffs[x,y,z,:])
                     rtpp_z[x,y,z] = rtpp_scale_z[x,y,z] * np.dot(b3, coeffs[x,y,z,:])
 
-    rtop[rtop < 0] = 0
-    rtop[rtop > 1000] = 0
-    rtap_x[rtap_x < 0] = 0
-    rtap_x[rtap_x > 1000] = 0
-    rtap_y[rtap_y < 0] = 0
-    rtap_y[rtap_y > 1000] = 0
-    rtap_z[rtap_z < 0] = 0
-    rtap_z[rtap_z > 1000] = 0
-    rtpp_x[rtpp_x < 0] = 0
-    rtpp_x[rtpp_x > 1000] = 0
-    rtpp_y[rtpp_y < 0] = 0
-    rtpp_y[rtpp_y > 1000] = 0
-    rtpp_z[rtpp_z < 0] = 0
-
     rtop = rtop ** (1.0/3)
     rtap_x = rtap_x ** 0.5
     rtap_y = rtap_y ** 0.5
     rtap_z = rtap_z ** 0.5
+
+    # Filter Data for Crazy Outliers
+    rtop[rtop < 0] = 0
+    rtap_x[rtap_x < 0] = 0
+    rtap_y[rtap_y < 0] = 0
+    rtap_z[rtap_z < 0] = 0
+    rtpp_x[rtpp_x < 0] = 0
+    rtpp_y[rtpp_y < 0] = 0
+    rtpp_z[rtpp_z < 0] = 0
 
     rtap[:,:,:,0] = rtap_x
     rtap[:,:,:,1] = rtap_y
@@ -426,6 +431,14 @@ def calc_return_to_probabilities(coeffs, uvectors, order, num_coeffs, mask):
     rtpp[:,:,:,0] = rtpp_x
     rtpp[:,:,:,1] = rtpp_y
     rtpp[:,:,:,2] = rtpp_z
+
+    rtop = np.real(rtop)
+    rtap = np.real(rtap)
+    rtpp = np.real(rtpp)
+
+    rtop[rtop > 1000] = 0
+    rtap[rtap > 1000] = 0
+    rtpp[rtpp > 1000] = 0
 
     return rtop, rtap, rtpp
 

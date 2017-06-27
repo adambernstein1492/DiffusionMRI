@@ -45,6 +45,11 @@ subprocess.call(["mri_convert", (t1_path + "mri/wmparc.mgz"), (outpath + "wmparc
 subprocess.call(["mri_convert", (t1_path + "mri/orig.mgz"), (outpath + "t1.nii")])
 shutil.copyfile(args.dwi, (outpath + "dwi.nii"))
 
+param_map_copy = []
+for param_map in args.parameter_maps:
+    shutil.copyfile(param_map, (outpath + os.path.split(param_map)[1]))
+    param_map_copy.append(os.path.split(param_map)[1])
+
 os.chdir(outpath)
 ################################################################################
 
@@ -57,14 +62,14 @@ subprocess.call(["bet", "t1.nii", "brain.nii", "-f", "0.5"])
 subprocess.call(["epi_reg", "--epi=dwi.nii", "--t1=t1.nii", "--t1brain=brain.nii", "--out=dwi2t1"])
 
 # Apply Transformation to all parameter maps
-for param_map in args.parameter_maps:
+for param_map in param_map_copy:
     subprocess.call(["flirt", "-interp", "spline", "-in", param_map, "-ref", "t1.nii", "-applyxfm", "-init", "dwi2t1.mat", "-out", param_map[:-4] + "_reg"])
 ################################################################################
 
 
 
 ### PEROFM ROI ANALYSIS FOR ALL PARAMETER MAPS #################################
-for param_map in args.parameter_maps:
+for param_map in param_map_copy:
     aparc_aseg, aparc_aseg_2009, aparc_aseg_wm = roi_functions.calc_roi_stats((param_map[:-4] + "_reg.nii"), outpath)
 
     # Save as .csv files

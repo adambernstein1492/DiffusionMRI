@@ -16,11 +16,11 @@ import amico
 
 ### DEFINE INPUTS ##############################################################
 parser = argparse.ArgumentParser(description="Process a Diffusion MRI dataset using any of several microstructural analysis techniques")
-parser.add_argument("-d", "--dti", action="store_true", help="Perform Diffusion Tensor Imaging", default=False)
+parser.add_argument("-d", "--dti", type=int, help="Perform Diffusion Tensor Imaging. Can specify a b-value threshold as an argument (default = 2100 s/mm^2)", nargs="?", default=0, const=2100)
 parser.add_argument("-k", "--dki", action="store_true", help="Perform Diffusion Kurtosis Imaging", default=False)
 parser.add_argument("-n", "--noddi", action="store_true", help="Perform Neurite Orientation Dispersion and Density Imaging(NODDI)", default=False)
 parser.add_argument("-a", "--afd", action="store_true", help="Estimate the Apparent Fiber Density using MRtrix", default=False)
-parser.add_argument("-m", "--map", type=str, help="Estimate the Mean Apparent Propagator (MAP). Must specify diffusion times", nargs=2, default="None")
+parser.add_argument("-m", "--map", type=float, help="Estimate the Mean Apparent Propagator (MAP). Must specify diffusion times and b-value threshold for DTI", nargs=3, default="None")
 parser.add_argument("Image", type=str, help="Diffusion Weighted MRI filepath (Assumes preprocessing has been performed)")
 parser.add_argument("bval", type=str, help="b-value filepath")
 parser.add_argument("bvec", type=str, help="b-vector filepath")
@@ -46,12 +46,12 @@ else:
 os.mkdir(outpath)
 
 ### DTI ########################################################################
-if args.dti:
+if args.dti != 0:
     print "Performing DTI Analysis:"
     dti_outpath = outpath + "DTI/"
     os.mkdir(dti_outpath)
 
-    dti.main_dti(args.Image, args.bval, args.bvec, args.mask, dti_outpath, b_thresh=1500)
+    dti.main_dti(args.Image, args.bval, args.bvec, args.mask, dti_outpath, b_thresh=args.dti)
 ################################################################################
 
 
@@ -67,10 +67,10 @@ if(args.map != "None"):
     map_outpath = outpath + "MAP/"
     os.mkdir(map_outpath)
 
-    d = float(args.map[0])
-    D = float(args.map[1])
+    d = args.map[0]
+    D = args.map[1]
 
-    map.main_map(args.Image, args.bval, args.bvec, args.mask, d, D, map_outpath, order = 6, b_thresh_dti=1500)
+    map.main_map(args.Image, args.bval, args.bvec, args.mask, d, D, map_outpath, order=6, b_thresh_dti=int(args.map[2]))
 ################################################################################
 
 
