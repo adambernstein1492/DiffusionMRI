@@ -70,18 +70,18 @@ for param_map in param_map_copy:
 
 ### PEROFM ROI ANALYSIS FOR ALL PARAMETER MAPS #################################
 for param_map in param_map_copy:
-    aparc_aseg, aparc_aseg_2009, aparc_aseg_wm = roi_functions.calc_roi_stats((param_map[:-4] + "_reg.nii"), outpath)
+    aparc_aseg, aparc_aseg_2009, aparc_aseg_wm = roi_functions.calc_roi_stats(param_map[:-4] + "_reg.nii")
 
     # Save as .csv files
-    with open(outpath + param_map[:-4] + "_aparc_aseg.csv") as f:
+    with open(outpath + param_map[:-4] + "_aparc_aseg.csv", wb) as f:
         writer = csv.writer(f)
         writer.writerows(aparc_aseg)
 
-    with open(outpath + param_map[:-4] + "_aparc_aseg_2009.csv") as f:
+    with open(outpath + param_map[:-4] + "_aparc_aseg_2009.csv", wb) as f:
         writer = csv.writer(f)
         writer.writerows(aparc_aseg_2009)
 
-    with open(outpath + param_map[:-4] + "_aparc_aseg_wm.csv") as f:
+    with open(outpath + param_map[:-4] + "_aparc_aseg_wm.csv", wb) as f:
         writer = csv.writer(f)
         writer.writerows(aparc_aseg_wm)
 ################################################################################

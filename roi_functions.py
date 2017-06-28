@@ -1,5 +1,6 @@
 import numpy as np
 import nibabel as nib
+import os
 
 def calc_roi_stats(param_map_path):
     # Load in Paramter Map
@@ -27,8 +28,8 @@ def calc_roi_stats(param_map_path):
     stats_aparc_aseg_2009 = [['StructureName', 'Mean', 'Median', 'Min', 'Max', 'STD', 'Number of Voxels', 'Volume (mm^3)']]
     stats_aparc_aseg_wm = [['StructureName', 'Mean', 'Median', 'Min', 'Max', 'STD', 'Number of Voxels', 'Volume (mm^3)']]
     index_1 = 1
-    index_2 = 2
-    index_3 = 3
+    index_2 = 1
+    index_3 = 1
     for i in range(len(lines)):
         if lines[i][0] != '#' and lines[i][0] != "\n" and lines[i][0] != "0":
             line_values = lines[i].split()
@@ -43,7 +44,7 @@ def calc_roi_stats(param_map_path):
                 stats_aparc_aseg[index_1].append(np.amin(param_values))
                 stats_aparc_aseg[index_1].append(np.std(param_values))
                 stats_aparc_aseg[index_1].append(len(param_values))
-                stats_aparc_aseg[index_1].append(len(param_values))
+                stats_aparc_aseg[index_1].append(len(param_values) * voxel_volume)
                 index_1 += 1
 
             param_values = params[rois2 == int(line_values[0])]
@@ -56,7 +57,7 @@ def calc_roi_stats(param_map_path):
                 stats_aparc_aseg_2009[index_2].append(np.amin(param_values))
                 stats_aparc_aseg_2009[index_2].append(np.std(param_values))
                 stats_aparc_aseg_2009[index_2].append(len(param_values))
-                stats_aparc_aseg_2009[index_2].append(len(param_values))
+                stats_aparc_aseg_2009[index_2].append(len(param_values) * voxel_volume)
                 index_2 += 1
 
             param_values = params[rois3 == int(line_values[0])]
@@ -69,7 +70,7 @@ def calc_roi_stats(param_map_path):
                 stats_aparc_aseg_wm[index_3].append(np.amin(param_values))
                 stats_aparc_aseg_wm[index_3].append(np.std(param_values))
                 stats_aparc_aseg_wm[index_3].append(len(param_values))
-                stats_aparc_aseg_wm[index_3].append(len(param_values))
+                stats_aparc_aseg_wm[index_3].append(len(param_values) * voxel_volume)
                 index_3 += 1
 
-    return stats_aprac_aseg, stats_aparc_aseg_2009, stats_aparc_aseg_wm
+    return stats_aparc_aseg, stats_aparc_aseg_2009, stats_aparc_aseg_wm
