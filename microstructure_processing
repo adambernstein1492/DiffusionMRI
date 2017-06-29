@@ -4,10 +4,8 @@ import os
 import subprocess
 import argparse
 import shutil
-import lpca_denoising
 import nibabel as nib
 import dipy.io
-import diffusion_preprocessing_functions
 import dti
 import map
 import amico
@@ -20,7 +18,7 @@ parser.add_argument("-d", "--dti", type=int, help="Perform Diffusion Tensor Imag
 parser.add_argument("-k", "--dki", action="store_true", help="Perform Diffusion Kurtosis Imaging", default=False)
 parser.add_argument("-n", "--noddi", action="store_true", help="Perform Neurite Orientation Dispersion and Density Imaging(NODDI)", default=False)
 parser.add_argument("-a", "--afd", action="store_true", help="Estimate the Apparent Fiber Density using MRtrix", default=False)
-parser.add_argument("-m", "--map", type=float, help="Estimate the Mean Apparent Propagator (MAP). Must specify diffusion times and b-value threshold for DTI", nargs=3, default="None")
+parser.add_argument("-m", "--map", type=float, help="Estimate the Mean Apparent Propagator (MAP). Must specify diffusion times and b-value threshold for DTI", nargs=3, default=0)
 parser.add_argument("Image", type=str, help="Diffusion Weighted MRI filepath (Assumes preprocessing has been performed)")
 parser.add_argument("bval", type=str, help="b-value filepath")
 parser.add_argument("bvec", type=str, help="b-vector filepath")
@@ -62,7 +60,7 @@ if args.dti != 0:
 
 
 ### MAP ########################################################################
-if(args.map != "None"):
+if(args.map != 0):
     print "Performing MAP Analysis:"
     map_outpath = outpath + "MAP/"
     os.mkdir(map_outpath)
