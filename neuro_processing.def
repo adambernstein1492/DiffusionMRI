@@ -35,9 +35,9 @@ From: ubuntu:xenial
 
 
     ### INSTALL FSL ############################################################
-    wget https://fsl.fmrib.ox.ac.uk/fsldownloads/fsl-5.0.10-centos6_64.tar.gz -O FSL.tar.gz
-    tar xzvf FSL.tar.gz
-    rm FSL.tar.gz
+    #wget https://fsl.fmrib.ox.ac.uk/fsldownloads/fsl-5.0.10-centos6_64.tar.gz -O FSL.tar.gz
+    #tar xzvf FSL.tar.gz
+    #rm FSL.tar.gz
     #/software/fsl/etc/fslconf/fslpython_install.sh -f /software/fsl
 
 
@@ -47,7 +47,7 @@ From: ubuntu:xenial
     rm FreeSurfer.tar.gz
 
 
-    #echo "asb2@email.arizona.edu" >> freesurfer/license.txt
+    echo "asb2@email.arizona.edu" >> freesurfer/license.txt
     echo "24674" >> freesurfer/license.txt
     echo "*CcBpGJNWROql" >> freesurfer/license.txt
     echo "FSyEi0S90AVr2" >> freesurfer/license.txt
