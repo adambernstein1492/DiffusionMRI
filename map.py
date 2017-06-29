@@ -40,7 +40,7 @@ def main_map(dwi_file, bval_file, bvec_file, mask_file, little_delta, big_delta,
                 eigen_vectors[i,j,k,:,:] = eigen_vectors[i,j,k,:,:].T
 
     # Fit MAP
-    coeffs, b0 = fit_map(data, qvectors, mask, diffusion_time, uvectors, eigen_vectors,
+    coeffs = fit_map(data, qvectors, mask, diffusion_time, uvectors, eigen_vectors,
                      order, lam=0.2)
 
     num_coeffs = int(round(1.0/6 * (order/2 + 1) * (order/2 + 2) * (2*order + 3)))
@@ -58,36 +58,36 @@ def main_map(dwi_file, bval_file, bvec_file, mask_file, little_delta, big_delta,
         pa_dti, pa = calc_propagator_anisotropy(coeffs, uvectors, order, mask)
 
         img = nib.Nifti1Image(pa_dti, dwi.affine, dwi.header)
-        nib.save(img, (out_path + 'pa_dti.nii'))
+        nib.save(img, (out_path + 'PA_DTI.nii'))
 
         img = nib.Nifti1Image(pa, dwi.affine, dwi.header)
-        nib.save(img, (out_path + 'pa.nii'))
+        nib.save(img, (out_path + 'PA.nii'))
 
     if calc_ng:
         print "Calculating Non-Gaussianity"
-        ng, ng_par, ng_perp = calc_non_gaussianity(coeffs, order, num_coeffs, mask)
+        ng, ng_par, ng_perp = calc_non_gaussianity(coeffs, order, num_coeffs)
 
         img = nib.Nifti1Image(ng, dwi.affine, dwi.header)
-        nib.save(img, (out_path + 'ng.nii'))
+        nib.save(img, (out_path + 'NonGaussianity.nii'))
 
         img = nib.Nifti1Image(ng_par, dwi.affine, dwi.header)
-        nib.save(img, (out_path + 'ng_par.nii'))
+        nib.save(img, (out_path + 'AxialNonGaussianity.nii'))
 
         img = nib.Nifti1Image(ng_perp, dwi.affine, dwi.header)
-        nib.save(img, (out_path + 'ng_perp.nii'))
+        nib.save(img, (out_path + 'PerpindicularNonGaussianity.nii'))
 
     if calc_rtps:
         print "Calculating Return origin, axis, and plane probabilities"
-        rtop, rtap, rtpp = calc_return_to_probabilities(coeffs, uvectors, order, num_coeffs, mask)
+        rtop, rtap, rtpp = calc_return_to_probabilities(coeffs, uvectors, order, num_coeffs)
 
         img = nib.Nifti1Image(rtop, dwi.affine, dwi.header)
-        nib.save(img, (out_path + 'rtop.nii'))
+        nib.save(img, (out_path + 'RTOP.nii'))
 
         img = nib.Nifti1Image(rtap, dwi.affine, dwi.header)
-        nib.save(img, (out_path + 'rtap.nii'))
+        nib.save(img, (out_path + 'RTAP.nii'))
 
         img = nib.Nifti1Image(rtpp, dwi.affine, dwi.header)
-        nib.save(img, (out_path + 'rtpp.nii'))
+        nib.save(img, (out_path + 'RTPP.nii'))
 
     if calc_dki:
         pass
@@ -107,7 +107,6 @@ def fit_map(data, qvectors, mask, diffusion_time, uvectors, eigen_vectors,
     # Allocate space for Outputs
     data[data <= 0] = np.finfo(float).eps
     coeffs = np.zeros((data.shape[0], data.shape[1], data.shape[2], num_coeffs))
-    b0 = np.zeros((data.shape[0], data.shape[1], data.shape[2]))
 
     # Calculate "B" for estimating B0
     B = calc_b(order, num_coeffs)
@@ -139,7 +138,6 @@ def fit_map(data, qvectors, mask, diffusion_time, uvectors, eigen_vectors,
                     # Normalize coefficients by estimated B0
                     EstimatedB0 = np.dot(coeffs[i,j,k,:], B)
                     coeffs[i,j,k,:] /= EstimatedB0
-                    b0[i,j,k] = EstimatedB0
 
                     # Update Progress
                     count += 1.0
@@ -148,7 +146,7 @@ def fit_map(data, qvectors, mask, diffusion_time, uvectors, eigen_vectors,
                         util.progress_update("Fitting MAP: ", percent)
                         percent_prev = percent
 
-    return coeffs, b0
+    return coeffs
 
 def gaussian_hermite_q_space(order, num_coeffs, qvec, uvector):
     # Allocate Space for output
@@ -338,47 +336,43 @@ def calc_s_matrix(order):
 
     return S
 
-def calc_return_to_probabilities(coeffs, uvectors, order, num_coeffs, mask):
+def calc_return_to_probabilities(coeffs, uvectors, order, num_coeffs):
     # Calculate sign factors
     b, signs = calc_b_and_signs(order, num_coeffs)
     b = b[0,:] * b[1,:] * b[2,:]
 
+    # Reshape Data for Faster Processing
+    uvectors_lin = np.reshape(uvectors, (uvectors.shape[0] * uvectors.shape[1] * uvectors.shape[2], uvectors.shape[3]))
+    coeffs_lin = np.reshape(coeffs, (coeffs.shape[0] * coeffs.shape[1] * coeffs.shape[2], coeffs.shape[3]))
+
     # Calculate Coefficients
-    rtop_scale = (8 * np.pi**3 * uvectors[:,:,:,0]**2 * uvectors[:,:,:,1]**2 * uvectors[:,:,:,2]**2) ** (-0.5)
-    rtap_scale_x = (4 * np.pi**2 * uvectors[:,:,:,1]**2 * uvectors[:,:,:,2]**2) ** (-0.5)
-    rtap_scale_y = (4 * np.pi**2 * uvectors[:,:,:,0]**2 * uvectors[:,:,:,2]**2) ** (-0.5)
-    rtap_scale_z = (4 * np.pi**2 * uvectors[:,:,:,0]**2 * uvectors[:,:,:,1]**2) ** (-0.5)
-    rtpp_scale_x = (2 * np.pi * uvectors[:,:,:,0]**2)**(-0.5)
-    rtpp_scale_y = (2 * np.pi * uvectors[:,:,:,1]**2)**(-0.5)
-    rtpp_scale_z = (2 * np.pi * uvectors[:,:,:,2]**2)**(-0.5)
+    rtop_scale = (8 * np.pi**3 * uvectors_lin[:,0]**2 * uvectors_lin[:,1]**2 * uvectors_lin[:,2]**2) ** (-0.5)
+    rtap_scale_x = (4 * np.pi**2 * uvectors_lin[:,1]**2 * uvectors_lin[:,2]**2) ** (-0.5)
+    rtap_scale_y = (4 * np.pi**2 * uvectors_lin[:,0]**2 * uvectors_lin[:,2]**2) ** (-0.5)
+    rtap_scale_z = (4 * np.pi**2 * uvectors_lin[:,0]**2 * uvectors_lin[:,1]**2) ** (-0.5)
+    rtpp_scale_x = (2 * np.pi * uvectors_lin[:,0]**2)**(-0.5)
+    rtpp_scale_y = (2 * np.pi * uvectors_lin[:,1]**2)**(-0.5)
+    rtpp_scale_z = (2 * np.pi * uvectors_lin[:,2]**2)**(-0.5)
 
     # Estimate Probabilites
-    rtop = np.zeros(mask.shape)
-    rtap_x = np.zeros(mask.shape)
-    rtap_y = np.zeros(mask.shape)
-    rtap_z = np.zeros(mask.shape)
-    rtpp_x = np.zeros(mask.shape)
-    rtpp_y = np.zeros(mask.shape)
-    rtpp_z = np.zeros(mask.shape)
-    rtap = np.zeros((mask.shape[0], mask.shape[1], mask.shape[2], 3))
-    rtpp = np.zeros((mask.shape[0], mask.shape[1], mask.shape[2], 3))
+    rtop = np.zeros(coeffs_lin.shape[0])
+    rtap_x = np.zeros(coeffs_lin.shape[0])
+    rtap_y = np.zeros(coeffs_lin.shape[0])
+    rtap_z = np.zeros(coeffs_lin.shape[0])
+    rtpp_x = np.zeros(coeffs_lin.shape[0])
+    rtpp_y = np.zeros(coeffs_lin.shape[0])
+    rtpp_z = np.zeros(coeffs_lin.shape[0])
+    rtap = np.zeros((coeffs.shape[0], coeffs.shape[1], coeffs.shape[2], 3))
+    rtpp = np.zeros((coeffs.shape[0], coeffs.shape[1], coeffs.shape[2], 3))
 
-    for x in range(coeffs.shape[0]):
-        for y in range(coeffs.shape[1]):
-            for z in range(coeffs.shape[2]):
-                if(mask[x,y,z] != 0):
-                    rtop[x,y,z] = rtop_scale[x,y,z] * np.dot(signs[0,:]*signs[1,:]*signs[2,:]*b, coeffs[x,y,z,:])
-                    rtap_x[x,y,z] = rtap_scale_x[x,y,z] * np.dot(signs[1,:]*signs[2,:]*b, coeffs[x,y,z,:])
-                    rtap_y[x,y,z] = rtap_scale_y[x,y,z] * np.dot(signs[0,:]*signs[2,:]*b, coeffs[x,y,z,:])
-                    rtap_z[x,y,z] = rtap_scale_z[x,y,z] * np.dot(signs[0,:]*signs[1,:]*b, coeffs[x,y,z,:])
-                    rtpp_x[x,y,z] = rtpp_scale_x[x,y,z] * np.dot(signs[0,:]*b, coeffs[x,y,z,:])
-                    rtpp_y[x,y,z] = rtpp_scale_y[x,y,z] * np.dot(signs[1,:]*b, coeffs[x,y,z,:])
-                    rtpp_z[x,y,z] = rtpp_scale_z[x,y,z] * np.dot(signs[2,:]*b, coeffs[x,y,z,:])
+    rtop = rtop_scale * np.dot(signs[0,:]*signs[1,:]*signs[2,:]*b, coeffs_lin.T)
+    rtap_x = rtap_scale_x * np.dot(signs[1,:]*signs[2,:]*b, coeffs_lin.T)
+    rtap_y = rtap_scale_y * np.dot(signs[0,:]*signs[2,:]*b, coeffs_lin.T)
+    rtap_z = rtap_scale_z * np.dot(signs[0,:]*signs[1,:]*b, coeffs_lin.T)
+    rtpp_x = rtpp_scale_x * np.dot(signs[0,:]*b, coeffs_lin.T)
+    rtpp_y = rtpp_scale_y * np.dot(signs[1,:]*b, coeffs_lin.T)
+    rtpp_z = rtpp_scale_z * np.dot(signs[2,:]*b, coeffs_lin.T)
 
-    rtop = rtop ** (1.0/3)
-    rtap_x = rtap_x ** 0.5
-    rtap_y = rtap_y ** 0.5
-    rtap_z = rtap_z ** 0.5
 
     # Filter Data for Crazy Outliers
     rtop[rtop < 0] = 0
@@ -389,12 +383,18 @@ def calc_return_to_probabilities(coeffs, uvectors, order, num_coeffs, mask):
     rtpp_y[rtpp_y < 0] = 0
     rtpp_z[rtpp_z < 0] = 0
 
-    rtap[:,:,:,0] = rtap_x
-    rtap[:,:,:,1] = rtap_y
-    rtap[:,:,:,2] = rtap_z
-    rtpp[:,:,:,0] = rtpp_x
-    rtpp[:,:,:,1] = rtpp_y
-    rtpp[:,:,:,2] = rtpp_z
+    rtop = rtop ** (1.0/3)
+    rtap_x = rtap_x ** 0.5
+    rtap_y = rtap_y ** 0.5
+    rtap_z = rtap_z ** 0.5
+
+    rtop = np.reshape(rtop, coeffs.shape[0:3])
+    rtap[:,:,:,0] = np.reshape(rtap_x, coeffs.shape[0:3])
+    rtap[:,:,:,1] = np.reshape(rtap_y, coeffs.shape[0:3])
+    rtap[:,:,:,2] = np.reshape(rtap_z, coeffs.shape[0:3])
+    rtpp[:,:,:,0] = np.reshape(rtpp_x, coeffs.shape[0:3])
+    rtpp[:,:,:,1] = np.reshape(rtpp_y, coeffs.shape[0:3])
+    rtpp[:,:,:,2] = np.reshape(rtpp_z, coeffs.shape[0:3])
 
     rtop = np.real(rtop)
     rtap = np.real(rtap)
@@ -403,33 +403,39 @@ def calc_return_to_probabilities(coeffs, uvectors, order, num_coeffs, mask):
     rtop[rtop > 1000] = 0
     rtap[rtap > 1000] = 0
     rtpp[rtpp > 1000] = 0
+    rtop[np.isnan(rtop)] = 0
+    rtap[np.isnan(rtap)] = 0
+    rtpp[np.isnan(rtpp)] = 0
 
     return rtop, rtap, rtpp
 
-def calc_non_gaussianity(coeffs, order, num_coeffs, mask):
+
+def calc_non_gaussianity(coeffs, order, num_coeffs):
     # Calculate sign factors
     b, signs = calc_b_and_signs(order, num_coeffs)
 
-    a1 = np.zeros((coeffs.shape[0], coeffs.shape[1], coeffs.shape[2], order+1))
-    a2 = np.zeros((coeffs.shape[0], coeffs.shape[1], coeffs.shape[2], order+1))
-    a3 = np.zeros((coeffs.shape[0], coeffs.shape[1], coeffs.shape[2], order+1))
-    a23 = np.zeros((coeffs.shape[0], coeffs.shape[1], coeffs.shape[2], (order+1)**2))
-    a13 = np.zeros((coeffs.shape[0], coeffs.shape[1], coeffs.shape[2], (order+1)**2))
-    a12 = np.zeros((coeffs.shape[0], coeffs.shape[1], coeffs.shape[2], (order+1)**2))
-    perp_23 = np.zeros((coeffs.shape[0], coeffs.shape[1], coeffs.shape[2], num_coeffs))
-    perp_13 = np.zeros((coeffs.shape[0], coeffs.shape[1], coeffs.shape[2], num_coeffs))
-    perp_12 = np.zeros((coeffs.shape[0], coeffs.shape[1], coeffs.shape[2], num_coeffs))
+    #Reshape for Faster Processing
+    coeffs_lin = np.reshape(coeffs, (coeffs.shape[0] * coeffs.shape[1] * coeffs.shape[2], num_coeffs))
+    a1 = np.zeros((coeffs_lin.shape[0], order+1))
+    a2 = np.zeros((coeffs_lin.shape[0], order+1))
+    a3 = np.zeros((coeffs_lin.shape[0], order+1))
+    a23 = np.zeros((coeffs_lin.shape[0], (order+1)**2))
+    a13 = np.zeros((coeffs_lin.shape[0], (order+1)**2))
+    a12 = np.zeros((coeffs_lin.shape[0], (order+1)**2))
+    perp_23 = np.zeros((coeffs_lin.shape[0], num_coeffs))
+    perp_13 = np.zeros((coeffs_lin.shape[0], num_coeffs))
+    perp_12 = np.zeros((coeffs_lin.shape[0], num_coeffs))
 
-    ng = np.zeros(mask.shape)
-    ng_par_x = np.zeros(mask.shape)
-    ng_par_y = np.zeros(mask.shape)
-    ng_par_z = np.zeros(mask.shape)
-    ng_perp_x = np.zeros(mask.shape)
-    ng_perp_y = np.zeros(mask.shape)
-    ng_perp_z = np.zeros(mask.shape)
+    ng = np.zeros(coeffs_lin.shape[0])
+    ng_par_x = np.zeros(coeffs_lin.shape[0])
+    ng_par_y = np.zeros(coeffs_lin.shape[0])
+    ng_par_z = np.zeros(coeffs_lin.shape[0])
+    ng_perp_x = np.zeros(coeffs_lin.shape[0])
+    ng_perp_y = np.zeros(coeffs_lin.shape[0])
+    ng_perp_z = np.zeros(coeffs_lin.shape[0])
 
-    ng_par = np.zeros((mask.shape[0], mask.shape[1], mask.shape[2], 3))
-    ng_perp = np.zeros((mask.shape[0], mask.shape[1], mask.shape[2], 3))
+    ng_par = np.zeros((coeffs.shape[0], coeffs.shape[1], coeffs.shape[2], 3))
+    ng_perp = np.zeros((coeffs.shape[0], coeffs.shape[1], coeffs.shape[2], 3))
 
     # Parallel Coefficients
     index = 0
@@ -438,12 +444,9 @@ def calc_non_gaussianity(coeffs, order, num_coeffs, mask):
             for n2 in range(N+1):
                 for n3 in range(N+1):
                     if((n1+n2+n3) == N):
-                        for x in range(coeffs.shape[0]):
-                            for y in range(coeffs.shape[1]):
-                                for z in range(coeffs.shape[2]):
-                                    a1[x,y,z,n1] += signs[1,index] * signs[2,index] * b[1,index] * b[2,index] * coeffs[x,y,z,index]
-                                    a2[x,y,z,n2] += signs[0,index] * signs[2,index] * b[0,index] * b[2,index] * coeffs[x,y,z,index]
-                                    a3[x,y,z,n3] += signs[0,index] * signs[1,index] * b[0,index] * b[1,index] * coeffs[x,y,z,index]
+                        a1[:,n1] += signs[1,index] * signs[2,index] * b[1,index] * b[2,index] * coeffs_lin[:,index]
+                        a2[:,n2] += signs[0,index] * signs[2,index] * b[0,index] * b[2,index] * coeffs_lin[:,index]
+                        a3[:,n3] += signs[0,index] * signs[1,index] * b[0,index] * b[1,index] * coeffs_lin[:,index]
                         index += 1
 
     # Perpindicular Coefficients
@@ -456,12 +459,9 @@ def calc_non_gaussianity(coeffs, order, num_coeffs, mask):
             for n2 in range(N+1):
                 for n3 in range(N+1):
                     if((n1+n2+n3) == N):
-                        for x in range(coeffs.shape[0]):
-                            for y in range(coeffs.shape[1]):
-                                for z in range(coeffs.shape[2]):
-                                    perp_23[x,y,z,index] = signs[0,index] * b[0,index] * coeffs[x,y,z,index]
-                                    perp_13[x,y,z,index] = signs[1,index] * b[1,index] * coeffs[x,y,z,index]
-                                    perp_12[x,y,z,index] = signs[2,index] * b[2,index] * coeffs[x,y,z,index]
+                        perp_23[:,index] = signs[0,index] * b[0,index] * coeffs_lin[:,index]
+                        perp_13[:,index] = signs[1,index] * b[1,index] * coeffs_lin[:,index]
+                        perp_12[:,index] = signs[2,index] * b[2,index] * coeffs_lin[:,index]
                         n1_index.append(n1);
                         n2_index.append(n2);
                         n3_index.append(n3);
@@ -470,45 +470,47 @@ def calc_non_gaussianity(coeffs, order, num_coeffs, mask):
     index = 0
     for N in range(order+1):
         for M in range(order+1):
-            for x in range(coeffs.shape[0]):
-                for y in range(coeffs.shape[1]):
-                    for z in range(coeffs.shape[2]):
-                        for i in n2_index:
-                            for j in n3_index:
-                                if (i == N and j == M):
-                                    a23[x,y,z,index] = np.sum(perp_23[x,y,z,(n2_index == N and n3_index == M)], axis=0)
-                        for i in n1_index:
-                            for j in n3_index:
-                                if (i == N and j == M):
-                                    a13[x,y,z,index] = np.sum(perp_13[x,y,z,(n1_index == N and n3_index == M)], axis=0)
-                        for i in n1_index:
-                            for j in n2_index:
-                                if (i == N and j == M):
-                                    a12[x,y,z,index] = np.sum(perp_12[x,y,z,(n1_index == N and n2_index == M)], axis=0)
+
+            for i in range(num_coeffs):
+                if (n2_index[i] == N and n3_index[i] == M):
+                    a23[:,index] += perp_23[:,i]
+
+            for i in range(num_coeffs):
+                if (n1_index[i] == N and n3_index[i] == M):
+                    a13[:,index] += perp_13[:,i]
+
+            for i in range(num_coeffs):
+                if (n1_index[i] == N and n2_index[i] == M):
+                    a12[:,index] += perp_12[:,i]
+
             index += 1
 
 
+    # Calculate Nongaussianities
+    ng = np.sqrt(1 - coeffs_lin[:,0]**2 / np.sum(coeffs_lin**2, axis=1))
+    ng_par_x = np.sqrt(1 - a1[:,0]**2 / np.sum(a1**2, axis = 1))
+    ng_par_y = np.sqrt(1 - a2[:,0]**2 / np.sum(a2**2, axis = 1))
+    ng_par_z = np.sqrt(1 - a3[:,0]**2 / np.sum(a3**2, axis = 1))
+    ng_perp_x = np.sqrt(1 - a23[:,0]**2 / np.sum(a23**2, axis = 1))
+    ng_perp_y = np.sqrt(1 - a13[:,0]**2 / np.sum(a13**2, axis = 1))
+    ng_perp_z = np.sqrt(1 - a12[:,0]**2 / np.sum(a12**2, axis = 1))
 
-    for x in range(coeffs.shape[0]):
-        for y in range(coeffs.shape[1]):
-            for z in range(coeffs.shape[2]):
-                if(mask[x,y,z] != 0):
-                    ng[x,y,z] = np.sqrt(1 - coeffs[x,y,z,0]**2 / np.sum(coeffs[x,y,z,:]**2))
-                    ng_par_x[x,y,z] = np.sqrt(1 - a1[x,y,z,0]**2 / np.sum(a1[x,y,z,:]**2))
-                    ng_par_y[x,y,z] = np.sqrt(1 - a2[x,y,z,0]**2 / np.sum(a2[x,y,z,:]**2))
-                    ng_par_z[x,y,z] = np.sqrt(1 - a3[x,y,z,0]**2 / np.sum(a3[x,y,z,:]**2))
-                    ng_perp_x[x,y,z] = np.sqrt(1 - a23[x,y,z,0]**2 / np.sum(a23[x,y,z,:]**2))
-                    ng_perp_y[x,y,z] = np.sqrt(1 - a13[x,y,z,0]**2 / np.sum(a13[x,y,z,:]**2))
-                    ng_perp_z[x,y,z] = np.sqrt(1 - a12[x,y,z,0]**2 / np.sum(a12[x,y,z,:]**2))
+    # Change Back to Image Matrix
+    ng = np.reshape(ng, coeffs.shape[0:3])
+    ng_par[:,:,:,0] = np.reshape(ng_par_x, coeffs.shape[0:3])
+    ng_par[:,:,:,1] = np.reshape(ng_par_y, coeffs.shape[0:3])
+    ng_par[:,:,:,2] = np.reshape(ng_par_z, coeffs.shape[0:3])
+    ng_perp[:,:,:,0] = np.reshape(ng_perp_x, coeffs.shape[0:3])
+    ng_perp[:,:,:,1] = np.reshape(ng_perp_y, coeffs.shape[0:3])
+    ng_perp[:,:,:,2] = np.reshape(ng_perp_z, coeffs.shape[0:3])
 
-    ng_par[:,:,:,0] = ng_par_x
-    ng_par[:,:,:,1] = ng_par_y
-    ng_par[:,:,:,2] = ng_par_z
-    ng_perp[:,:,:,0] = ng_perp_x
-    ng_perp[:,:,:,1] = ng_perp_y
-    ng_perp[:,:,:,2] = ng_perp_z
+    # Clean up and div by zeros
+    ng[np.isnan(ng)] = 0
+    ng_par[np.isnan(ng_par)] = 0
+    ng_perp[np.isnan(ng_perp)] = 0
 
     return ng, ng_par, ng_perp
+
 
 def calc_b_and_signs(order, num_coeffs):
     b = np.zeros((3,num_coeffs))
@@ -534,6 +536,7 @@ def calc_b_and_signs(order, num_coeffs):
 
     return b, signs
 
+
 def calc_propagator_anisotropy(coeffs, uvectors, order, mask):
     # Calculate Isotropic Coefficients
     u0 = calc_u0(uvectors)
@@ -558,6 +561,7 @@ def calc_propagator_anisotropy(coeffs, uvectors, order, mask):
     pa = pa_scaling(pa, 0.4)
 
     return pa_dti, pa
+
 
 def calc_u0(uvectors):
     # Compute factors for polynomial
@@ -586,6 +590,7 @@ def calc_u0(uvectors):
 
     return u0
 
+
 def calculate_pa_dti(u0, uvectors, mask):
     pa_dti = np.zeros((mask.shape[0], mask.shape[1], mask.shape[2]))
 
@@ -600,6 +605,7 @@ def calculate_pa_dti(u0, uvectors, mask):
 
     return pa_dti
 
+
 def calculate_pa(coeffs, uvectors, u0, tmn):
 
     b, norm_factor = change_basis(coeffs, tmn, u0)
@@ -612,6 +618,7 @@ def calculate_pa(coeffs, uvectors, u0, tmn):
 
     return pa
 
+
 def change_basis(coeffs, tmn, u0):
     norm_factor = np.zeros((tmn.shape[1]))
 
@@ -621,6 +628,7 @@ def change_basis(coeffs, tmn, u0):
     b = np.dot(coeffs,tmn) / norm_factor
 
     return b, norm_factor
+
 
 def calc_tmn(uvectors, u0, order_a, order_b):
     tmn = np.zeros((int(np.round(1/6.0 * (order_a/2 + 1) * (order_a/2 + 2) * (2*order_a + 3))), 1 + order_a / 2))
@@ -665,6 +673,7 @@ def calc_tmn(uvectors, u0, order_a, order_b):
                         m_index += 1
 
     return tmn
+
 
 def pa_scaling(pa, param):
     pa = pa**(3*param) / (1 - 3*pa**param + 3*pa**(2*param))
