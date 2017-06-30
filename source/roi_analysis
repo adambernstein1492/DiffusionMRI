@@ -1,0 +1,105 @@
+#!/usr/bin/env python
+
+import os
+import subprocess
+import argparse
+import shutil
+import csv
+import diffusion_functions.roi_functions as roi_functions
+
+
+
+### DEFINE INPUTS ##############################################################
+parser = argparse.ArgumentParser(description="Estimate Statistics on Parameter Values with FreeSurfer ROIs")
+parser.add_argument("-i", "--dwi", type=str, help="Input the Diffusion weighted image to perform registration", default="None")
+parser.add_argument("-s", "--t1", type=str, help="FreeSurfer Subject Directory", default="None")
+parser.add_argument("-p", "--parameter_maps", type=str, nargs="+", help="Paths to all parameter_maps to be analyzed", default="None")
+parser.add_argument("-o", "--output", type=str, help="Output Directory", default="None")
+
+args = parser.parse_args()
+################################################################################
+
+
+
+### ERROR CHECKING #############################################################
+################################################################################
+
+
+
+### SET UP OUTPUT DIRECTORY ####################################################
+if args.output[-1] != '/':
+    outpath = args.output + '/'
+else:
+    outpath = args.output
+
+if args.t1[-1] != '/':
+    t1_path = args.t1 + '/'
+else:
+    t1_path = args.t1
+
+os.makedirs(outpath)
+os.environ["FSLOUTPUTTYPE"] = "NIFTI"
+subprocess.call(["mri_convert", (t1_path + "mri/aparc+aseg.mgz"), (outpath + "aparc+aseg.nii")])
+subprocess.call(["mri_convert", (t1_path + "mri/aparc.a2009s+aseg.mgz"), (outpath + "aparc.a2009s+aseg.nii")])
+subprocess.call(["mri_convert", (t1_path + "mri/wmparc.mgz"), (outpath + "wmparc.nii")])
+subprocess.call(["mri_convert", (t1_path + "mri/orig.mgz"), (outpath + "t1.nii")])
+shutil.copyfile(args.dwi, (outpath + "dwi.nii"))
+
+param_map_copy = []
+for param_map in args.parameter_maps:
+    shutil.copyfile(param_map, (outpath + os.path.split(param_map)[1]))
+    param_map_copy.append(os.path.split(param_map)[1])
+
+os.chdir(outpath)
+################################################################################
+
+
+### REGISTER DWI TO T1 #########################################################
+# Run BET on T1
+subprocess.call(["bet", "t1.nii", "brain.nii", "-f", "0.5"])
+
+# Register dwi to T1
+subprocess.call(["epi_reg", "--epi=dwi.nii", "--t1=t1.nii", "--t1brain=brain.nii", "--out=dwi2t1"])
+
+# Apply Transformation to all parameter maps
+for param_map in param_map_copy:
+    subprocess.call(["flirt", "-interp", "spline", "-in", param_map, "-ref", "t1.nii", "-applyxfm", "-init", "dwi2t1.mat", "-out", param_map[:-4] + "_reg"])
+################################################################################
+
+
+
+### PEROFM ROI ANALYSIS FOR ALL PARAMETER MAPS #################################
+for param_map in param_map_copy:
+    aparc_aseg, aparc_aseg_2009, aparc_aseg_wm = roi_functions.calc_roi_stats(param_map[:-4] + "_reg.nii")
+
+    # Save as .csv files
+    with open(outpath + param_map[:-4] + "_aparc_aseg.csv", "wb") as f:
+        writer = csv.writer(f)
+        writer.writerows(aparc_aseg)
+
+    with open(outpath + param_map[:-4] + "_aparc_aseg_2009.csv", "wb") as f:
+        writer = csv.writer(f)
+        writer.writerows(aparc_aseg_2009)
+
+    with open(outpath + param_map[:-4] + "_aparc_aseg_wm.csv", "wb") as f:
+        writer = csv.writer(f)
+        writer.writerows(aparc_aseg_wm)
+################################################################################
+
+### CLEAN UP EXTRA FILES #######################################################
+os.remove("aparc.a2009s+aseg.nii")
+os.remove("aparc+aseg.nii")
+os.remove("brain.nii")
+os.remove("dwi.nii")
+os.remove("dwi2t1.nii")
+os.remove("dwi2t1.mat")
+os.remove("dwi2t1_fast_wmedge.nii")
+os.remove("dwi2t1_fast_wmseg.nii")
+os.remove("dwi2t1_init.mat")
+os.remove("wmparc.nii")
+os.remove("t1.nii")
+
+for param_map in param_map_copy:
+    os.remove(param_map)
+    os.remove(param_map[:-4] + "_reg.nii")
+################################################################################

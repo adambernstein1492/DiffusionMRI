@@ -8,11 +8,12 @@ From: ubuntu:xenial
 #%labels
 
 %environment
-     PATH=$PATH:/software/dcm2niix/bin/bin:/software/mrtrix3/bin:/software/ANTs/bin/bin:/software/mrtrix3/bin:/software/anaconda2/bin:/software/DiffusionMRI:/software/fsl/bin
-     FREESURFER_HOME=/software/freesurfer
-     FSLDIR=/software/FSL
-     
+
+
 %runscript
+      export PATH=$PATH:/software/dcm2niix/bin/bin:/software/mrtrix3/bin:/software/ANTs/bin/bin:/software/mrtrix3/bin:/software/anaconda2/bin:/software/DiffusionMRI:/software/fsl/bin
+      export FREESURFER_HOME=/software/freesurfer
+      export FSLDIR=/software/FSL
       . ${FSLDIR}/etc/fslconf/fsl.sh
       . ${FREESURFER_HOME}/SetUpFreeSurfer.sh
 
@@ -82,7 +83,7 @@ From: ubuntu:xenial
     ./configure
     ./build
     cd /software
-    
+
     ### ADD PYTHON CODE ########################################################
     git clone https://github.com/adambernstein1492/DiffusionMRI
 

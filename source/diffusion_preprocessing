@@ -1,0 +1,372 @@
+#!/usr/bin/env python
+
+import os
+import subprocess
+import argparse
+import shutil
+import diffusion_functions.lpca_denoising as lpca_denoising
+import nibabel as nib
+import dipy.io
+import diffusion_preprocessing_functions
+
+### DEFINE INPUTS ##############################################################
+parser = argparse.ArgumentParser(description="Run a conventional diffusion MRI through the entire preprocessing pipeline")
+parser.add_argument("-l", "--denoising", action="store_true", help="Perform LPCA denoising if set. Default=False", default=False)
+parser.add_argument("-b", "--biasfieldcorrection", action="store_true", help="Perform N4 bias field correction if set. Default=False", default=False)
+parser.add_argument("-e", "--eddycurrentcorrection", action="store_true", help="Perform eddy current correction if set. Default=False", default=False)
+parser.add_argument("-r", "--epidistortion", type=str, help="Filepath to the reverse phase encode image, and whether RPE contains DWIs. Default=None", nargs=2, default="None")
+parser.add_argument("-m", "--mask", type=str, help="Filepath to a mask image to be used. (Will use mrtrix to calculate one if not specified. Default=None)", default="None")
+parser.add_argument("-a", "--structural", help="TORTOISE: Anatomical NIFTI image for use with TORTOISE distortion correction", default="None")
+parser.add_argument("-k", "--is_non_human", action="store_true", help="TORTOISE: Flag to specify if the data is from a human or not (Only used for TORTOISE processing). Default=False", default=False)
+parser.add_argument("-v", "--voxel_size", type=str, help="Final Voxel size for corrected image (Will use original size if not specified).", nargs=3, default="None")
+parser.add_argument("-d", "--diffusion_times", type=str, help="'little_delta' 'big_delta' for calculating diffusion time in TORTOISE", nargs=2, default="None")
+parser.add_argument("-s", "--software", type=str, help="Software to use for distortion correction. Default=FSL", choices=["FSL","TORTOISE_DRBUDDI", "TORTOISE_STANDARD"], default="FSL")
+parser.add_argument("Image", type=str, help="Diffusion Weighted MRI filepath")
+parser.add_argument("bval", type=str, help="b-value filepath")
+parser.add_argument("bvec", type=str, help="b-vector filepath")
+parser.add_argument("Output", type=str, help="Output directory for the final processed DWI")
+
+args = parser.parse_args()
+################################################################################
+
+
+
+# Save Script location to call Config files later
+file_location = os.path.dirname(__file__)
+
+### ERROR CHECKING #############################################################
+# Check Required Inputs
+try:
+    dwi = nib.load(args.Image)
+except:
+    print "Error: Image must be a 4-D NIFTI file"
+    quit()
+
+try:
+    length = dwi.shape[3]
+except:
+    print "Error: Image must be a 4-D NIFTI file"
+    quit()
+
+try:
+    bval,bvec = dipy.io.read_bvals_bvecs(args.bval, args.bvec)
+except:
+    print "Error: Cannot read in the bval and bvecs files"
+    quit()
+
+if dwi.shape[3] != bval.shape[0] or dwi.shape[3] != bvec.shape[0]:
+    print "Error: Number of bvals or bvecs is different than the number of DWIs"
+    quit()
+
+if args.biasfieldcorrection:
+    try:
+        subprocess.call(["which", "N4BiasFieldCorrection"])
+    except:
+         print "Error: N4 not found on path"
+         quit()
+
+
+if args.eddycurrentcorrection:
+    # Check for Appropriate Software
+    if args.software == "FSL":
+        try:
+            subprocess.call(["which", "eddy_openmp"])
+        except:
+            print "Error: eddy not found on path"
+            quit()
+    if args.software == "TORTOISE_DRBUDDI" or args.software == "TORTOISE_STANDARD":
+        try:
+            subprocess.call(["which", "ImportNIFTI"])
+            subprocess.call(["which", "DIFFPREP"])
+        except:
+            print "Error: DIFFPREP not found on path"
+            quit()
+
+
+if args.epidistortion[0] != "None":
+    # Check for Appropriate Software
+    if args.software == "FSL":
+        try:
+            subprocess.call(["which", "topup"])
+        except:
+            print "Error: TOPUP not found on path"
+            quit()
+    if args.software == "TORTOISE_DRBUDDI":
+        try:
+            subprocess.call(["which", "DR_BUDDI_withoutGUI"])
+        except:
+            print "Error: DR_BUDDI not found on path"
+            quit()
+
+    # Check for Correct input type
+    if args.software == "TORTOISE_DRBUDDI" and args.epidistortion[0] == "None":
+        print "Error: You must specify a Reverse Phase Encode Image to run DRBUDDI"
+        quit()
+
+    if(args.software == "TORTOISE_DRBUDDI" and (args.epidistortion[1] != "None" and args.epidistortion[1] != "All")):
+        print "Error: The second argument for epidistortion must be either 'All' or 'None'"
+        quit()
+
+    if args.software == "TORTOISE_DRBUDDI":
+        if args.structural == "None":
+            print "Error: You must specify a structural image to run DRBUDDI"
+            quit()
+
+        try:
+            rpe = nib.load(args.epidistortion[0])
+        except:
+            print "Error: Input for DRBUDDI must be a NIFTI"
+            quit()
+
+        if dwi.shape[0:3] != rpe.shape[0:3]:
+            print "Error: Image and RPE must both be the same size"
+            print "DWI size: " + str(dwi.shape)
+            print "RPE size: " + str(rpe.shape)
+            quit()
+
+    if (args.software is "TORTOISE_STANDARD" or args.software is "TORTOISE_DRBUDDI") and args.structural != "None":
+        try:
+            t2 = nib.load(args.epidistortion[0])
+        except:
+            print "Error: Structural input for distortion correction must be an anatomical NIFTI"
+            quit()
+
+        if len(t2.shape) != 3:
+            print "Error: Anatomical Image must be 3D"
+            quit()
+
+if args.mask != "None":
+    try:
+        mask = nib.load(args.mask)
+    except:
+        print "Error: Mask image must be a NIFTI file"
+        quit()
+
+    if dwi.shape[0:3] != mask.shape[0:3]:
+        print "Error: Mask image must be the same size as the Image"
+        quit()
+################################################################################
+
+
+
+### SETUP OUTPUT DIRECTORY #####################################################
+# Create Output Directory for Processing
+if args.Output[-1] != '/':
+    outpath = args.Output + '/'
+else:
+    outpath = args.Output
+
+os.makedirs(outpath)
+shutil.copyfile(args.Image, (outpath + 'dwi.nii'))
+shutil.copyfile(args.bval, (outpath + 'bval'))
+shutil.copyfile(args.bvec, (outpath + 'bvec'))
+
+if args.mask != "None":
+    shutil.copyfile(args.mask, (outpath + 'mask.nii'))
+
+if args.epidistortion[0] != "None":
+    if args.software == 'FSL' or args.software == 'TORTOISE_DRBUDDI':
+        shutil.copyfile(args.epidistortion[0], (outpath + 'rpe.nii'))
+if args.structural != "None":
+    shutil.copyfile(args.structural, (outpath + 'struct.nii'))
+
+os.chdir(outpath)
+
+# Reorganize DWI
+diffusion_preprocessing_functions.organize_by_bval("dwi.nii", "bval", "bvec")
+################################################################################
+
+
+
+### FSL DISTORTION CORRECTION ##################################################
+if args.software == "FSL":
+    os.environ["FSLOUTPUTTYPE"] = "NIFTI"
+
+    # Run TOPUP if specified
+    if args.epidistortion[0] != "None":
+        # Create ACQP and INDEX text files
+        diffusion_preprocessing_functions.write_index_acqp('dwi.nii', 'bval', 'bvec', 'rpe.nii')
+        topup_config = file_location + "/config/b02b0.cnf"
+
+        print "Running TOPUP"
+        subprocess.call(["topup", "--imain=B0s.nii", "--datain=acqp.txt", ("--config=" + topup_config), "--out=topup_results", "--iout=b0_corrected", "-v"])
+
+        if args.mask == "None":
+            subprocess.call(["bet", "b0_corrected.nii", "brain.nii", "-m", "-f", "0.3", "-R"])
+            os.remove("brain.nii")
+            shutil.move("brain_mask.nii", "mask.nii")
+
+        # Run EDDY if specified
+        if args.eddycurrentcorrection:
+            print "Running EDDY"
+            subprocess.call(["eddy_openmp", "--imain=dwi.nii", "--mask=mask.nii", "--index=index.txt", "--acqp=acqp.txt", "--bvecs=bvec", "--bvals=bval", "--out=dwi_eddy", "--topup=topup_results", "--data_is_shelled", "-v"])
+            os.remove("dwi.nii")
+            shutil.move("dwi_eddy.nii", "dwi.nii")
+
+            # Replace old bvec file with rotated_bvec file
+            os.remove("bvec")
+            shutil.move("dwi_eddy.eddy_rotated_bvecs", "bvec")
+
+        # Clean up extra files
+        os.remove("acqp.txt")
+        os.remove("b0_corrected.nii")
+        os.remove("B0s.nii")
+        os.remove("B0s.topup_log")
+        os.remove("dwi_eddy.eddy_movement_rms")
+        os.remove("dwi_eddy.eddy_outlier_map")
+        os.remove("dwi_eddy.eddy_outlier_n_stdev_map")
+        os.remove("dwi_eddy.eddy_outlier_report")
+        os.remove("dwi_eddy.eddy_parameters")
+        os.remove("dwi_eddy.eddy_post_eddy_shell_alignment_parameters")
+        os.remove("dwi_eddy.eddy_outlier_n_sqr_stdev_map")
+        os.remove("dwi_eddy.eddy_restricted_movement_rms")
+        os.remove("index.txt")
+        os.remove("rpe.nii")
+        os.remove("topup_results_fieldcoef.nii")
+        os.remove("topup_results_movpar.txt")
+
+    if args.eddycurrentcorrection and args.epidistortion[0] == "None":
+        # Create ACQP and INDEX text files
+        diffusion_preprocessing_functions.no_topup_index_acqp('bval', 'bvec')
+
+        print "Running EDDY"
+        subprocess.call(["eddy", "--imain=dwi.nii", "--mask=mask.nii", "--index=index.txt", "--acqp=acqp.txt", "--bvecs=bvec", "--bvals=bval", "--out=dwi", "--data_is_shelled", "-v"])
+
+        # Replace old bvec file with rotated_bvec file
+        os.remove("bvec")
+        shutil.move("dwi_eddy.eddy_rotated_bvecs", "bvec")
+
+        # Clean up extra files
+################################################################################
+
+
+
+### TORTOISE DISTORTION CORRECTION WITH DR_BUDDI ###############################
+if args.software == "TORTOISE_DRBUDDI":
+
+    if args.is_non_human:
+        is_human_brain = "0"
+    else:
+        is_human_brain = "1"
+
+    # Create blank bval and bvec files for rpe images
+    if(args.epidistortion[1] == "None"):
+        diffusion_preprocessing_functions.create_bvals_bvecs_rpe("rpe.nii")
+
+        # Import NIFTI
+        if(args.diffusion_times[0] == "None" and args.diffusion_times[1] == "None"):
+            subprocess.call(["ImportNIFTI", "-i", "dwi.nii", "-p", "vertical", "-b", "bval", "-v", "bvec"])
+        else:
+            subprocess.call(["ImportNIFTI", "-i", "dwi.nii", "-p", "vertical", "-b", "bval", "-v", "bvec", "-d", args.diffusion_times[0], "-D", args.diffusion_times[1]])
+
+        subprocess.call(["ImportNIFTI", "-i", "rpe.nii", "-p", "vertical", "-b", "rpe_bval", "-v", "rpe_bvec"])
+
+    elif(args.epidistortion[1] == "All"):
+        # Import NIFTI
+        if(args.little_delta == "None" and args.big_delta == "None"):
+            subprocess.call(["ImportNIFTI", "-i", "dwi.nii", "-p", "vertical", "-b", "bval", "-v", "bvec"])
+            subprocess.call(["ImportNIFTI", "-i", "rpe.nii", "-p", "vertical", "-b", "bval", "-v", "bvec"])
+        else:
+            subprocess.call(["ImportNIFTI", "-i", "dwi.nii", "-p", "vertical", "-b", "bval", "-v", "bvec", "-d", args.diffusion_times[0], "-D", args.diffusion_times[1]])
+            subprocess.call(["ImportNIFTI", "-i", "rpe.nii", "-p", "vertical", "-b", "bval", "-v", "bvec", "-d", args.diffusion_times[0], "-D", args.diffusion_times[1]])
+
+    # Run DIFFPREP
+    subprocess.call(["DIFFPREP", "-i", "dwi_proc/dwi.list", "-s", "struct.nii", "-c", "quadratic",
+                     "-e", "off", "--is_human_brain", is_human_brain, "--upsampling", "all",
+                     "--dti_bval", "1000", "--MAPMRI_bval", "3000", "--keep_intermediate", "0",
+                     "--res", args.voxel_size[0], args.voxel_size[1], args.voxel_size[2]])
+
+    rpe = nib.load("rpe.nii")
+    if(len(rpe.shape) == 3):
+        # Run DR. BUDDI
+        subprocess.call(["DR_BUDDI_withoutGUI", "--up_data", "dwi_proc/dwi_proc.list",
+                         "--down_data", "rpe_proc/rpe.list", "--structural", "struct.nii",
+                         "--n_DWIs", "0", "--final_res", args.voxel_size[0], args.voxel_size[1], args.voxel_size[2]])
+
+
+    elif(len(rpe.shape) == 4):
+        # Run DIFFPREP on rpe data
+        subprocess.call(["DIFFPREP", "-i", "rpe_proc/rpe.list", "-s", "struct.nii", "-c", "quadratic",
+                         "-e", "off", "--is_human_brain", is_human_brain, "--upsampling", "all",
+                         "--dti_bval", "1000", "--MAPMRI_bval", "3000", "--keep_intermediate", "0",
+                         "--res", args.voxel_size[0], args.voxel_size[1], args.voxel_size[2]])
+
+        # Run DR. BUDDI
+        if(args.epidistortion[1] == "None"):
+            subprocess.call(["DR_BUDDI_withoutGUI", "--up_data", "dwi_proc/dwi_proc.list",
+                             "--down_data", "rpe_proc/rpe_proc.list", "--structural", "struct.nii",
+                             "--n_DWIs", "0", "--final_res", args.voxel_size[0], args.voxel_size[1], args.voxel_size[2]])
+        if(args.epidistortion[1] == "All"):
+            subprocess.call(["DR_BUDDI_withoutGUI", "--up_data", "dwi_proc/dwi_proc.list",
+                             "--down_data", "rpe_proc/rpe_proc.list", "--structural", "struct.nii",
+                             "--final_res", args.voxel_size[0], args.voxel_size[1], args.voxel_size[2]])
+    # Move Output to Upper Level
+
+    # Clean up extra files
+################################################################################
+
+
+
+### TORTOISE DISTORTION CORRECTION WITH T2 #####################################
+if args.software == "TORTOISE_STANDARD":
+
+    if args.is_non_human:
+        is_human_brain = "0"
+    else:
+        is_human_brain = "1"
+
+    # Import NIFTI
+    subprocess.call(["ImportNIFTI", "-i", "dwi.nii", "-p", "vertical", "-b", "bval", "-v", "bvec"])
+
+    if args.structural != "None":
+        # Run DIFFPREP with T2
+        subprocess.call(["DIFFPREP", "-i", "dwi_proc/dwi.list", "-s", "struct.nii", "-c",
+                         "quadratic", "-e", "ITKBSPv4", "--upsampling", "all", "--dti_bval", "1000",
+                         "--MAPMRI_bval", "3000", "--is_human_brain", is_human_brain, "--keep_intermediate", "0",
+                         "--res", args.voxel_size[0], args.voxel_size[1], args.voxel_size[2]])
+
+    if args.structural == "None":
+        # Run DIFFPREP without T2
+        subprocess.call(["DIFFPREP", "-i", "dwi_proc/dwi.list", "-c", "quadratic",
+                         "-e", "off", "--upsampling", "all", "--dti_bval", "1000",
+                         "MAPMRI_bval", "3000", "--is_human_brain", is_human_brain, "--keep_intermediate", "0",
+                         "--res", args.voxel_size[0], args.voxel_size[1], args.voxel_size[2]])
+
+    # Move Output to Upper Level
+
+    # Clean up Extra Files
+################################################################################
+
+
+
+### DENOISING ##################################################################
+if args.denoising:
+    print "Running Denoising"
+    lpca_denoising.lpca_denoising("dwi.nii", "bval", "bvec", "dwi_denoised.nii")
+
+    os.remove("dwi.nii")
+    shutil.move("dwi_denoised.nii", "dwi.nii")
+################################################################################
+
+
+
+### BIAS FIELD CORRECTION ######################################################
+if args.biasfieldcorrection:
+    create_avg_b0("dwi.nii", "bval", "bvec")
+
+    print "Matching Mask and DWI header info"
+    remove_header('mean_b0.nii', 'mean_b0.nii')
+    remove_header('mask.nii', 'mask_bias.nii')
+
+    print "Calculating Bias Field"
+    subprocess.call(["N4BiasFieldCorrection", "-d", "3", "-i", "mean_b0.nii", "-x", "mask_bias.nii", "-o", "[bias_correct.nii,field.nii]"])
+
+    print "Applying Bias Field"
+    apply_bias_field("dwi.nii", "field.nii")
+
+    # Clean up Extra Files
+    os.remove("field.nii")
+    os.remove("mask_bias.nii")
+    os.remove("bias_correct.nii")
+    os.remove("mean_b0.nii")
+################################################################################
