@@ -7,7 +7,7 @@ From: ubuntu:xenial
 
 #%labels
 
-%environment
+#%environment
 
 
 %runscript
@@ -86,6 +86,3 @@ From: ubuntu:xenial
 
     ### ADD PYTHON CODE ########################################################
     git clone https://github.com/adambernstein1492/DiffusionMRI
-
-
-#%test
