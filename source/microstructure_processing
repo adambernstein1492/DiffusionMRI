@@ -9,21 +9,22 @@ import dipy.io
 import diffusion_functions.dti as dti
 import diffusion_functions.map as map
 import diffusion_functions.amico as amico
+import diffusion_functions.util as util
 #import diffusion_functions.dki as dki
 
 
 ### DEFINE INPUTS ##############################################################
 parser = argparse.ArgumentParser(description="Process a Diffusion MRI dataset using any of several microstructural analysis techniques")
-parser.add_argument("-d", "--dti", type=int, help="Perform Diffusion Tensor Imaging. Can specify a b-value threshold as an argument (default = 2100 s/mm^2)", nargs="?", default=0, const=2100)
-parser.add_argument("-k", "--dki", action="store_true", help="Perform Diffusion Kurtosis Imaging", default=False)
-parser.add_argument("-n", "--noddi", action="store_true", help="Perform Neurite Orientation Dispersion and Density Imaging(NODDI)", default=False)
-parser.add_argument("-a", "--afd", action="store_true", help="Estimate the Apparent Fiber Density using MRtrix", default=False)
-parser.add_argument("-m", "--map", type=float, help="Estimate the Mean Apparent Propagator (MAP). Must specify diffusion times and b-value threshold for DTI", nargs=3, default=0)
-parser.add_argument("Image", type=str, help="Diffusion Weighted MRI filepath (Assumes preprocessing has been performed)")
+parser.add_argument("-d", "--dti", type=int, help="Perform Diffusion Tensor Imaging.", nargs="?", default=0, const=2100, metavar='b_value_cutoff')
+parser.add_argument("-k", "--dki", type=int, help="Perform Diffusion Kurtosis Imaging", nargs="?", default=0, const=2100, metavar='b_value_cutoff')
+parser.add_argument("-n", "--noddi", action="store_true", help="Perform NODDI", default=False)
+parser.add_argument("-a", "--afd", action="store_true", help="Estimate the Apparent Fiber Density", default=False)
+parser.add_argument("-m", "--map", type=float, help="Estimate the Mean Apparent Propagator", nargs=3, default=0, metavar=('d', 'D', 'b_value_cutoff'))
+parser.add_argument("Image", type=str, help="Diffusion Weighted MRI filepath")
 parser.add_argument("bval", type=str, help="b-value filepath")
 parser.add_argument("bvec", type=str, help="b-vector filepath")
 parser.add_argument("mask", type=str, help="mask filepath")
-parser.add_argument("Output", type=str, help="Output directory for the final processed DWI")
+parser.add_argument("Output", type=str, help="Output directory")
 
 args = parser.parse_args()
 ################################################################################
@@ -31,7 +32,47 @@ args = parser.parse_args()
 
 
 ### ERROR HANDLING #############################################################
+# Check Inputs
+util.check_diffusion_input(args.Image, args.bval, args.bvec, args.mask)
 
+"""
+ -Must be at least 1 b=0 and 6 b > 0 measurements for DTI
+ -Must be at least 1 b=0 and 15 b > 0 measurements for DKI (should contain multiple shells)
+ -Must be at least 1 b=0, and 30 b > 0 measurements on multiple shells for NODDI
+ -Must be at least 30 b > 0 measurements for CSD
+ -Must be at least 1 b=0 and 50 b > 0 measurements on multiple shells for MAP
+"""
+bval,bvec = dipy.io.read_bvals_bvecs(args.bval, args.bvec)
+
+number_measures = len(bval)
+unique_b_vals = len(set(bval))
+number_high_bvals = 0
+b0_present = False
+for i in bval:
+    if i > 100:
+        number_high_bvals += 1
+    if i < 50:
+        b0_present = True
+
+if args.dti != 0 and (number_high_bvals < 6 or b0_present==False):
+    print "Error: Measurement scheme does not meet DTI minimums"
+    quit()
+
+if args.dki != 0 and (number_high_bvals < 15 or b0_present==False):
+    print "Error: Measurement scheme does not meet DKI minimums"
+    quit()
+
+if args.noddi and (number_high_bvals < 30 or b0_present==False or unique_b_vals < 3):
+    print "Error: Measurement scheme does not meet NODDI minimums"
+    quit()
+
+if args.afd and number_high_bvals < 30:
+    print "Error: Measurement scheme does not meet CSD minimums"
+    quit()
+
+if args.map != 0 and (number_high_bvals < 50 or b0_present==False):
+    print "Error: Measurement scheme does not meet MAP minimums"
+    quit()
 ################################################################################
 
 
@@ -123,5 +164,4 @@ if args.noddi:
     shutil.move((outpath + "NODDI/Study01/Subject01/AMICO/NODDI/FIT_ICVF.nii.gz"), (outpath + "NODDI/ICVF.nii.gz"))
     shutil.move((outpath + "NODDI/Study01/Subject01/AMICO/NODDI/FIT_OD.nii.gz"), (outpath + "NODDI/OD.nii.gz"))
     shutil.move((outpath + "NODDI/Study01/Subject01/AMICO/NODDI/FIT_ISOVF.nii.gz"), (outpath + "NODDI/ICOVF.nii.gz"))
-    shutil.rmtree("Study01")
 ################################################################################

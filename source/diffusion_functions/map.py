@@ -7,7 +7,7 @@ import dti
 
 def main_map(dwi_file, bval_file, bvec_file, mask_file, little_delta, big_delta,
              out_path, order=6, b_thresh_dti=2100, calc_rtps=True, calc_ng=True,
-             calc_pa=True, calc_dki=False, return_dti=True):
+             calc_pa=True, calc_dki=False, return_dti=False):
 
     # Load in Data
     dwi, mask, bvals, bvecs = util.load_diffusion_data(dwi_file, bval_file, bvec_file, mask_file)

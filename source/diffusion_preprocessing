@@ -7,19 +7,20 @@ import shutil
 import diffusion_functions.lpca_denoising as lpca_denoising
 import nibabel as nib
 import dipy.io
-import diffusion_preprocessing_functions
+import diffusion_functions.diffusion_preprocessing_functions as diffusion_preprocessing_functions
+import diffusion_functions.util as util
 
 ### DEFINE INPUTS ##############################################################
 parser = argparse.ArgumentParser(description="Run a conventional diffusion MRI through the entire preprocessing pipeline")
-parser.add_argument("-l", "--denoising", action="store_true", help="Perform LPCA denoising if set. Default=False", default=False)
-parser.add_argument("-b", "--biasfieldcorrection", action="store_true", help="Perform N4 bias field correction if set. Default=False", default=False)
-parser.add_argument("-e", "--eddycurrentcorrection", action="store_true", help="Perform eddy current correction if set. Default=False", default=False)
-parser.add_argument("-r", "--epidistortion", type=str, help="Filepath to the reverse phase encode image, and whether RPE contains DWIs. Default=None", nargs=2, default="None")
-parser.add_argument("-m", "--mask", type=str, help="Filepath to a mask image to be used. (Will use mrtrix to calculate one if not specified. Default=None)", default="None")
-parser.add_argument("-a", "--structural", help="TORTOISE: Anatomical NIFTI image for use with TORTOISE distortion correction", default="None")
-parser.add_argument("-k", "--is_non_human", action="store_true", help="TORTOISE: Flag to specify if the data is from a human or not (Only used for TORTOISE processing). Default=False", default=False)
-parser.add_argument("-v", "--voxel_size", type=str, help="Final Voxel size for corrected image (Will use original size if not specified).", nargs=3, default="None")
-parser.add_argument("-d", "--diffusion_times", type=str, help="'little_delta' 'big_delta' for calculating diffusion time in TORTOISE", nargs=2, default="None")
+parser.add_argument("-l", "--denoising", action="store_true", help="Perform LPCA denoising. Default=False", default=False)
+parser.add_argument("-b", "--biasfieldcorrection", action="store_true", help="Perform N4 correction. Default=False", default=False)
+parser.add_argument("-e", "--eddycurrentcorrection", action="store_true", help="Perform eddy current correction. Default=False", default=False)
+parser.add_argument("-r", "--epidistortion", type=str, help="Reverse phase encode image. Default=None", nargs=2, default="None", metavar=('RPE_image', 'Number_DWIs'))
+parser.add_argument("-m", "--mask", type=str, help="Filepath to a mask image to be used. Default=None)", default="None", metavar=('mask'))
+parser.add_argument("-a", "--structural", help="TORTOISE: Anatomical NIFTI image", default="None", metavar=('structural_image'))
+parser.add_argument("-k", "--is_non_human", action="store_true", help="TORTOISE: is human brain? Default=False", default=False)
+parser.add_argument("-v", "--voxel_size", type=str, help="Final Voxel size for corrected image", nargs=3, default="None", metavar=('vx', 'vy', 'vz'))
+parser.add_argument("-d", "--diffusion_times", type=str, help="Gradient timing parameters d and D", nargs=2, default="None", metavar=('d', 'D'))
 parser.add_argument("-s", "--software", type=str, help="Software to use for distortion correction. Default=FSL", choices=["FSL","TORTOISE_DRBUDDI", "TORTOISE_STANDARD"], default="FSL")
 parser.add_argument("Image", type=str, help="Diffusion Weighted MRI filepath")
 parser.add_argument("bval", type=str, help="b-value filepath")
@@ -36,27 +37,7 @@ file_location = os.path.dirname(__file__)
 
 ### ERROR CHECKING #############################################################
 # Check Required Inputs
-try:
-    dwi = nib.load(args.Image)
-except:
-    print "Error: Image must be a 4-D NIFTI file"
-    quit()
-
-try:
-    length = dwi.shape[3]
-except:
-    print "Error: Image must be a 4-D NIFTI file"
-    quit()
-
-try:
-    bval,bvec = dipy.io.read_bvals_bvecs(args.bval, args.bvec)
-except:
-    print "Error: Cannot read in the bval and bvecs files"
-    quit()
-
-if dwi.shape[3] != bval.shape[0] or dwi.shape[3] != bvec.shape[0]:
-    print "Error: Number of bvals or bvecs is different than the number of DWIs"
-    quit()
+util.check_diffusion_input(args.Image, args.bval, args.bvec, args.mask)
 
 if args.biasfieldcorrection:
     try:
@@ -145,6 +126,13 @@ if args.mask != "None":
     if dwi.shape[0:3] != mask.shape[0:3]:
         print "Error: Mask image must be the same size as the Image"
         quit()
+
+if args.voxel_size != "None" and args.software is "FSL":
+    try:
+        subprocess.call(["which", "mrresize"])
+    except:
+        print "Error: Must have MRtrix3 installed to regrid the image"
+        quit()
 ################################################################################
 
 
@@ -174,6 +162,17 @@ os.chdir(outpath)
 
 # Reorganize DWI
 diffusion_preprocessing_functions.organize_by_bval("dwi.nii", "bval", "bvec")
+
+# Set Voxel sizes
+if args.voxel_size == "None":
+    voxel_size = []
+    voxels = nib.load('dwi.nii').header.get_zooms()
+    voxel_size.append(str(voxesl[0]))
+    voxel_size.append(str(voxesl[1]))
+    voxel_size.append(str(voxesl[2]))
+
+else:
+     voxel_size = args.voxel_size
 ################################################################################
 
 
@@ -274,14 +273,14 @@ if args.software == "TORTOISE_DRBUDDI":
     subprocess.call(["DIFFPREP", "-i", "dwi_proc/dwi.list", "-s", "struct.nii", "-c", "quadratic",
                      "-e", "off", "--is_human_brain", is_human_brain, "--upsampling", "all",
                      "--dti_bval", "1000", "--MAPMRI_bval", "3000", "--keep_intermediate", "0",
-                     "--res", args.voxel_size[0], args.voxel_size[1], args.voxel_size[2]])
+                     "--res", voxel_size[0], voxel_size[1], voxel_size[2]])
 
     rpe = nib.load("rpe.nii")
     if(len(rpe.shape) == 3):
         # Run DR. BUDDI
         subprocess.call(["DR_BUDDI_withoutGUI", "--up_data", "dwi_proc/dwi_proc.list",
                          "--down_data", "rpe_proc/rpe.list", "--structural", "struct.nii",
-                         "--n_DWIs", "0", "--final_res", args.voxel_size[0], args.voxel_size[1], args.voxel_size[2]])
+                         "--n_DWIs", "0", "--final_res", voxel_size[0], voxel_size[1], voxel_size[2]])
 
 
     elif(len(rpe.shape) == 4):
@@ -295,11 +294,11 @@ if args.software == "TORTOISE_DRBUDDI":
         if(args.epidistortion[1] == "None"):
             subprocess.call(["DR_BUDDI_withoutGUI", "--up_data", "dwi_proc/dwi_proc.list",
                              "--down_data", "rpe_proc/rpe_proc.list", "--structural", "struct.nii",
-                             "--n_DWIs", "0", "--final_res", args.voxel_size[0], args.voxel_size[1], args.voxel_size[2]])
+                             "--n_DWIs", "0", "--final_res", voxel_size[0], voxel_size[1], voxel_size[2]])
         if(args.epidistortion[1] == "All"):
             subprocess.call(["DR_BUDDI_withoutGUI", "--up_data", "dwi_proc/dwi_proc.list",
                              "--down_data", "rpe_proc/rpe_proc.list", "--structural", "struct.nii",
-                             "--final_res", args.voxel_size[0], args.voxel_size[1], args.voxel_size[2]])
+                             "--final_res", voxel_size[0], voxel_size[1], voxel_size[2]])
     # Move Output to Upper Level
 
     # Clean up extra files
@@ -323,14 +322,14 @@ if args.software == "TORTOISE_STANDARD":
         subprocess.call(["DIFFPREP", "-i", "dwi_proc/dwi.list", "-s", "struct.nii", "-c",
                          "quadratic", "-e", "ITKBSPv4", "--upsampling", "all", "--dti_bval", "1000",
                          "--MAPMRI_bval", "3000", "--is_human_brain", is_human_brain, "--keep_intermediate", "0",
-                         "--res", args.voxel_size[0], args.voxel_size[1], args.voxel_size[2]])
+                         "--res", voxel_size[0], voxel_size[1], voxel_size[2]])
 
     if args.structural == "None":
         # Run DIFFPREP without T2
         subprocess.call(["DIFFPREP", "-i", "dwi_proc/dwi.list", "-c", "quadratic",
                          "-e", "off", "--upsampling", "all", "--dti_bval", "1000",
                          "MAPMRI_bval", "3000", "--is_human_brain", is_human_brain, "--keep_intermediate", "0",
-                         "--res", args.voxel_size[0], args.voxel_size[1], args.voxel_size[2]])
+                         "--res", voxel_size[0], voxel_size[1], voxel_size[2]])
 
     # Move Output to Upper Level
 
@@ -369,4 +368,16 @@ if args.biasfieldcorrection:
     os.remove("mask_bias.nii")
     os.remove("bias_correct.nii")
     os.remove("mean_b0.nii")
+################################################################################
+
+
+
+### RESIZE IMAGE IF FSL WAS USED AND VOXEL SIZE IS DIFFERENT THAN ORIGINAL #####
+if args.voxel_size != "None" and args.software is "FSL":
+    subprocess.cal(["mrresize", "-voxel", voxel_size[0], voxel_size[1], voxel_size[2], "dwi.nii", "dwi_resize.nii"])
+    subprocess.cal(["mrresize", "-voxel", voxel_size[0], voxel_size[1], voxel_size[2], "mask.nii", "mask_resize.nii"])
+    os.remove('dwi.nii')
+    os.remove('mask.nii')
+    shutil.move('dwi_resize.nii', 'dwi.nii')
+    shutil.move('mask.nii', 'mask_resize.nii')
 ################################################################################

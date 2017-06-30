@@ -16,7 +16,7 @@ import dipy.reconst.dti as dti
 
 def setup( lmax = 12 ) :
     """General setup/initialization of the AMICO framework."""
-    amico.lut.precompute_rotation_matrices( lmax )
+    lut.precompute_rotation_matrices( lmax )
 
 
 class Evaluation :
@@ -107,7 +107,7 @@ class Evaluation :
         print '\t* Acquisition scheme...'
         self.set_config('scheme_filename', scheme_filename)
         self.set_config('b0_thr', b0_thr)
-        self.scheme = amico.scheme.Scheme( pjoin( self.get_config('DATA_path'), scheme_filename), b0_thr )
+        self.scheme = scheme.Scheme( pjoin( self.get_config('DATA_path'), scheme_filename), b0_thr )
         print '\t\t- %d samples, %d shells' % ( self.scheme.nS, len(self.scheme.shells) )
         print '\t\t- %d @ b=0' % ( self.scheme.b0_count ),
         for i in xrange(len(self.scheme.shells)) :
@@ -170,8 +170,8 @@ class Evaluation :
             The name of the model (must match a class name in "amico.models" module)
         """
         # Call the specific model constructor
-        if hasattr(amico.models, model_name ) :
-            self.model = getattr(amico.models,model_name)()
+        if hasattr(models, model_name ) :
+            self.model = getattr(models,model_name)()
         else :
             raise ValueError( 'Model "%s" not recognized' % model_name )
 
@@ -226,8 +226,8 @@ class Evaluation :
                 remove( f )
 
         # auxiliary data structures
-        aux = amico.lut.load_precomputed_rotation_matrices( lmax )
-        idx_IN, idx_OUT = amico.lut.aux_structures_generate( self.scheme, lmax )
+        aux = lut.load_precomputed_rotation_matrices( lmax )
+        idx_IN, idx_OUT = lut.aux_structures_generate( self.scheme, lmax )
 
         # Dispatch to the right handler for each model
         tic = time.time()
@@ -248,7 +248,7 @@ class Evaluation :
         print '\n-> Resampling LUT for subject "%s":' % self.get_config('subject')
 
         # auxiliary data structures
-        idx_OUT, Ylm_OUT = amico.lut.aux_structures_resample( self.scheme, self.get_config('lmax') )
+        idx_OUT, Ylm_OUT = lut.aux_structures_resample( self.scheme, self.get_config('lmax') )
 
         # Dispatch to the right handler for each model
         self.KERNELS = self.model.resample( self.get_config('ATOMS_path'), idx_OUT, Ylm_OUT, self.get_config('doMergeB0') )

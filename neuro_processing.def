@@ -13,7 +13,7 @@ From: ubuntu:xenial
 %runscript
       export PATH=$PATH:/software/dcm2niix/bin/bin:/software/mrtrix3/bin:/software/ANTs/bin/bin:/software/mrtrix3/bin:/software/anaconda2/bin:/software/DiffusionMRI:/software/fsl/bin
       export FREESURFER_HOME=/software/freesurfer
-      export FSLDIR=/software/FSL
+      export FSLDIR=/software/fsl
       . ${FSLDIR}/etc/fslconf/fsl.sh
       . ${FREESURFER_HOME}/SetUpFreeSurfer.sh
 

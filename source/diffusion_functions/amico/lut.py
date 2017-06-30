@@ -242,7 +242,7 @@ def dir_TO_lut_idx( direction ) :
     return i1, i2
 
 
-def create_high_resolution_scheme( scheme, b_scale = 1 ) :
+def create_high_resolution_scheme( scheme_a, b_scale = 1 ) :
     """Create an high-resolution version of a scheme to be used for kernel rotation (500 directions per shell).
     All other parameters of the scheme remain the same.
 
@@ -253,21 +253,21 @@ def create_high_resolution_scheme( scheme, b_scale = 1 ) :
     b_scale : float
         If needed, apply a scaling to the b-values (default : 1)
     """
-    n = len( scheme.shells )
-    raw = np.zeros( (500*n, 4 if scheme.version==0 else 7) )
+    n = len( scheme_a.shells )
+    raw = np.zeros( (500*n, 4 if scheme_a.version==0 else 7) )
     row = 0
     for i in xrange(n) :
         raw[row:row+500,0:3] = grad
-        if scheme.version == 0 :
-            raw[row:row+500,3] = scheme.shells[i]['b'] * b_scale
+        if scheme_a.version == 0 :
+            raw[row:row+500,3] = scheme_a.shells[i]['b'] * b_scale
         else :
-            raw[row:row+500,3] = scheme.shells[i]['G']
-            raw[row:row+500,4] = scheme.shells[i]['Delta']
-            raw[row:row+500,5] = scheme.shells[i]['delta']
-            raw[row:row+500,6] = scheme.shells[i]['TE']
+            raw[row:row+500,3] = scheme_a.shells[i]['G']
+            raw[row:row+500,4] = scheme_a.shells[i]['Delta']
+            raw[row:row+500,5] = scheme_a.shells[i]['delta']
+            raw[row:row+500,6] = scheme_a.shells[i]['TE']
         row += 500
 
-    return amico.scheme.Scheme( raw )
+    return scheme.Scheme( raw )
 
 
 """Gradient orientations for each shell of the high-resolution response functions.
