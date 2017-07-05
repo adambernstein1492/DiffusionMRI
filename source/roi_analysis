@@ -62,7 +62,7 @@ os.chdir(outpath)
 
 ### REGISTER DWI TO T1 #########################################################
 # Run BET on T1
-subprocess.call(["bet", "t1.nii", "brain.nii", "-f", "0.5"])
+subprocess.call(["bet", "t1.nii", "brain.nii", "-f", "0.5", "-R"])
 
 # Register dwi to T1
 subprocess.call(["epi_reg", "--epi=dwi.nii", "--t1=t1.nii", "--t1brain=brain.nii", "--out=dwi2t1"])

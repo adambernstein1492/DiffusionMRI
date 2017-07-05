@@ -1,0 +1,123 @@
+#! /usr/bin/env python
+
+import os
+import subprocess
+import argparse
+import shutil
+
+
+### DEFINE INPUTS #############################################################
+parser = argparse.ArgumentParser(description="Perform Anatomically Constrained Tractography and Connectome Analysis using MRtrix3")
+parser.add_argument("-i", "--dwi", type=str, help="Input Diffusion weighted image to perform registration", default="None");
+parser.add_argument("-b", "--bval", type=str, help="bval file", default="None")
+parser.add_argument("-v", "--bvec", type=str, help="bvec file", default="None")
+parser.add_argument("-m", "--mask", type=str, help="mask file", default="None")
+parser.add_argument("-p", "--mrtrix_path", type=str, help="path to mrtrix directory", default="None")
+parser.add_argument("-s", "--t1", type=str, help="FreeSurfer Subject Directory", default="None")
+parser.add_argument("-o", "--output", type=str, help="Output Directory", default="None")
+
+args = parser.parse_args()
+###############################################################################
+
+
+
+### ERROR CHECKING ############################################################
+###############################################################################
+
+
+
+### SET UP OUTPUT DIRECTORY ###################################################
+if args.output[-1] != '/':
+    outpath=args.output + '/'
+else:
+    outpath = args.output
+    
+if args.t1[-1] != '/':
+    t1_path = args.t1 + '/'
+else:
+    t1_path = args.t1
+    
+os.makedirs(outpath)
+os.environ["FSLOUTPUTTYPE"] = "NIFTI"
+subprocess.call(["mri_convert", (t1_path + "mri/orig.mgz"), (outpath + "t1.nii")])
+subprocess.call(["mri_convert", (t1_path + "mri/aparc+aseg.mgz"), (outpath + "aparc+aseg.nii")])
+
+# Copy DWI files
+shutil.copyfile(args.dwi, (outpath + "dwi.nii"))
+shutil.copyfile(args.bval, (outpath + "bval"))
+shutil.copyfile(args.bvec, (outpath + "bvec"))
+shutil.copyfile(args.mask, (outpath + "mask.nii"))
+
+os.chdir(outpath)
+###############################################################################
+
+
+
+### REGISTER T1 TO DWI ########################################################
+# Run BET on T1
+subprocess.call(["bet", "t1.nii", "brain.nii", "-f", "0.5", "-R"])
+
+# Register dwi to T1
+subprocess.call(["epi_reg", "--epi=dwi.nii", "--t1=t1.nii", "--t1brain=brain.nii", "--out=dwi2t1"])
+
+# Convert Registration Matrix to MRTrix Format
+subprocess.call(["transformconvert", "dwi2t1.mat", "dwi.nii", "t1.nii", "flirt_import", "dwi2t1_mrtrix.txt"])   
+
+# Apply Inverse Transform to T1 and Parcellation
+subprocess.call(["transformcalc", "dwi2t1_mrtrix.txt", "invert", "t12dwi_mrtrix.txt"])
+
+subprocess.call(["mrtransform", "-linear", "t12dwi_mrtrix.txt", "t1.nii", "t1_reg.mif"])
+subprocess.call(["mrtransform", "-interp", "nearest", "-linear", "t12dwi_mrtrix.txt", "aparc+aseg.nii", "aparc+aseg_reg.mif"]) 
+###############################################################################
+
+
+
+### CREATE SEGMENTATION MASK ##################################################
+subprocess.call(["5ttgen", "freesurfer", "aparc.a2009s+aseg.mif", "5TT.mif"])
+###############################################################################
+
+
+
+### CONVERT LABELS ############################################################
+subprocess.call(["labelconvert", "aparc+aseg.mif", "$FREESURFER_HOME/FreeSurferColorLUT.txt", (args.mrtrix_path + "src/connectome/tables/fs_default.txt"), "nodes.mif"])
+###############################################################################
+
+
+
+### DWI PROCESSING ############################################################
+# Convert to mif
+subprocess.call(["mrconvert", "dwi.nii", "-fslgrad", "bvec", "bval", "dwi.mif"])
+
+# Upsample
+subprocess.call(["mrresize", "-voxel", "1,1,1", "dwi.mif", "dwi_up.mif"])
+subprocess.call(["mrresize", "-voxel", "1,1,1", "mask.nii", "mask_up.nii"])
+os.remove("mask.nii")
+os.remove("dwi.mif")
+os.rename("mask_up.nii", "mask.nii")
+os.rename("dwi_up.mif", "dwi.mif")
+
+# Estimate Response Function
+subprocess.call(["dwi2response", "msmt_5tt", "dwi.mif", "5TT.mif", "RF_WM.txt", "RF_GM.txt", "RF_CSF.txt", "-voxels", "RF_voxels.mif"])
+
+# Estimate FODs
+subprocess.call(["dwi2fod", "msmt_csd", "dwi.mif", "RF_WM.txt", "WM_FODs.mif", "RF_GM.txt", "GM.mif", "RF_CSF.txt", "CSF.mif", "-mask", "mask.nii"])
+
+# Tractography
+subprocess.call(["tckgen", "WM_FODs.mif", "20M.tck", "-act", "5TT.mif", "-backgrack", "-crop_at_gmwmi", "-seed_dynamic", "temp/WM_FODs.mif", "-maxlength", "250", "-number", "20M", "-cutoff", "0.06"])
+subprocess.call(["tcksift", "20M.tck", "WM_FODs.mif", "10M_SIFT.tck", "-act", "5TT.mif", "-term_number", "10M"])
+###############################################################################
+
+
+
+### CONNECTOME GENERATION #####################################################
+subprocess.call(["tck2connectome", "10M_SIFT.tck", "nodes.mif", "connectome.csv", "-out_assignments", "tcklabels.txt"])
+
+# Parse out Tracts between regions
+os.mkdir("Tracts")
+subprocess.call(["connectome2tck", "10M_SIFT.tck", "tcklabels.txt", "Tracts/IsoTracts"])
+###############################################################################
+
+
+
+### CLEAN UP ##################################################################
+###############################################################################
