@@ -85,7 +85,7 @@ From: ubuntu:xenial
     git clone https://github.com/adambernstein1492/DiffusionMRI
 
     ### SETUP .bashrc FILE #####################################################
-    echo "export $PATH:/software/dcm2niix/bin/bin:/software/mrtrix3/bin:/software/ANTs/bin/bin:/software/mrtrix3/bin:/software/anaconda2/bin:/software/DiffusionMRI/source:/software/fsl/bin" >> /root/.bashrc
+    echo "export PATH=$PATH:/software/dcm2niix/bin/bin:/software/mrtrix3/bin:/software/ANTs/bin/bin:/software/mrtrix3/bin:/software/anaconda2/bin:/software/DiffusionMRI/source:/software/fsl/bin" >> /root/.bashrc
     echo "export FREESURFER_HOME=/software/freesurfer" >> /root/.bashrc
     echo "export FSLDIR=/software/fsl" >> /root/.bashrc
     echo ". ${FSLDIR}/etc/fslconf/fsl.sh" >> /root/.bashrc
