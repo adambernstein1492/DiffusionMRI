@@ -356,7 +356,7 @@ if args.denoising:
 
 ### BIAS FIELD CORRECTION ######################################################
 if args.biasfieldcorrection:
-    create_avg_b0("dwi.nii", "bval", "bvec")
+    diffusion_preprocessing_functions.create_avg_b0("dwi.nii", "bval", "bvec")
 
     print "Matching Mask and DWI header info"
     remove_header('mean_b0.nii', 'mean_b0.nii')
@@ -366,7 +366,7 @@ if args.biasfieldcorrection:
     subprocess.call(["N4BiasFieldCorrection", "-d", "3", "-i", "mean_b0.nii", "-x", "mask_bias.nii", "-o", "[bias_correct.nii,field.nii]"])
 
     print "Applying Bias Field"
-    apply_bias_field("dwi.nii", "field.nii")
+    diffusion_preprocessing_functions.apply_bias_field("dwi.nii", "field.nii")
 
     # Clean up Extra Files
     os.remove("field.nii")
