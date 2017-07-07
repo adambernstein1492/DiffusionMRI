@@ -144,7 +144,11 @@ if args.Output[-1] != '/':
 else:
     outpath = args.Output
 
-os.makedirs(outpath)
+if os.path.isdir(outpath):
+    pass
+else:
+    os.makedirs(outpath)
+
 shutil.copyfile(args.Image, (outpath + 'dwi.nii'))
 shutil.copyfile(args.bval, (outpath + 'bval'))
 shutil.copyfile(args.bvec, (outpath + 'bvec'))
@@ -236,6 +240,7 @@ if args.software == "FSL":
         shutil.move("dwi_eddy.eddy_rotated_bvecs", "bvec")
 
         # Clean up extra files
+
 ################################################################################
 
 
@@ -370,14 +375,11 @@ if args.biasfieldcorrection:
     os.remove("mean_b0.nii")
 ################################################################################
 
-
-
-### RESIZE IMAGE IF FSL WAS USED AND VOXEL SIZE IS DIFFERENT THAN ORIGINAL #####
-if args.voxel_size != "None" and args.software is "FSL":
-    subprocess.cal(["mrresize", "-voxel", voxel_size[0], voxel_size[1], voxel_size[2], "dwi.nii", "dwi_resize.nii"])
+### INTERPOLATE DWI IF INDICATED ###############################################
+if (args.software == 'FSL'):
     subprocess.cal(["mrresize", "-voxel", voxel_size[0], voxel_size[1], voxel_size[2], "mask.nii", "mask_resize.nii"])
     os.remove('dwi.nii')
     os.remove('mask.nii')
     shutil.move('dwi_resize.nii', 'dwi.nii')
-    shutil.move('mask.nii', 'mask_resize.nii')
+    shutil.move('mask_resize.nii', 'mask.nii')
 ################################################################################

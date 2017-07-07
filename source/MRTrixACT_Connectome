@@ -31,12 +31,12 @@ if args.output[-1] != '/':
     outpath=args.output + '/'
 else:
     outpath = args.output
-    
+
 if args.t1[-1] != '/':
     t1_path = args.t1 + '/'
 else:
     t1_path = args.t1
-    
+
 os.makedirs(outpath)
 os.environ["FSLOUTPUTTYPE"] = "NIFTI"
 subprocess.call(["mri_convert", (t1_path + "mri/orig.mgz"), (outpath + "t1.nii")])
@@ -61,13 +61,13 @@ subprocess.call(["bet", "t1.nii", "brain.nii", "-f", "0.5", "-R"])
 subprocess.call(["epi_reg", "--epi=dwi.nii", "--t1=t1.nii", "--t1brain=brain.nii", "--out=dwi2t1"])
 
 # Convert Registration Matrix to MRTrix Format
-subprocess.call(["transformconvert", "dwi2t1.mat", "dwi.nii", "t1.nii", "flirt_import", "dwi2t1_mrtrix.txt"])   
+subprocess.call(["transformconvert", "dwi2t1.mat", "dwi.nii", "t1.nii", "flirt_import", "dwi2t1_mrtrix.txt"])
 
 # Apply Inverse Transform to T1 and Parcellation
 subprocess.call(["transformcalc", "dwi2t1_mrtrix.txt", "invert", "t12dwi_mrtrix.txt"])
 
 subprocess.call(["mrtransform", "-linear", "t12dwi_mrtrix.txt", "t1.nii", "t1_reg.mif"])
-subprocess.call(["mrtransform", "-interp", "nearest", "-linear", "t12dwi_mrtrix.txt", "aparc+aseg.nii", "aparc+aseg_reg.mif"]) 
+subprocess.call(["mrtransform", "-interp", "nearest", "-linear", "t12dwi_mrtrix.txt", "aparc+aseg.nii", "aparc+aseg_reg.mif"])
 ###############################################################################
 
 
@@ -103,8 +103,8 @@ subprocess.call(["dwi2response", "msmt_5tt", "dwi.mif", "5TT.mif", "RF_WM.txt", 
 subprocess.call(["dwi2fod", "msmt_csd", "dwi.mif", "RF_WM.txt", "WM_FODs.mif", "RF_GM.txt", "GM.mif", "RF_CSF.txt", "CSF.mif", "-mask", "mask.nii"])
 
 # Tractography
-subprocess.call(["tckgen", "WM_FODs.mif", "20M.tck", "-act", "5TT.mif", "-backgrack", "-crop_at_gmwmi", "-seed_dynamic", "temp/WM_FODs.mif", "-maxlength", "250", "-number", "20M", "-cutoff", "0.06"])
-subprocess.call(["tcksift", "20M.tck", "WM_FODs.mif", "10M_SIFT.tck", "-act", "5TT.mif", "-term_number", "10M"])
+subprocess.call(["tckgen", "WM_FODs.mif", "20M.tck", "-act", "5TT.mif", "-backgrack", "-crop_at_gmwmi", "-seed_dynamic", "temp/WM_FODs.mif", "-maxlength", "250", "-number", "1M", "-cutoff", "0.06"])
+subprocess.call(["tcksift", "20M.tck", "WM_FODs.mif", "10M_SIFT.tck", "-act", "5TT.mif", "-term_number", "500k"])
 ###############################################################################
 
 

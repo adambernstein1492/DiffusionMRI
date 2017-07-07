@@ -16,7 +16,7 @@ From: ubuntu:xenial
 %post
     ### UPDATE AND INSTALL DEPENDENCIES ########################################
     apt-get update -y && apt-get upgrade -y
-    apt-get install -y build-essential wget cmake git g++ libeigen3-dev zlib1g-dev libqt4-opengl-dev libgl1-mesa-dev python python-numpy tcsh
+
 
     mkdir /software
     cd /software
