@@ -164,4 +164,7 @@ if args.noddi:
     shutil.move((outpath + "NODDI/Study01/Subject01/AMICO/NODDI/FIT_ICVF.nii.gz"), (outpath + "NODDI/ICVF.nii.gz"))
     shutil.move((outpath + "NODDI/Study01/Subject01/AMICO/NODDI/FIT_OD.nii.gz"), (outpath + "NODDI/OD.nii.gz"))
     shutil.move((outpath + "NODDI/Study01/Subject01/AMICO/NODDI/FIT_ISOVF.nii.gz"), (outpath + "NODDI/ICOVF.nii.gz"))
+    shutil.rmtree(outpath + "NODDI/Study01")
+    
+    
 ################################################################################

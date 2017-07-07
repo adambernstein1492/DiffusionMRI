@@ -11,35 +11,43 @@ From: ubuntu:xenial
 
 
 %runscript
-
+    export PATH=$PATH:/software/dcm2niix/bin/bin:/software/mrtrix3/bin:/software/ANTs/bin/bin:/software/mrtrix3/bin:/software/anaconda2/bin:/software/DiffusionMRI/source:/software/fsl/bin
+    export FREESURFER_HOME=/software/freesurfer
+    export FSLDIR=/software/fsl
+    . $FSLDIR/etc/fslconf/fsl.sh
+    . $FREESURFER_HOME/SetUpFreeSurfer.sh
+    
+    
+    echo "Testing RunScript"
+    echo $PATH
 
 %post
     ### UPDATE AND INSTALL DEPENDENCIES ########################################
     apt-get update -y && apt-get upgrade -y
-
+    apt-get install wget -y
 
     mkdir /software
     cd /software
 
     ### INSTALL MINICONDA AND SELECT PACKAGES ##################################
-    wget https://repo.continuum.io/miniconda/Miniconda2-latest-Linux-x86_64.sh -O miniconda.sh
-    bash miniconda.sh -b -p /software/anaconda2
-    rm miniconda.sh
+    #wget https://repo.continuum.io/miniconda/Miniconda2-latest-Linux-x86_64.sh -O miniconda.sh
+    #bash miniconda.sh -b -p /software/anaconda2
+    #rm miniconda.sh
 
     # Add extra python packages for neuroimaging
-    /software/anaconda2/bin/conda install numpy -y
-    /software/anaconda2/bin/conda install scipy -y
-    /software/anaconda2/bin/pip install nibabel
-    /software/anaconda2/bin/pip install nipy
-    /software/anaconda2/bin/pip install dipy
-    /software/anaconda2/bin/conda install -c conda-forge python-spams=2.6 -y
+    #/software/anaconda2/bin/conda install numpy -y
+    #/software/anaconda2/bin/conda install scipy -y
+    #/software/anaconda2/bin/pip install nibabel
+    #/software/anaconda2/bin/pip install nipy
+    #/software/anaconda2/bin/pip install dipy
+    #/software/anaconda2/bin/conda install -c conda-forge python-spams=2.6 -y
 
 
     ### INSTALL FSL ############################################################
-    wget https://fsl.fmrib.ox.ac.uk/fsldownloads/fsl-5.0.10-centos6_64.tar.gz -O FSL.tar.gz
-    tar xzvf FSL.tar.gz
-    rm FSL.tar.gz
-    cp /software/fsl/etc/fslconf/fsl.sh /etc/profile.d/
+    #wget https://fsl.fmrib.ox.ac.uk/fsldownloads/fsl-5.0.10-centos6_64.tar.gz -O FSL.tar.gz
+    #tar xzvf FSL.tar.gz
+    #rm FSL.tar.gz
+    #cp /software/fsl/etc/fslconf/fsl.sh /etc/profile.d/
     #/software/fsl/etc/fslconf/fslpython_install.sh -f /software/fsl
 
 
@@ -56,37 +64,33 @@ From: ubuntu:xenial
 
 
     ### INSTALL DCM2NIIX #######################################################
-    git clone https://github.com/rordenlab/dcm2niix
-    mkdir dcm2niix/bin
-    cd dcm2niix/bin
-    cmake ../
-    make
-    cd /software
+    #git clone https://github.com/rordenlab/dcm2niix
+    #mkdir dcm2niix/bin
+    #cd dcm2niix/bin
+    #cmake ../
+    #make
+    #cd /software
 
 
     ### INSTALL ANTS ###########################################################
-    git clone https://github.com/stnava/ANTs
-    cd ANTs
-    mkdir bin
-    cd bin
-    cmake ../
-    make
-    cd /software
+    #git clone https://github.com/stnava/ANTs
+    #cd ANTs
+    #mkdir bin
+    #cd bin
+    #cmake ../
+    #make
+    #cd /software
 
 
     ### INSTALL MRTRIX3 ########################################################
-    git clone https://github.com/MRtrix3/mrtrix3.git
-    cd mrtrix3
-    ./configure
-    ./build
-    cd /software
+    #git clone https://github.com/MRtrix3/mrtrix3.git
+    #cd mrtrix3
+    #./configure
+    #./build
+    #cd /software
 
     ### ADD PYTHON CODE ########################################################
-    git clone https://github.com/adambernstein1492/DiffusionMRI
+    #git clone https://github.com/adambernstein1492/DiffusionMRI
 
     ### SETUP .bashrc FILE #####################################################
-    echo "export PATH=$PATH:/software/dcm2niix/bin/bin:/software/mrtrix3/bin:/software/ANTs/bin/bin:/software/mrtrix3/bin:/software/anaconda2/bin:/software/DiffusionMRI/source:/software/fsl/bin" >> /root/.bashrc
-    echo "export FREESURFER_HOME=/software/freesurfer" >> /root/.bashrc
-    echo "export FSLDIR=/software/fsl" >> /root/.bashrc
-    echo ". ${FSLDIR}/etc/fslconf/fsl.sh" >> /root/.bashrc
-    echo "source ${FREESURFER_HOME}/SetUpFreeSurfer.sh" >> /root/.bashrc
+    

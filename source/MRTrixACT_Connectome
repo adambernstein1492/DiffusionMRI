@@ -80,7 +80,7 @@ subprocess.call(["5ttgen", "freesurfer", "aparc+aseg_reg.mif", "5TT.mif"])
 
 ### CONVERT LABELS ############################################################
 fs_home = os.getenv('FREESURFER_HOME')
-subprocess.call(["labelconvert", "aparc+aseg_reg.mif", (fs_home + "FreeSurferColorLUT.txt"), (args.mrtrix_path + "src/connectome/tables/fs_default.txt"), "nodes.mif"])
+subprocess.call(["labelconvert", "aparc+aseg_reg.mif", (fs_home + "/FreeSurferColorLUT.txt"), (args.mrtrix_path + "share/mrtrix3/labelconvert/fs_default.txt"), "nodes.mif"])
 ###############################################################################
 
 
@@ -91,7 +91,7 @@ subprocess.call(["mrconvert", "dwi.nii", "-fslgrad", "bvec", "bval", "dwi.mif"])
 
 # Upsample
 subprocess.call(["mrresize", "-voxel", "1,1,1", "dwi.mif", "dwi_up.mif"])
-subprocess.call(["mrresize", "interp", "nearest", "-voxel", "1,1,1", "mask.nii", "mask_up.nii"])
+subprocess.call(["mrresize", "-interp", "nearest", "-voxel", "1,1,1", "mask.nii", "mask_up.nii"])
 os.remove("mask.nii")
 os.remove("dwi.mif")
 os.rename("mask_up.nii", "mask.nii")
