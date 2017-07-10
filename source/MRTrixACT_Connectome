@@ -89,22 +89,30 @@ subprocess.call(["labelconvert", "aparc+aseg_reg.mif", (fs_home + "/FreeSurferCo
 # Convert to mif
 subprocess.call(["mrconvert", "dwi.nii", "-fslgrad", "bvec", "bval", "dwi.mif"])
 
+# Estimate Response Function
+subprocess.call(["dwi2response", "msmt_5tt", "dwi.mif", "5TT.mif", "RF_WM.txt", "RF_GM.txt", "RF_CSF.txt", "-voxels", "RF_voxels.mif"])
+
 # Upsample
 subprocess.call(["mrresize", "-voxel", "1,1,1", "dwi.mif", "dwi_up.mif"])
 subprocess.call(["mrresize", "-interp", "nearest", "-voxel", "1,1,1", "mask.nii", "mask_up.nii"])
-os.remove("mask.nii")
-os.remove("dwi.mif")
+
+while True:
+    try:
+        os.remove('dwi.nii')
+        os.remove('mask.nii')
+    except:
+        continue
+    else:
+        break
+
 os.rename("mask_up.nii", "mask.nii")
 os.rename("dwi_up.mif", "dwi.mif")
-
-# Estimate Response Function
-subprocess.call(["dwi2response", "msmt_5tt", "dwi.mif", "5TT.mif", "RF_WM.txt", "RF_GM.txt", "RF_CSF.txt", "-voxels", "RF_voxels.mif"])
 
 # Estimate FODs
 subprocess.call(["dwi2fod", "msmt_csd", "dwi.mif", "RF_WM.txt", "WM_FODs.mif", "RF_GM.txt", "GM.mif", "RF_CSF.txt", "CSF.mif", "-mask", "mask.nii"])
 
 # Tractography
-subprocess.call(["tckgen", "WM_FODs.mif", "20M.tck", "-act", "5TT.mif", "-backgrack", "-crop_at_gmwmi", "-seed_dynamic", "temp/WM_FODs.mif", "-maxlength", "250", "-number", "1M", "-cutoff", "0.06"])
+subprocess.call(["tckgen", "WM_FODs.mif", "20M.tck", "-act", "5TT.mif", "-backtrack", "-crop_at_gmwmi", "-seed_dynamic", "WM_FODs.mif", "-maxlength", "250", "-select", "1M", "-cutoff", "0.06"])
 subprocess.call(["tcksift", "20M.tck", "WM_FODs.mif", "10M_SIFT.tck", "-act", "5TT.mif", "-term_number", "500k"])
 ###############################################################################
 
@@ -120,5 +128,30 @@ subprocess.call(["connectome2tck", "10M_SIFT.tck", "tcklabels.txt", "Tracts/IsoT
 
 
 
-### CLEAN UP ##################################################################
-###############################################################################
+### CLEAN UP ###################################################################
+os.remove("5TT.mif")
+os.remove("20M.tck")
+os.remove("aparc+aseg.nii")
+os.remove("aparc+aseg_reg.mif")
+os.remove("brain.nii")
+os.remove("bval")
+os.remove("bvec")
+os.remove("CSF.mif")
+os.remove("dwi.mif")
+os.remove("dwi2t1.mat")
+os.remove("dwi2t1_fast_wmedge.nii")
+os.remove("dwi2t1_fast_wmseg.nii")
+os.remove("dwi2t1_init.mat")
+os.remove("dwi2t1_mrtrix.txt")
+os.remove("GM.mif")
+os.remove("mask.mif")
+os.remove("nodes.mif")
+os.remove("RF_CSF.txt")
+os.remove("RF_GM.txt")
+os.remove("RF_voxels.mif")
+os.remove("RF_WM.txt")
+os.remove("t1.nii")
+os.remove("t12dwi_mrtrix.txt")
+os.remove("tcklabels.txt")
+os.remove("WM_FODs.mif")
+################################################################################

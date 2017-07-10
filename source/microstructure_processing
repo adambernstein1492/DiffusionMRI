@@ -140,7 +140,7 @@ if args.afd:
 ### NODDI ######################################################################
 if args.noddi:
     print "Performing NODDI Analysis"
-    os.makedirs((outpath + "NODDI/Study01/Subject01"))
+    os.makedirs(outpath + "NODDI/Study01/Subject01")
 
     shutil.copyfile(args.Image, (outpath + "NODDI/Study01/Subject01/dwi.nii"))
     shutil.copyfile(args.bval, (outpath + "NODDI/Study01/Subject01/bval"))
@@ -161,10 +161,15 @@ if args.noddi:
     ae.save_results()
 
     # Clean Up Results
-    shutil.move((outpath + "NODDI/Study01/Subject01/AMICO/NODDI/FIT_ICVF.nii.gz"), (outpath + "NODDI/ICVF.nii.gz"))
-    shutil.move((outpath + "NODDI/Study01/Subject01/AMICO/NODDI/FIT_OD.nii.gz"), (outpath + "NODDI/OD.nii.gz"))
-    shutil.move((outpath + "NODDI/Study01/Subject01/AMICO/NODDI/FIT_ISOVF.nii.gz"), (outpath + "NODDI/ICOVF.nii.gz"))
-    shutil.rmtree(outpath + "NODDI/Study01")
-    
-    
+    shutil.move("Study01/Subject01/AMICO/NODDI/FIT_ICVF.nii.gz", "ICVF.nii.gz")
+    shutil.move("Study01/Subject01/AMICO/NODDI/FIT_OD.nii.gz", "OD.nii.gz")
+    shutil.move("Study01/Subject01/AMICO/NODDI/FIT_ISOVF.nii.gz", "ICOVF.nii.gz")
+
+    # Sometimes the NODDI software still has images open, so we loop to make
+    # sure the file is closed before deleting
+
+    shutil.rmtree("Study01", ignore_errors=True)
+
+
+
 ################################################################################

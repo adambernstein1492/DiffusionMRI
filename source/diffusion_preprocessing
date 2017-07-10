@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#! /usr/bin/env python
 
 import os
 import subprocess
@@ -9,6 +9,7 @@ import nibabel as nib
 import dipy.io
 import diffusion_functions.diffusion_preprocessing_functions as diffusion_preprocessing_functions
 import diffusion_functions.util as util
+import time
 
 ### DEFINE INPUTS ##############################################################
 parser = argparse.ArgumentParser(description="Run a conventional diffusion MRI through the entire preprocessing pipeline")
@@ -156,7 +157,7 @@ shutil.copyfile(args.bvec, (outpath + 'bvec'))
 if args.mask != "None":
     shutil.copyfile(args.mask, (outpath + 'mask.nii'))
 
-if args.epidistortion[0] != "None":
+if args.epidistortion != "None":
     if args.software == 'FSL' or args.software == 'TORTOISE_DRBUDDI':
         shutil.copyfile(args.epidistortion[0], (outpath + 'rpe.nii'))
 if args.structural != "None":
@@ -171,9 +172,9 @@ diffusion_preprocessing_functions.organize_by_bval("dwi.nii", "bval", "bvec")
 if args.voxel_size == "None":
     voxel_size = []
     voxels = nib.load('dwi.nii').header.get_zooms()
-    voxel_size.append(str(voxesl[0]))
-    voxel_size.append(str(voxesl[1]))
-    voxel_size.append(str(voxesl[2]))
+    voxel_size.append(str(voxels[0]))
+    voxel_size.append(str(voxels[1]))
+    voxel_size.append(str(voxels[2]))
 
 else:
      voxel_size = args.voxel_size
@@ -186,7 +187,7 @@ if args.software == "FSL":
     os.environ["FSLOUTPUTTYPE"] = "NIFTI"
 
     # Run TOPUP if specified
-    if args.epidistortion[0] != "None":
+    if args.epidistortion != "None":
         # Create ACQP and INDEX text files
         diffusion_preprocessing_functions.write_index_acqp('dwi.nii', 'bval', 'bvec', 'rpe.nii')
         topup_config = file_location + "/config/b02b0.cnf"
@@ -359,8 +360,8 @@ if args.biasfieldcorrection:
     diffusion_preprocessing_functions.create_avg_b0("dwi.nii", "bval", "bvec")
 
     print "Matching Mask and DWI header info"
-    remove_header('mean_b0.nii', 'mean_b0.nii')
-    remove_header('mask.nii', 'mask_bias.nii')
+    diffusion_preprocessing_functions.remove_header('mean_b0.nii', 'mean_b0.nii')
+    diffusion_preprocessing_functions.remove_header('mask.nii', 'mask_bias.nii')
 
     print "Calculating Bias Field"
     subprocess.call(["N4BiasFieldCorrection", "-d", "3", "-i", "mean_b0.nii", "-x", "mask_bias.nii", "-o", "[bias_correct.nii,field.nii]"])
@@ -377,9 +378,16 @@ if args.biasfieldcorrection:
 
 ### INTERPOLATE DWI IF INDICATED ###############################################
 if (args.software == 'FSL'):
-    subprocess.cal(["mrresize", "-voxel", voxel_size[0], voxel_size[1], voxel_size[2], "mask.nii", "mask_resize.nii"])
-    os.remove('dwi.nii')
-    os.remove('mask.nii')
+    subprocess.call(["mrresize", "-voxel", (voxel_size[0] + "," + voxel_size[1] + "," + voxel_size[2]), "dwi.nii", "dwi_resize.nii"])
+    subprocess.call(["mrresize", "-voxel", (voxel_size[0] + "," + voxel_size[1] + "," + voxel_size[2]), "mask.nii", "mask_resize.nii"])
+    while True:
+        try:
+            os.remove('dwi.nii')
+            os.remove('mask.nii')
+        except:
+            continue
+        else:
+            break
     shutil.move('dwi_resize.nii', 'dwi.nii')
     shutil.move('mask_resize.nii', 'mask.nii')
 ################################################################################
