@@ -55,13 +55,19 @@ def main_map(dwi_file, bval_file, bvec_file, mask_file, little_delta, big_delta,
     # Calculate and Save Scalar MAPs
     if calc_pa:
         print "Calculating Propagator Anisotropy"
-        pa_dti, pa = calc_propagator_anisotropy(coeffs, uvectors, order, mask)
+        pa_dti, pa_dti_theta, pa, pa_theta = calc_propagator_anisotropy(coeffs, uvectors, order, mask)
 
         img = nib.Nifti1Image(pa_dti, dwi.affine, dwi.header)
         nib.save(img, (out_path + 'PA_DTI.nii'))
 
+        img = nib.Nifti1Image(pa_dti_theta, dwi.affine, dwi.header)
+        nib.save(img, (out_path + 'PA_DTI_theta.nii'))
+
         img = nib.Nifti1Image(pa, dwi.affine, dwi.header)
         nib.save(img, (out_path + 'PA.nii'))
+
+        img = nib.Nifti1Image(pa_theta, dwi.affine, dwi.header)
+        nib.save(img, (out_path + 'PA_theta.nii'))
 
     if calc_ng:
         print "Calculating Non-Gaussianity"
@@ -542,10 +548,11 @@ def calc_propagator_anisotropy(coeffs, uvectors, order, mask):
     u0 = calc_u0(uvectors)
 
     # Caluclate the Anisotropy of the DTI signal
-    pa_dti = calculate_pa_dti(u0, uvectors, mask)
+    pa_dti, pa_dti_theta = calculate_pa_dti(u0, uvectors, mask)
 
     # Calculate the General Propagator Anisotropy
     pa = np.zeros((mask.shape[0], mask.shape[1], mask.shape[2]))
+    pa_theta = np.zeros((mask.shape[0], mask.shape[1], mask.shape[2]))
     for x in range(mask.shape[0]):
         for y in range(mask.shape[1]):
             for z in range(mask.shape[2]):
@@ -554,13 +561,13 @@ def calc_propagator_anisotropy(coeffs, uvectors, order, mask):
                     tmn = calc_tmn(uvectors[x,y,z,:], u0[x,y,z], order, order/2)
 
                     # Calculate PA
-                    pa[x,y,z] = calculate_pa(coeffs[x,y,z,:], uvectors[x,y,z,:], u0[x,y,z], tmn)
+                    pa[x,y,z], pa_theta[x,y,z] = calculate_pa(coeffs[x,y,z,:], uvectors[x,y,z,:], u0[x,y,z], tmn)
 
     # Apply scaling function
     pa_dti = pa_scaling(pa_dti, 0.4)
     pa = pa_scaling(pa, 0.4)
 
-    return pa_dti, pa
+    return pa_dti, pa_dti_theta, pa, pa_theta
 
 
 def calc_u0(uvectors):
@@ -593,6 +600,7 @@ def calc_u0(uvectors):
 
 def calculate_pa_dti(u0, uvectors, mask):
     pa_dti = np.zeros((mask.shape[0], mask.shape[1], mask.shape[2]))
+    pa_dti_theta = np.zeros((mask.shape[0], mask.shape[1], mask.shape[2]))
 
     for x in range(u0.shape[0]):
         for y in range(u0.shape[1]):
@@ -601,9 +609,11 @@ def calculate_pa_dti(u0, uvectors, mask):
                     pa_dti[x,y,z] = ((8 * u0[x,y,z]**3 * uvectors[x,y,z,0] * uvectors[x,y,z,1] * uvectors[x,y,z,2]) /
                                      ((uvectors[x,y,z,0]**2 + u0[x,y,z]**2) * (uvectors[x,y,z,1]**2 + u0[x,y,z]**2) * (uvectors[x,y,z,2]**2 + u0[x,y,z]**2)))
 
-                    pa_dti[x,y,z] = np.real(np.sin(np.arccos(np.sqrt(pa_dti[x,y,z]))))
+                    pa_dti_theta[x,y,z] = np.arccos(np.sqrt(pa_dti[x,y,z]))
+                    pa_dti[x,y,z] = np.real(np.sin(pa_dti_theta[x,y,z]))
 
-    return pa_dti
+
+    return pa_dti, pa_dti_theta
 
 
 def calculate_pa(coeffs, uvectors, u0, tmn):
@@ -614,9 +624,10 @@ def calculate_pa(coeffs, uvectors, u0, tmn):
 
     cosPA = np.sqrt(np.dot(b**2, norm_factor) / (np.sum(coeffs**2) * anorm))
 
-    pa = np.sin(np.arccos(cosPA))
+    pa_theta = np.arccos(cosPA)
+    pa = np.sin(pa_theta)
 
-    return pa
+    return pa, pa_theta
 
 
 def change_basis(coeffs, tmn, u0):
