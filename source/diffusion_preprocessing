@@ -65,7 +65,7 @@ if args.eddycurrentcorrection:
             quit()
 
 
-if args.epidistortion[0] != "None":
+if args.epidistortion != "None":
     # Check for Appropriate Software
     if args.software == "FSL":
         try:
@@ -120,6 +120,7 @@ if args.epidistortion[0] != "None":
 if args.mask != "None":
     try:
         mask = nib.load(args.mask)
+        dwi = nib.load(args.Image)
     except:
         print "Error: Mask image must be a NIFTI file"
         quit()
@@ -196,7 +197,8 @@ if args.software == "FSL":
         subprocess.call(["topup", "--imain=B0s.nii", "--datain=acqp.txt", ("--config=" + topup_config), "--out=topup_results", "--iout=b0_corrected", "-v"])
 
         if args.mask == "None":
-            subprocess.call(["bet2", "b0_corrected", "brain", "-m", "-f", "0.3"])
+            subprocess.call(["fslmaths", "b0_corrected", "-Tmean", "b0_corrected"])
+            subprocess.call(["bet", "b0_corrected", "brain", "-m", "-f", "0.3", "-R"])
             os.remove("brain.nii")
             shutil.move("brain_mask.nii", "mask.nii")
 
@@ -255,11 +257,11 @@ if args.software == "TORTOISE_DRBUDDI":
         is_human_brain = "1"
 
     # Create blank bval and bvec files for rpe images
-    if(args.epidistortion[1] == "None"):
+    if(args.epidistortion[1] == "b0"):
         diffusion_preprocessing_functions.create_bvals_bvecs_rpe("rpe.nii")
 
         # Import NIFTI
-        if(args.diffusion_times[0] == "None" and args.diffusion_times[1] == "None"):
+        if(args.diffusion_times == "None"):
             subprocess.call(["ImportNIFTI", "-i", "dwi.nii", "-p", "vertical", "-b", "bval", "-v", "bvec"])
         else:
             subprocess.call(["ImportNIFTI", "-i", "dwi.nii", "-p", "vertical", "-b", "bval", "-v", "bvec", "-d", args.diffusion_times[0], "-D", args.diffusion_times[1]])
@@ -268,7 +270,7 @@ if args.software == "TORTOISE_DRBUDDI":
 
     elif(args.epidistortion[1] == "All"):
         # Import NIFTI
-        if(args.little_delta == "None" and args.big_delta == "None"):
+        if(args.diffusion_times == "None"):
             subprocess.call(["ImportNIFTI", "-i", "dwi.nii", "-p", "vertical", "-b", "bval", "-v", "bvec"])
             subprocess.call(["ImportNIFTI", "-i", "rpe.nii", "-p", "vertical", "-b", "bval", "-v", "bvec"])
         else:
@@ -360,20 +362,21 @@ if args.biasfieldcorrection:
     diffusion_preprocessing_functions.create_avg_b0("dwi.nii", "bval", "bvec")
 
     print "Matching Mask and DWI header info"
-    diffusion_preprocessing_functions.remove_header('mean_b0.nii', 'mean_b0.nii')
+    diffusion_preprocessing_functions.remove_header('mean_b0.nii', 'mean_b0_bias.nii')
     diffusion_preprocessing_functions.remove_header('mask.nii', 'mask_bias.nii')
 
     print "Calculating Bias Field"
-    subprocess.call(["N4BiasFieldCorrection", "-d", "3", "-i", "mean_b0.nii", "-x", "mask_bias.nii", "-o", "[bias_correct.nii,field.nii]"])
+    #subprocess.call(["N4BiasFieldCorrection", "-d", "3", "-i", "mean_b0_bias.nii", "-x", "mask_bias.nii", "-o", "[bias_correct.nii,field.nii]"])
 
     print "Applying Bias Field"
-    diffusion_preprocessing_functions.apply_bias_field("dwi.nii", "field.nii")
+    #diffusion_preprocessing_functions.apply_bias_field("dwi.nii", "field.nii")
 
     # Clean up Extra Files
-    os.remove("field.nii")
+    #os.remove("field.nii")
     os.remove("mask_bias.nii")
-    os.remove("bias_correct.nii")
+    #os.remove("bias_correct.nii")
     os.remove("mean_b0.nii")
+    os.remove("mean_b0_bias.nii")
 ################################################################################
 
 ### INTERPOLATE DWI IF INDICATED ###############################################
