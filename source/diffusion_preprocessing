@@ -196,7 +196,7 @@ if args.software == "FSL":
         subprocess.call(["topup", "--imain=B0s.nii", "--datain=acqp.txt", ("--config=" + topup_config), "--out=topup_results", "--iout=b0_corrected", "-v"])
 
         if args.mask == "None":
-            subprocess.call(["bet2", "b0_corrected.nii", "brain.nii", "-m", "-f", "0.3"])
+            subprocess.call(["bet2", "b0_corrected", "brain", "-m", "-f", "0.3"])
             os.remove("brain.nii")
             shutil.move("brain_mask.nii", "mask.nii")
 
