@@ -18,11 +18,11 @@ def main_map(dwi_file, bval_file, bvec_file, mask_file, little_delta, big_delta,
     if return_dti:
         eigen_values, eigen_vectors = dti.main_dti(dwi_file, bval_file, bvec_file,
                             mask_file, (out_path + "DTI_"), b_thresh_dti, True, True, True, True)
-        eigen_values[eigen_values <= 0] = np.finfo(float).eps
+        eigen_values[eigen_values <= 0] = 1e-5
     else:
         eigen_values, eigen_vectors = dti.main_dti(dwi_file, bval_file, bvec_file,
                             mask_file, "", b_thresh_dti, False, False, False, False)
-        eigen_values[eigen_values <= 0] = np.finfo(float).eps
+        eigen_values[eigen_values <= 0] = 1e-5
 
     # Determine Diffusion Time
     diffusion_time = big_delta - little_delta / 3
@@ -406,9 +406,6 @@ def calc_return_to_probabilities(coeffs, uvectors, order, num_coeffs):
     rtap = np.real(rtap)
     rtpp = np.real(rtpp)
 
-    rtop[rtop > 1000] = 0
-    rtap[rtap > 1000] = 0
-    rtpp[rtpp > 1000] = 0
     rtop[np.isnan(rtop)] = 0
     rtap[np.isnan(rtap)] = 0
     rtpp[np.isnan(rtpp)] = 0

@@ -165,9 +165,6 @@ if args.noddi:
     shutil.move("Study01/Subject01/AMICO/NODDI/FIT_OD.nii.gz", "OD.nii.gz")
     shutil.move("Study01/Subject01/AMICO/NODDI/FIT_ISOVF.nii.gz", "ICOVF.nii.gz")
 
-    # Sometimes the NODDI software still has images open, so we loop to make
-    # sure the file is closed before deleting
-
     shutil.rmtree("Study01", ignore_errors=True)
 
 

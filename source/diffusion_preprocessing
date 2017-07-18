@@ -382,15 +382,14 @@ if args.biasfieldcorrection:
 ### INTERPOLATE DWI IF INDICATED ###############################################
 if (args.software == 'FSL'):
     subprocess.call(["mrresize", "-voxel", (voxel_size[0] + "," + voxel_size[1] + "," + voxel_size[2]), "dwi.nii", "dwi_resize.nii"])
-    subprocess.call(["mrresize", "-voxel", (voxel_size[0] + "," + voxel_size[1] + "," + voxel_size[2]), "mask.nii", "mask_resize.nii"])
     while True:
         try:
             os.remove('dwi.nii')
-            os.remove('mask.nii')
         except:
             continue
         else:
             break
     shutil.move('dwi_resize.nii', 'dwi.nii')
-    shutil.move('mask_resize.nii', 'mask.nii')
+
+    subprocess.call(["dwi2mask", "-fslgrad", "bvec", "bval", "dwi.nii", "mask.nii"])
 ################################################################################
