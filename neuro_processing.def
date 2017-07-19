@@ -9,22 +9,12 @@ From: ubuntu:xenial
 
 %environment
 
-
 %runscript
-    export PATH=$PATH:/software/dcm2niix/bin/bin:/software/mrtrix3/bin:/software/ANTs/bin/bin:/software/mrtrix3/bin:/software/anaconda2/bin:/software/DiffusionMRI/source:/software/fsl/bin
-    export FREESURFER_HOME=/software/freesurfer
-    export FSLDIR=/software/fsl
-    . $FSLDIR/etc/fslconf/fsl.sh
-    . $FREESURFER_HOME/SetUpFreeSurfer.sh
-    
-    
-    echo "Testing RunScript"
-    echo $PATH
 
 %post
     ### UPDATE AND INSTALL DEPENDENCIES ########################################
     apt-get update -y && apt-get upgrade -y
-    apt-get install wget -y
+    apt-get install build-essential wget -y
 
     mkdir /software
     cd /software
@@ -34,7 +24,7 @@ From: ubuntu:xenial
     #bash miniconda.sh -b -p /software/anaconda2
     #rm miniconda.sh
 
-    # Add extra python packages for neuroimaging
+    ## Add extra python packages for neuroimaging
     #/software/anaconda2/bin/conda install numpy -y
     #/software/anaconda2/bin/conda install scipy -y
     #/software/anaconda2/bin/pip install nibabel
@@ -93,4 +83,22 @@ From: ubuntu:xenial
     #git clone https://github.com/adambernstein1492/DiffusionMRI
 
     ### SETUP .bashrc FILE #####################################################
+    echo "PATH=/software/freesurfer/bin:/software/dcm2niix/bin/bin:/software/mrtrix3/bin:/software/DiffusionMRI/source:/software/anaconda2/bin:$PATH" >> /.singularity.d/env/90-environment.sh
+    
+    #echo "FSLDIR=/software/fsl" >> /.singularity.d/env/90-environment.sh
+    #echo "source /software/fsl/etc/fslconf/fsl.sh" >> /.singularity.d/env/90-environment.sh
+    #echo "PATH=/software/fsl/bin:${PATH}" >> /.singularity.d/env/90-environment.sh
+    #echo "export PATH FSLDIR" >> /.singularity.d/env/90-environment.sh
+    
+    echo "export FREESURFER_HOME=/software/freesurfer" >> /.singularity.d/env/90-environment.sh
+    echo "source /software/freesurfer/SetUpFreeSurfer.sh" >> /.singularity.d/env/90-environment.sh
+
+    
+    
+    
+    
+    
+    
+    
+    
     
