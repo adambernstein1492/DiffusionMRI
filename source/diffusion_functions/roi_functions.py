@@ -19,7 +19,7 @@ def calc_roi_stats(param_map_path):
 
     # Read in Region Key
     file_location = os.path.dirname(__file__)
-    fs_color_lut = file_location + "/config/FreeSurferColorLUT.txt"
+    fs_color_lut = file_location + "/../config/FreeSurferColorLUT.txt"
 
     with open(fs_color_lut) as f:
         lines = f.readlines()

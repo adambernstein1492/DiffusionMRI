@@ -85,8 +85,8 @@ if args.epidistortion != "None":
         print "Error: You must specify a Reverse Phase Encode Image to run DRBUDDI"
         quit()
 
-    if(args.software == "TORTOISE_DRBUDDI" and (args.epidistortion[1] != "None" and args.epidistortion[1] != "All")):
-        print "Error: The second argument for epidistortion must be either 'All' or 'None'"
+    if(args.software == "TORTOISE_DRBUDDI" and (args.epidistortion[1] != "b0" and args.epidistortion[1] != "All")):
+        print "Error: The second argument for epidistortion must be either 'All' or 'b0'"
         quit()
 
     if args.software == "TORTOISE_DRBUDDI":
@@ -100,6 +100,7 @@ if args.epidistortion != "None":
             print "Error: Input for DRBUDDI must be a NIFTI"
             quit()
 
+        dwi = nib.load(args.Image)
         if dwi.shape[0:3] != rpe.shape[0:3]:
             print "Error: Image and RPE must both be the same size"
             print "DWI size: " + str(dwi.shape)
@@ -366,15 +367,15 @@ if args.biasfieldcorrection:
     diffusion_preprocessing_functions.remove_header('mask.nii', 'mask_bias.nii')
 
     print "Calculating Bias Field"
-    #subprocess.call(["N4BiasFieldCorrection", "-d", "3", "-i", "mean_b0_bias.nii", "-x", "mask_bias.nii", "-o", "[bias_correct.nii,field.nii]"])
+    subprocess.call(["N4BiasFieldCorrection", "-d", "3", "-i", "mean_b0_bias.nii", "-x", "mask_bias.nii", "-o", "[bias_correct.nii,field.nii]"])
 
     print "Applying Bias Field"
-    #diffusion_preprocessing_functions.apply_bias_field("dwi.nii", "field.nii")
+    diffusion_preprocessing_functions.apply_bias_field("dwi.nii", "field.nii")
 
     # Clean up Extra Files
-    #os.remove("field.nii")
+    os.remove("field.nii")
     os.remove("mask_bias.nii")
-    #os.remove("bias_correct.nii")
+    os.remove("bias_correct.nii")
     os.remove("mean_b0.nii")
     os.remove("mean_b0_bias.nii")
 ################################################################################
@@ -385,6 +386,7 @@ if (args.software == 'FSL'):
     while True:
         try:
             os.remove('dwi.nii')
+            os.remove('mask.nii')
         except:
             continue
         else:
