@@ -74,13 +74,13 @@ FSL_DIR=/software/fsl
 
 
     ### INSTALL ANTS ###########################################################
-    #git clone https://github.com/stnava/ANTs
-    #cd ANTs
-    #mkdir bin
-    #cd bin
-    #cmake ../
-    #make
-    #cd /software
+    git clone https://github.com/stnava/ANTs
+    cd ANTs
+    mkdir bin
+    cd bin
+    cmake ../
+    make
+    cd /software
 
 
     ### INSTALL MRTRIX3 ########################################################
