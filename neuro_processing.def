@@ -84,7 +84,7 @@ SHELL=/bin/bash
     #git clone https://github.com/adambernstein1492/DiffusionMRI
 
     ### SETUP .bashrc FILE #####################################################
-    #! /bin/bash
+    echo "#! /bin/bash" >> /.singularity.d/env/90-environment.sh
     echo "PATH=/software/dcm2niix/bin/bin:/software/mrtrix3/bin:/software/DiffusionMRI/source:/software/anaconda2/bin:$PATH" >> /.singularity.d/env/90-environment.sh
 
     #echo "FSLDIR=/software/fsl" >> /.singularity.d/env/90-environment.sh
