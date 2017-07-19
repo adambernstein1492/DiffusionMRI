@@ -49,7 +49,7 @@ FSL_DIR=/software/fsl
     tar xzvf FSL.tar.gz
     rm FSL.tar.gz
     cp /software/fsl/etc/fslconf/fsl.sh /etc/profile.d/
-    /software/fsl/etc/fslconf/fslpython_install.sh -f /software/fsl
+    #/software/fsl/etc/fslconf/fslpython_install.sh -f /software/fsl
 
 
     ### INSTALL FREESURFER #####################################################
