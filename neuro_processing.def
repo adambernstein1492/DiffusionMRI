@@ -25,7 +25,7 @@ FSL_DIR=/software/fsl
 %post
     ### UPDATE AND INSTALL DEPENDENCIES ########################################
     apt-get update -y && apt-get upgrade -y
-    apt-get install build-essential wget tcsh git g++ python python-numpy libeigen3-dev zlib1g-dev libqt4-opengl-dev libgl1-mesa-dev -y
+    apt-get install build-essential cmake wget tcsh git g++ python python-numpy libeigen3-dev zlib1g-dev libqt4-opengl-dev libgl1-mesa-dev -y
 
     mkdir /software
     cd /software
