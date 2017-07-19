@@ -9,6 +9,7 @@ From: ubuntu:xenial
 
 %environment
 SHELL=/bin/bash
+
 %runscript
 
 %post
@@ -83,6 +84,7 @@ SHELL=/bin/bash
     #git clone https://github.com/adambernstein1492/DiffusionMRI
 
     ### SETUP .bashrc FILE #####################################################
+    #! /bin/bash
     echo "PATH=/software/dcm2niix/bin/bin:/software/mrtrix3/bin:/software/DiffusionMRI/source:/software/anaconda2/bin:$PATH" >> /.singularity.d/env/90-environment.sh
 
     #echo "FSLDIR=/software/fsl" >> /.singularity.d/env/90-environment.sh
@@ -91,4 +93,4 @@ SHELL=/bin/bash
     #echo "export PATH FSLDIR" >> /.singularity.d/env/90-environment.sh
 
     echo "export FREESURFER_HOME=/software/freesurfer" >> /.singularity.d/env/90-environment.sh
-    echo ". /software/freesurfer/SetUpFreeSurfer.sh" >> /.singularity.d/env/90-environment.sh
+    echo "source /software/freesurfer/SetUpFreeSurfer.sh" >> /.singularity.d/env/90-environment.sh
