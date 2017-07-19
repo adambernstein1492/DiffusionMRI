@@ -93,4 +93,4 @@ PATH=/software/dcm2niix/bin/bin:$PATH
     #cd /software
 
     ### ADD PYTHON CODE ########################################################
-    git clone https://github.com/adambernstein1492/DiffusionMRI
+    #git clone https://github.com/adambernstein1492/DiffusionMRI
