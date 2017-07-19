@@ -25,31 +25,31 @@ FSL_DIR=/software/fsl
 %post
     ### UPDATE AND INSTALL DEPENDENCIES ########################################
     apt-get update -y && apt-get upgrade -y
-    apt-get install build-essential wget -y
+    apt-get install build-essential wget tcsh git g++ python python-numpy libeigen3-dev zlib1g-dev libqt4-opengl-dev libgl1-mesa-dev -y
 
     mkdir /software
     cd /software
 
     ### INSTALL MINICONDA AND SELECT PACKAGES ##################################
-    #wget https://repo.continuum.io/miniconda/Miniconda2-latest-Linux-x86_64.sh -O miniconda.sh
-    #bash miniconda.sh -b -p /software/anaconda2
-    #rm miniconda.sh
+    wget https://repo.continuum.io/miniconda/Miniconda2-latest-Linux-x86_64.sh -O miniconda.sh
+    bash miniconda.sh -b -p /software/anaconda2
+    rm miniconda.sh
 
     ## Add extra python packages for neuroimaging
-    #/software/anaconda2/bin/conda install numpy -y
-    #/software/anaconda2/bin/conda install scipy -y
-    #/software/anaconda2/bin/pip install nibabel
-    #/software/anaconda2/bin/pip install nipy
-    #/software/anaconda2/bin/pip install dipy
-    #/software/anaconda2/bin/conda install -c conda-forge python-spams=2.6 -y
+    /software/anaconda2/bin/conda install numpy -y
+    /software/anaconda2/bin/conda install scipy -y
+    /software/anaconda2/bin/pip install nibabel
+    /software/anaconda2/bin/pip install nipy
+    /software/anaconda2/bin/pip install dipy
+    /software/anaconda2/bin/conda install -c conda-forge python-spams=2.6 -y
 
 
     ### INSTALL FSL ############################################################
-    #wget https://fsl.fmrib.ox.ac.uk/fsldownloads/fsl-5.0.10-centos6_64.tar.gz -O FSL.tar.gz
-    #tar xzvf FSL.tar.gz
-    #rm FSL.tar.gz
-    #cp /software/fsl/etc/fslconf/fsl.sh /etc/profile.d/
-    #/software/fsl/etc/fslconf/fslpython_install.sh -f /software/fsl
+    wget https://fsl.fmrib.ox.ac.uk/fsldownloads/fsl-5.0.10-centos6_64.tar.gz -O FSL.tar.gz
+    tar xzvf FSL.tar.gz
+    rm FSL.tar.gz
+    cp /software/fsl/etc/fslconf/fsl.sh /etc/profile.d/
+    /software/fsl/etc/fslconf/fslpython_install.sh -f /software/fsl
 
 
     ### INSTALL FREESURFER #####################################################
@@ -65,12 +65,12 @@ FSL_DIR=/software/fsl
 
 
     ### INSTALL DCM2NIIX #######################################################
-    #git clone https://github.com/rordenlab/dcm2niix
-    #mkdir dcm2niix/bin
-    #cd dcm2niix/bin
-    #cmake ../
-    #make
-    #cd /software
+    git clone https://github.com/rordenlab/dcm2niix
+    mkdir dcm2niix/bin
+    cd dcm2niix/bin
+    cmake ../
+    make
+    cd /software
 
 
     ### INSTALL ANTS ###########################################################
@@ -84,11 +84,11 @@ FSL_DIR=/software/fsl
 
 
     ### INSTALL MRTRIX3 ########################################################
-    #git clone https://github.com/MRtrix3/mrtrix3.git
-    #cd mrtrix3
-    #./configure
-    #./build
-    #cd /software
+    git clone https://github.com/MRtrix3/mrtrix3.git
+    cd mrtrix3
+    ./configure
+    ./build
+    cd /software
 
     ### ADD PYTHON CODE ########################################################
-    #git clone https://github.com/adambernstein1492/DiffusionMRI
+    git clone https://github.com/adambernstein1492/DiffusionMRI
