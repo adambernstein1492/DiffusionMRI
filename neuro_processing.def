@@ -9,15 +9,13 @@ From: ubuntu:xenial
 
 %environment
 SINGULARITY_SHELL="/bin/bash --norc"
-#PATH=/software/ANTs/bin/bin:/software/dcm2niix/bin/bin:/software/mrtrix3/bin:/software/DiffusionMRI/source:/software/anaconda2/bin:/software/fsl/bin:/software/freesurfer/bin:/software/freesurfer/fsfast/bin:/software/freesurfer/tktools:/software/freesurfer/mni/bin:/software/$PATH
+PATH=/software/ANTs/bin/bin:/software/dcm2niix/bin/bin:/software/mrtrix3/bin:/software/DiffusionMRI/source:/software/anaconda2/bin:/software/fsl/bin:/software/freesurfer/bin:/software/freesurfer/fsfast/bin:/software/freesurfer/tktools:/software/freesurfer/mni/bin:/software/$PATH
 FREESURFER_HOME=/software/freesurfer
-. $FREESURFER_HOME/SetupFreeSurfer.sh
-PATH=/software/dcm2niix/bin/bin:$PATH
-#FSFAST_HOME=/software/freesurfer/fsfast
-#FSF_OUTPUT_FORMAT=nii
-#SUBJECTS_DIR=$HOME
-#MNI_DIR=/software/freesurfer/mni
-#FSL_DIR=/software/fsl
+FSFAST_HOME=/software/freesurfer/fsfast
+FSF_OUTPUT_FORMAT=nii
+SUBJECTS_DIR=$HOME
+MNI_DIR=/software/freesurfer/mni
+FSL_DIR=/software/fsl
 
 
 
