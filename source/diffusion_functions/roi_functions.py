@@ -31,10 +31,10 @@ def calc_roi_stats(param_map_path):
     index_2 = 1
     index_3 = 1
     for i in range(len(lines)):
-        if lines[i][0] != '#' and lines[i][0] != "\n" and lines[i][0] != "0":
+        if lines[i][0] != '#' and lines[i][0] != "\n" and lines[i][0] != "\r" and lines[i][0] != "0":
             line_values = lines[i].split()
-
             param_values = params[rois1 == int(line_values[0])]
+            
             if len(param_values) != 0:
                 stats_aparc_aseg.append([])
                 stats_aparc_aseg[index_1].append(line_values[1])
