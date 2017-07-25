@@ -55,7 +55,7 @@ def main_map(dwi_file, bval_file, bvec_file, mask_file, little_delta, big_delta,
     # Calculate and Save Scalar MAPs
     if calc_pa:
         print "Calculating Propagator Anisotropy"
-        pa_dti, pa_dti_theta, pa, pa_theta = calc_propagator_anisotropy(coeffs, uvectors, order, mask)
+        pa_dti, pa_dti_theta, pa, pa_theta, pa_jsd = calc_propagator_anisotropy(coeffs, uvectors, order, mask)
 
         img = nib.Nifti1Image(pa_dti, dwi.affine, dwi.header)
         nib.save(img, (out_path + 'PA_DTI.nii'))
@@ -68,6 +68,9 @@ def main_map(dwi_file, bval_file, bvec_file, mask_file, little_delta, big_delta,
 
         img = nib.Nifti1Image(pa_theta, dwi.affine, dwi.header)
         nib.save(img, (out_path + 'PA_theta.nii'))
+
+        img = nib.Nifti1Image(pa_jsd, dwi.affine, dwi.header)
+        nib.save(img, (out_path + 'PA_JSD.nii'))
 
     if calc_ng:
         print "Calculating Non-Gaussianity"
@@ -547,9 +550,18 @@ def calc_propagator_anisotropy(coeffs, uvectors, order, mask):
     # Caluclate the Anisotropy of the DTI signal
     pa_dti, pa_dti_theta = calculate_pa_dti(u0, uvectors, mask)
 
-    # Calculate the General Propagator Anisotropy
+    # Allocate space for all 3 outputs
     pa = np.zeros((mask.shape[0], mask.shape[1], mask.shape[2]))
     pa_theta = np.zeros((mask.shape[0], mask.shape[1], mask.shape[2]))
+    pa_jsd = np.zeros((mask.shape[0], mask.shape[1], mask.shape[2]))
+
+
+    count = 0.0
+    percent_prev = 0.0
+    num_vox = np.sum(mask)
+
+    # Calculate the General Propagator Anisotropy
+    rmn = calc_rmn(order)
     for x in range(mask.shape[0]):
         for y in range(mask.shape[1]):
             for z in range(mask.shape[2]):
@@ -558,13 +570,20 @@ def calc_propagator_anisotropy(coeffs, uvectors, order, mask):
                     tmn = calc_tmn(uvectors[x,y,z,:], u0[x,y,z], order, order/2)
 
                     # Calculate PA
-                    pa[x,y,z], pa_theta[x,y,z] = calculate_pa(coeffs[x,y,z,:], uvectors[x,y,z,:], u0[x,y,z], tmn)
+                    pa[x,y,z], pa_theta[x,y,z], pa_jsd[x,y,z] = calculate_pa(coeffs[x,y,z,:], uvectors[x,y,z,:], u0[x,y,z], tmn, rmn)
+
+                    # Update Progress
+                    count += 1.0
+                    percent = np.around((count / num_vox * 100), decimals = 1)
+                    if(percent != percent_prev):
+                        util.progress_update("Calculating PA: ", percent)
+                        percent_prev = percent
 
     # Apply scaling function
     pa_dti = pa_scaling(pa_dti, 0.4)
     pa = pa_scaling(pa, 0.4)
 
-    return pa_dti, pa_dti_theta, pa, pa_theta
+    return pa_dti, pa_dti_theta, pa, pa_theta, pa_jsd
 
 
 def calc_u0(uvectors):
@@ -613,7 +632,7 @@ def calculate_pa_dti(u0, uvectors, mask):
     return pa_dti, pa_dti_theta
 
 
-def calculate_pa(coeffs, uvectors, u0, tmn):
+def calculate_pa(coeffs, uvectors, u0, tmn, rmn):
 
     b, norm_factor = change_basis(coeffs, tmn, u0)
 
@@ -624,8 +643,11 @@ def calculate_pa(coeffs, uvectors, u0, tmn):
     pa_theta = np.arccos(cosPA)
     pa = np.sin(pa_theta)
 
-    return pa, pa_theta
+    # Calculate PA based on Jensen-Shannon Divergence
+    b = sphere_coeffs_to_cartesian(b)
+    pa_jsd = np.dot(np.dot(coeffs-b, rmn), coeffs-b)
 
+    return pa, pa_theta, pa_jsd
 
 def change_basis(coeffs, tmn, u0):
     norm_factor = np.zeros((tmn.shape[1]))
@@ -636,6 +658,54 @@ def change_basis(coeffs, tmn, u0):
     b = np.dot(coeffs,tmn) / norm_factor
 
     return b, norm_factor
+
+def sphere_coeffs_to_cartesian(sphere_coeffs):
+    order = (sphere_coeffs.shape[0] - 1) * 2
+    coeffs_cart = np.zeros(int(np.round(1/6.0 * (order/2 + 1) * (order/2 + 2) * (2*order + 3))))
+
+    index = 0
+    for N in range(sphere_coeffs.shape[0]):
+        for n1 in range(N*2+1):
+            for n2 in range(N*2+1):
+                for n3 in range(N*2+1):
+                    if((n1+n2+n3) == (N*2) and (n1%2) == 0 and (n2%2) == 0 and (n3%2) == 0):
+                        coeffs_cart[index] = sphere_coeffs[N] * np.sqrt(util.factn(n1,1) * util.factn(n2,1) * util.factn(n3,1)) / (util.factn(n1,2) * util.factn(n2,2) * util.factn(n3,2))
+                        index += 1
+
+    return coeffs_cart
+
+def calc_rmn(order):
+    num_coeffs = int(np.round(1/6.0 * (order/2 + 1) * (order/2 + 2) * (2*order + 3)))
+    rmn = np.zeros((num_coeffs, num_coeffs))
+    r_one_d = np.zeros((num_coeffs + 1, num_coeffs + 1))
+
+    for m in range(order+1):
+        for n in range(order+1):
+
+            if((m + n) % 2 == 0):
+                coeff = np.sqrt(util.factn(n,1) * util.factn(m,1)) / np.sqrt(np.pi)
+
+                for r in range(0,m+1,2):
+                    for s in range(0,n+1,2):
+                        r_one_d[m,n] += coeff * (((-1)**((s+r)/2) * 2**(n-s+m-r)) / ((util.factn(r,2)*util.factn(s,2)*util.factn(n-s,1)*util.factn(m-r,1))) * scipy.special.gamma((n-s+m-r+1) / 2.0))
+
+    mindex = 0
+    for M in range(0,order+1,2):
+        for m1 in range(M+1):
+            for m2 in range(M+1):
+                for m3 in range(M+1):
+                    if((m1+m2+m3) == M):
+                        nindex = 0
+                        for N in range(0,order+1,2):
+                            for n1 in range(N+1):
+                                for n2 in range(N+1):
+                                    for n3 in range(N+1):
+                                        if((n1+n2+n3) == N):
+                                            rmn[mindex,nindex] = r_one_d[m1,n1]*r_one_d[m2,n2]*r_one_d[m3,n3]
+                                            nindex += 1
+                        mindex += 1
+
+    return rmn
 
 
 def calc_tmn(uvectors, u0, order_a, order_b):
