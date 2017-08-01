@@ -96,6 +96,12 @@ if args.dti != 0:
 
 
 ### DKI ########################################################################
+if args.dki != 0:
+    print "Performing DKI Analysis:"
+    dki_outpath = outpath + "DKI/"
+    os.mkdir(dki_outpath)
+
+    dki.main_dki(args.Image, args.bval, args.bvec, args.mask, dki_outpath, b_thresh=args.dki)
 ################################################################################
 
 

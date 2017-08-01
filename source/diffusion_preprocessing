@@ -186,6 +186,8 @@ else:
 
 ### FSL DISTORTION CORRECTION ##################################################
 if args.software == "FSL":
+
+    print
     os.environ["FSLOUTPUTTYPE"] = "NIFTI"
 
     # Run TOPUP if specified
@@ -232,18 +234,28 @@ if args.software == "FSL":
         os.remove("topup_results_fieldcoef.nii")
         os.remove("topup_results_movpar.txt")
 
-    if args.eddycurrentcorrection and args.epidistortion[0] == "None":
+    if ((args.eddycurrentcorrection is True) and (args.epidistortion == "None")):
         # Create ACQP and INDEX text files
         diffusion_preprocessing_functions.no_topup_index_acqp('bval', 'bvec')
 
         print "Running EDDY"
-        subprocess.call(["eddy", "--imain=dwi.nii", "--mask=mask.nii", "--index=index.txt", "--acqp=acqp.txt", "--bvecs=bvec", "--bvals=bval", "--out=dwi", "--data_is_shelled", "-v"])
+        subprocess.call(["eddy_openmp", "--imain=dwi.nii", "--mask=mask.nii", "--index=index.txt", "--acqp=acqp.txt", "--bvecs=bvec", "--bvals=bval", "--out=dwi", "--data_is_shelled", "-v"])
 
         # Replace old bvec file with rotated_bvec file
         os.remove("bvec")
-        shutil.move("dwi_eddy.eddy_rotated_bvecs", "bvec")
+        shutil.move("dwi.eddy_rotated_bvecs", "bvec")
 
         # Clean up extra files
+        os.remove("acqp.txt")
+        os.remove("index.txt")
+        os.remove("dwi.eddy_restricted_movement_rms")
+        os.remove("dwi.eddy_movement_rms")
+        os.remove("dwi.eddy_outlier_map")
+        os.remove("dwi.eddy_outlier_n_sqr_stdev_map")
+        os.remove("dwi.eddy_outlier_n_stdev_map")
+        os.remove("dwi.eddy_outlier_report")
+        os.remove("dwi.eddy_parameters")
+        os.remove("dwi.eddy_post_eddy_shell_alignment_parameters")
 
 ################################################################################
 
@@ -393,5 +405,6 @@ if (args.software == 'FSL'):
             break
     shutil.move('dwi_resize.nii', 'dwi.nii')
 
-    subprocess.call(["dwi2mask", "-fslgrad", "bvec", "bval", "dwi.nii", "mask.nii"])
+    if(args.mask != "None"):
+        subprocess.call(["dwi2mask", "-fslgrad", "bvec", "bval", "dwi.nii", "mask.nii"])
 ################################################################################

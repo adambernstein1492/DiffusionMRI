@@ -22,7 +22,7 @@ def main_dti(dwi_file, bval_file, bvec_file, mask_file, out_path, b_thresh=2100,
 
         # Save
         FA_img = nib.Nifti1Image(FA, dwi.affine, dwi.header)
-        nib.save(FA_img, (out_path + 'FA.nii'))
+        nib.save(FA_img, (out_path + 'FractionalAnisotropy.nii'))
 
     if calc_MD or calc_AD or calc_RD:
         MD, AD, RD = calc_diffusivities(eigen_values)
@@ -30,13 +30,13 @@ def main_dti(dwi_file, bval_file, bvec_file, mask_file, out_path, b_thresh=2100,
         # Save
         if calc_MD:
             MD_img = nib.Nifti1Image(MD, dwi.affine, dwi.header)
-            nib.save(MD_img, (out_path + 'MD.nii'))
+            nib.save(MD_img, (out_path + 'MeanDiffusivity.nii'))
         if calc_AD:
             AD_img = nib.Nifti1Image(AD, dwi.affine, dwi.header)
-            nib.save(AD_img, (out_path + 'AD.nii'))
+            nib.save(AD_img, (out_path + 'AxialDiffusivity.nii'))
         if calc_RD:
             RD_img = nib.Nifti1Image(RD, dwi.affine, dwi.header)
-            nib.save(RD_img, (out_path + 'RD.nii'))
+            nib.save(RD_img, (out_path + 'RadialDiffusivity.nii'))
 
     return eigen_values, eigen_vectors
 
@@ -51,7 +51,6 @@ def fit_dti(dwi, bvals, bvecs, mask):
     # Allocate Space for Outputs
     eigen_values = np.zeros((dwi.shape[0], dwi.shape[1], dwi.shape[2], 3))
     eigen_vectors = np.zeros((dwi.shape[0], dwi.shape[1], dwi.shape[2], 3, 3))
-    B0s = np.zeros((dwi.shape[0], dwi.shape[1], dwi.shape[2]))
 
     # Perform Weighted Linear least squares fitting
     count = 0.0
@@ -73,6 +72,9 @@ def fit_dti(dwi, bvals, bvecs, mask):
 
                     # Diagonalize the Tensor
                     eigen_values[i,j,k,:], eigen_vectors[i,j,k,:,:] = np.linalg.eig(tensor)
+
+                    # Sort the Eigenvalues
+                    eigen_values[i,j,k,:], eigen_vectors[i,j,k,:,:] = sort_eigvals(eigen_values[i,j,k,:], eigen_vectors[i,j,k,:])
 
                     # Update Progress
                     count += 1.0
@@ -100,11 +102,9 @@ def calc_fa(eigen_values):
     return FA
 
 def calc_diffusivities(eigen_values):
-    MD = (eigen_values[:,:,:,0] + eigen_values[:,:,:,1] + eigen_values[:,:,:,2]) / 3
-    AD = np.amax(eigen_values, axis=3)
-    minimum = np.amin(eigen_values, axis=3)
-    med = np.median(eigen_values, axis = 3)
-    RD = (minimum + med) / 2
+    MD = (eigen_values[:,:,:,0] + eigen_values[:,:,:,1] + eigen_values[:,:,:,2]) / 3.0
+    AD = eigen_values[:,:,:,2]
+    RD = (eigen_values[:,:,:,0] + eigen_values[:,:,:,1]) / 2.0
 
     return MD, AD, RD
 
@@ -142,3 +142,15 @@ def filter_bvals(dwi, bvals, bvecs, bval_threshold=10000):
             index += 1
 
     return dwi_thresh, bval_thresh, bvec_thresh
+
+def sort_eigvals(eigen_values, eigen_vectors):
+    eig_vecs_sorted = np.zeros((3,3))
+
+    eig_vals_sorted = np.sort(eigen_values)
+
+    for i in range(3):
+        for j in range(3):
+            if(eig_vals_sorted[i] == eigen_values[j]):
+                eig_vecs_sorted[:,i] = eigen_vectors[:,j]
+
+    return eig_vals_sorted, eig_vecs_sorted

@@ -60,13 +60,15 @@ def write_index_acqp(dwi_file, bval_file, bvec_file, rpe_file, echo_spacing=0.05
 
 
 def no_topup_index_acqp(bval_file, bvec_file):
-    acqp_file = [0.0, -1, 0.0, 0.05]
-    np.savetxt('acqp.txt', acqp_file, delimiter=' ', fmt='%f')
+    acqp_file = np.zeros((1, 4))
+    acqp_file[0,1] = -1
+    acqp_file[0,3] = 0.05
+    np.savetxt('acqp.txt', acqp_file, delimiter=' ', fmt = '%f')
 
     bvals,_ = dipy.io.read_bvals_bvecs(bval_file, bvec_file)
-    index_file = np.ones(bvals.shape)
+    index_file = np.ones((1, bvals.shape[0]))
 
-    np.savetxt('index.txt', index_file, delimiter=' ', fmt='%d')
+    np.savetxt('index.txt', index_file, delimiter=' ', fmt = '%d')
 
 
 def create_bvals_bvecs_rpe(rpe_file):

@@ -7,7 +7,7 @@ import dti
 
 def main_map(dwi_file, bval_file, bvec_file, mask_file, little_delta, big_delta,
              out_path, order=6, b_thresh_dti=2100, calc_rtps=True, calc_ng=True,
-             calc_pa=True, calc_dki=False, return_dti=False):
+             calc_pa=True, calc_dki=True, return_dti=False):
 
     # Load in Data
     dwi, mask, bvals, bvecs = util.load_diffusion_data(dwi_file, bval_file, bvec_file, mask_file)
@@ -54,7 +54,6 @@ def main_map(dwi_file, bval_file, bvec_file, mask_file, little_delta, big_delta,
 
     # Calculate and Save Scalar MAPs
     if calc_pa:
-        print "Calculating Propagator Anisotropy"
         pa_dti, pa_dti_theta, pa, pa_theta, pa_jsd = calc_propagator_anisotropy(coeffs, uvectors, order, mask)
 
         img = nib.Nifti1Image(pa_dti, dwi.affine, dwi.header)
@@ -74,7 +73,7 @@ def main_map(dwi_file, bval_file, bvec_file, mask_file, little_delta, big_delta,
 
     if calc_ng:
         print "Calculating Non-Gaussianity"
-        ng, ng_par, ng_perp = calc_non_gaussianity(coeffs, order, num_coeffs)
+        ng, ng_par, ng_perp, ng_jsd = calc_non_gaussianity(coeffs, order, num_coeffs)
 
         img = nib.Nifti1Image(ng, dwi.affine, dwi.header)
         nib.save(img, (out_path + 'NonGaussianity.nii'))
@@ -83,7 +82,10 @@ def main_map(dwi_file, bval_file, bvec_file, mask_file, little_delta, big_delta,
         nib.save(img, (out_path + 'AxialNonGaussianity.nii'))
 
         img = nib.Nifti1Image(ng_perp, dwi.affine, dwi.header)
-        nib.save(img, (out_path + 'PerpindicularNonGaussianity.nii'))
+        nib.save(img, (out_path + 'RadialNonGaussianity.nii'))
+
+        img = nib.Nifti1Image(ng_jsd, dwi.affine, dwi.header)
+        nib.save(img, (out_path + 'NonGaussianity_JSD.nii'))
 
     if calc_rtps:
         print "Calculating Return origin, axis, and plane probabilities"
@@ -99,11 +101,25 @@ def main_map(dwi_file, bval_file, bvec_file, mask_file, little_delta, big_delta,
         nib.save(img, (out_path + 'RTPP.nii'))
 
     if calc_dki:
-        pass
+        print "Calculating DKI parameters from MAP Coefficients"
+        mk, k_par, k_perp, fa_k = calc_gdti_params(coeffs, uvectors, mask, little_delta, big_delta, order, moment_order=4)
+
+        img = nib.Nifti1Image(mk, dwi.affine, dwi.header)
+        nib.save(img, (out_path + 'MeanKurtosis.nii'))
+
+        img = nib.Nifti1Image(k_par, dwi.affine, dwi.header)
+        nib.save(img, (out_path + 'AxialKurtosis.nii'))
+
+        img = nib.Nifti1Image(k_perp, dwi.affine, dwi.header)
+        nib.save(img, (out_path + 'RadialKurtosis.nii'))
+
+        img = nib.Nifti1Image(fa_k, dwi.affine, dwi.header)
+        nib.save(img, (out_path + 'KurtosisAnisotropy.nii'))
 
     if return_dti:
         img = nib.Nifti1Image(eigen_vectors, dwi.affine, dwi.header)
         nib.save(img, (out_path + 'dti_eigen_vectors.nii'))
+
         img = nib.Nifti1Image(eigen_values, dwi.affine, dwi.header)
         nib.save(img, (out_path + 'dti_eigen_values.nii'))
 
@@ -491,6 +507,17 @@ def calc_non_gaussianity(coeffs, order, num_coeffs):
 
             index += 1
 
+    # Calculate Non Gaussianity based on Jensen-Shannon Divergence
+    ng_jsd = np.zeros((coeffs.shape[0], coeffs.shape[1], coeffs.shape[2]))
+    coeffs_gaussian = np.zeros((num_coeffs))
+    rmn = calc_rmn(order)
+    for x in range(ng_jsd.shape[0]):
+        for y in range(ng_jsd.shape[1]):
+            for z in range(ng_jsd.shape[2]):
+                coeffs_total = coeffs[x,y,z,:]
+                coeffs_gaussian[0] = coeffs[x,y,z,0]
+                ng_jsd[x,y,z] = np.dot(np.dot(coeffs_total-coeffs_gaussian, rmn), coeffs_total-coeffs_gaussian)
+
 
     # Calculate Nongaussianities
     ng = np.sqrt(1 - coeffs_lin[:,0]**2 / np.sum(coeffs_lin**2, axis=1))
@@ -515,7 +542,7 @@ def calc_non_gaussianity(coeffs, order, num_coeffs):
     ng_par[np.isnan(ng_par)] = 0
     ng_perp[np.isnan(ng_perp)] = 0
 
-    return ng, ng_par, ng_perp
+    return ng, ng_par, ng_perp, ng_jsd
 
 
 def calc_b_and_signs(order, num_coeffs):
@@ -757,3 +784,176 @@ def pa_scaling(pa, param):
     pa = pa**(3*param) / (1 - 3*pa**param + 3*pa**(2*param))
 
     return pa
+
+def calc_gdti_params(map_coeffs, uvecs, mask, d, D, map_order, moment_order=4):
+    num_moment_coeffs = int(np.round(1/6.0 * (moment_order/2 + 1) * (moment_order/2 + 2) * (2*moment_order + 3)))
+    moments = np.zeros((map_coeffs.shape[0], map_coeffs.shape[1], map_coeffs.shape[2], num_moment_coeffs))
+
+    # Convert MAP coeffs to Moments
+    ymn = calc_ymn(map_order, moment_order)
+
+    count = 0.0
+    percent_prev = 0.0
+    num_vox = np.sum(mask)
+
+    for x in range(map_coeffs.shape[0]):
+        for y in range(map_coeffs.shape[1]):
+            for z in range(map_coeffs.shape[2]):
+                if mask[x,y,z] != 0:
+                    moments[x,y,z,:] = map_coeffs_to_moments(map_coeffs[x,y,z,:], uvecs[x,y,z,:], ymn, map_order, moment_order)
+
+                    # Update Progress
+                    count += 1.0
+                    percent = np.around((count / num_vox * 100), decimals = 1)
+                    if(percent != percent_prev):
+                        util.progress_update("Calculating GDTI Moments: ", percent)
+                        percent_prev = percent
+
+    # Convert Moments to GDTI
+    tensor,_ = moments_to_HOT(moments, d, D)
+
+    # Calculate Parameters
+    mk, k_par, k_perp, fa_k = calc_dki_params(tensor, d, D)
+
+    return mk, k_par, k_perp, fa_k
+
+def map_coeffs_to_moments(map_coeffs, uvecs, ymn, map_order, moment_order=4):
+    # Calculate scaling matrix
+    u = calc_umn(uvecs, moment_order)
+
+    # Filter MAP coefficients to reduce ringing
+    map_coeffs = filter_map_coeffs(map_coeffs, map_order)
+
+    # Multiply coeffs by ymn and scaling matrix: Moments = Map_Coeffs * Ymn * U
+    moments = np.dot(np.dot(map_coeffs, ymn), u)
+
+    return moments
+
+def filter_map_coeffs(map_coeffs, map_order):
+
+    index = 0
+    for N in range(0,map_order+1,2):
+        for n1 in range(N+1):
+            for n2 in range(N+1):
+                for n3 in range(N+1):
+                    if((n1+n2+n3) == N):
+                        #map_coeffs[index] *= (1-N/10.0)
+                        #map_coeffs[index] *= (1 - 1.0 * N**2 / (N+1)**2)
+                        map_coeffs[index] *= np.exp(-(N**2 / (2*4**2)))
+                        index += 1
+
+    return map_coeffs
+
+
+def calc_ymn(map_order, moment_order):
+    num_map_coeffs = int(np.round(1/6.0 * (map_order/2 + 1) * (map_order/2 + 2) * (2*map_order + 3)))
+    moment_coeffs = int(np.round(1/6.0 * (moment_order/2 + 1) * (moment_order/2 + 2) * (2*moment_order + 3)))
+    ymn = np.zeros((num_map_coeffs, moment_coeffs))
+
+    y_one_d = np.zeros((map_order+1, moment_order+1))
+
+    for m in range(map_order+1):
+        for n in range(moment_order+1):
+
+            coeff = np.sqrt(util.factn(m,1))
+            if(((m+n) % 2) == 0):
+                for r in range(0,m+1,2):
+                    y_one_d[m,n] += coeff * ((-1)**(r/2.0) * 2.0**(m-r)) / (util.factn(r,2) * util.factn(m-r,1)) * scipy.special.gamma((m+n-r+1)/2.0)
+
+    mindex = 0
+    for M in range(0,map_order+1,2):
+        for m1 in range(M+1):
+            for m2 in range(M+1):
+                for m3 in range(M+1):
+                    if((m1+m2+m3) == M):
+                        nindex = 0
+                        for N in range(0,moment_order+1,2):
+                            for n1 in range(N+1):
+                                for n2 in range(N+1):
+                                    for n3 in range(N+1):
+                                        if((n1+n2+n3) == N):
+                                            ymn[mindex,nindex] = y_one_d[m1,n1] * y_one_d[m2,n2] * y_one_d[m3,n3]
+                                            nindex += 1
+                        mindex += 1
+
+    return ymn
+
+def calc_umn(uvec, moment_order):
+    moment_coeffs = int(np.round(1/6.0 * (moment_order/2 + 1) * (moment_order/2 + 2) * (2*moment_order + 3)))
+    u = np.zeros((moment_coeffs, moment_coeffs))
+
+    index = 0
+    for N in range(0,moment_order+1,2):
+        for n1 in range(N+1):
+            for n2 in range(N+1):
+                for n3 in range(N+2):
+                    if((n1+n2+n3) == N):
+                        u[index,index] = uvec[0]**n1 * uvec[1]**n2 * uvec[2]**n3 * np.sqrt((2.0**N)/(np.pi**3))
+                        index += 1
+
+    return u
+
+def moments_to_HOT(moments, d, D):
+    qq = np.zeros((moments.shape[0], moments.shape[1], moments.shape[2], 21))
+    dd = np.zeros((moments.shape[0], moments.shape[1], moments.shape[2], 21))
+
+    # Convert from um to mm
+    rr = moments[:,:,:,1:7]
+    rrrr = moments[:,:,:,7:]
+
+    # Compute cumulants "qq" from moments
+    qq[:,:,:,0] = rr[:,:,:,5]
+    qq[:,:,:,1] = rr[:,:,:,4]
+    qq[:,:,:,2] = rr[:,:,:,3]
+    qq[:,:,:,3] = rr[:,:,:,2]
+    qq[:,:,:,4] = rr[:,:,:,1]
+    qq[:,:,:,5] = rr[:,:,:,0]
+    qq[:,:,:,6] = rrrr[:,:,:,14] - 3*rr[:,:,:,5]**2                                         # Q_xxxx = <xxxx>-3<xx>^2
+    qq[:,:,:,7] = rrrr[:,:,:,13] - 3*rr[:,:,:,5]*rr[:,:,:,4]                                # Q_xxxy = <xxxy>-3<xx><xy>
+    qq[:,:,:,8] = rrrr[:,:,:,12] - 3*rr[:,:,:,5]*rr[:,:,:,3]                                # Q_xxxz = <xxxz>-3<xx><xz>
+    qq[:,:,:,9] = rrrr[:,:,:,11] - rr[:,:,:,5]*rr[:,:,:,2] - 2*rr[:,:,:,4]**2               # Q_xxyy = <xxyy>-<xx><yy>-2<xy>^2
+    qq[:,:,:,10] = rrrr[:,:,:,10] - rr[:,:,:,5]*rr[:,:,:,1] - 2*rr[:,:,:,4]*rr[:,:,:,3]     # Q_xxyz = <xxyz>-<xx><yz>-2<xy><xz>
+    qq[:,:,:,11] = rrrr[:,:,:,9] - rr[:,:,:,5]*rr[:,:,:,0] - 2*rr[:,:,:,3]**2               # Q_xxzz = <xxzz>-<xx><zz>-2<xz>^2
+    qq[:,:,:,12] = rrrr[:,:,:,8] - 3*rr[:,:,:,4]*rr[:,:,:,2]                                # Q_xyyy = <xyyy>-3<xy><yy>
+    qq[:,:,:,13] = rrrr[:,:,:,7] - rr[:,:,:,2]*rr[:,:,:,3] - 2*rr[:,:,:,4]*rr[:,:,:,1]      # Q_xyyz = <xyyz>-<yy><xz>-2<xy><yz>
+    qq[:,:,:,14] = rrrr[:,:,:,6] - rr[:,:,:,0]*rr[:,:,:,4] - 2*rr[:,:,:,3]*rr[:,:,:,1]      # Q_xyzz = <xyzz>-<zz><xy>-2<xz><yz>
+    qq[:,:,:,15] = rrrr[:,:,:,5] - 3*rr[:,:,:,0]*rr[:,:,:,3]                                # Q_xzzz = <xzzz>-3<zz><xz>
+    qq[:,:,:,16] = rrrr[:,:,:,4] - 3*rr[:,:,:,2]**2                                         # Q_yyyy = <yyyy>-3<yy>^2
+    qq[:,:,:,17] = rrrr[:,:,:,3] - 3*rr[:,:,:,2]*rr[:,:,:,1]                                # Q_yyyz = <yyyz>-3<yy><yz>
+    qq[:,:,:,18] = rrrr[:,:,:,2] - rr[:,:,:,2]*rr[:,:,:,0] - 2*rr[:,:,:,1]**2               # Q_yyzz = <yyzz>-<yy><zz>-2<yz>^2
+    qq[:,:,:,19] = rrrr[:,:,:,1] - 3*rr[:,:,:,1]*rr[:,:,:,0]                                # Q_yzzz = <yzzz>-3<yz><zz>
+    qq[:,:,:,20] = rrrr[:,:,:,0] - 3*rr[:,:,:,0]**2                                         # Q_zzzz = <zzzz>-3<zz>^2
+
+
+    # Calculate Diffusion Times
+    td2 = D - 1/3.0 * d
+    td4 = D - 3/5.0 * d
+
+    # Convert Cumulants to High Order Tenssors
+    dd[:,:,:,0:6] = qq[:,:,:,0:6] / (2 * td2)
+    dd[:,:,:,6:22] = qq[:,:,:,6:22] / (24 * td4)
+
+    return dd, qq
+
+def calc_dki_params(tensor, d, D):
+    # Scale Kurtosis tensor
+    trace = (tensor[:,:,:,0] + tensor[:,:,:,3] + tensor[:,:,:,5]) / 3.0
+
+    scale = (4.0 * (D - 1.0/3 * d)**2 * trace**2.0)
+    for i in range(6,21):
+        tensor[:,:,:,i] /= scale
+
+    # Use parameters defined by Hui et al. : Towards better MR characterization of neural tissues using directional diffusion kurtosis analysis
+    k = np.zeros((tensor.shape[0], tensor.shape[1], tensor.shape[2], 3))
+    k[:,:,:,0] = (trace ** 2) / (tensor[:,:,:,0] ** 2) * tensor[:,:,:,6]
+    k[:,:,:,1] = (trace ** 2) / (tensor[:,:,:,3] ** 2) * tensor[:,:,:,16]
+    k[:,:,:,2] = (trace ** 2) / (tensor[:,:,:,5] ** 2) * tensor[:,:,:,20]
+    k[np.isnan(k)] = 0
+
+    mk = (k[:,:,:,0] + k[:,:,:,1] + k[:,:,:,2]) / 3
+    k_par = k[:,:,:,2]
+    k_perp = (k[:,:,:,0] + k[:,:,:,1]) / 2
+
+    fa_k = np.sqrt(1.5 * ((k[:,:,:,0]-mk)**2 + (k[:,:,:,1]-mk)**2 + (k[:,:,:,2]-mk)**2) / (k[:,:,:,0]**2 + k[:,:,:,1]**2 + k[:,:,:,2]**2))
+
+    return mk, k_par, k_perp, fa_k
