@@ -10,7 +10,7 @@ import diffusion_functions.dti as dti
 import diffusion_functions.map as map
 import diffusion_functions.amico as amico
 import diffusion_functions.util as util
-#import diffusion_functions.dki as dki
+import diffusion_functions.dki as dki
 
 
 ### DEFINE INPUTS ##############################################################
