@@ -822,7 +822,7 @@ def map_coeffs_to_moments(map_coeffs, uvecs, ymn, map_order, moment_order=4):
     u = calc_umn(uvecs, moment_order)
 
     # Filter MAP coefficients to reduce ringing
-    map_coeffs = filter_map_coeffs(map_coeffs, map_order)
+    #map_coeffs = filter_map_coeffs(map_coeffs, map_order)
 
     # Multiply coeffs by ymn and scaling matrix: Moments = Map_Coeffs * Ymn * U
     moments = np.dot(np.dot(map_coeffs, ymn), u)
