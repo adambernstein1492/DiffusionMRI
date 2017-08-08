@@ -48,7 +48,6 @@ FSL_DIR=/software/fsl
     wget https://fsl.fmrib.ox.ac.uk/fsldownloads/fsl-5.0.10-centos6_64.tar.gz -O FSL.tar.gz
     tar xzvf FSL.tar.gz
     rm FSL.tar.gz
-    cp /software/fsl/etc/fslconf/fsl.sh /etc/profile.d/
     #/software/fsl/etc/fslconf/fslpython_install.sh -f /software/fsl
 
 
