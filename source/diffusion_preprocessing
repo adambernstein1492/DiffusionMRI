@@ -301,7 +301,7 @@ if args.software == "TORTOISE_DRBUDDI":
         # Run DR. BUDDI
         subprocess.call(["DR_BUDDI_withoutGUI", "--up_data", "dwi_proc/dwi_proc.list",
                          "--down_data", "rpe_proc/rpe.list", "--structural", "struct.nii",
-                         "--n_DWIs", "0", "--final_res", voxel_size[0], voxel_size[1], voxel_size[2]])
+                         "--n_DWIs", "0", "--res", voxel_size[0], voxel_size[1], voxel_size[2]])
 
 
     elif(len(rpe.shape) == 4):
@@ -315,11 +315,11 @@ if args.software == "TORTOISE_DRBUDDI":
         if(args.epidistortion[1] == "None"):
             subprocess.call(["DR_BUDDI_withoutGUI", "--up_data", "dwi_proc/dwi_proc.list",
                              "--down_data", "rpe_proc/rpe_proc.list", "--structural", "struct.nii",
-                             "--n_DWIs", "0", "--final_res", voxel_size[0], voxel_size[1], voxel_size[2]])
+                             "--n_DWIs", "0", "--res", voxel_size[0], voxel_size[1], voxel_size[2]])
         if(args.epidistortion[1] == "All"):
             subprocess.call(["DR_BUDDI_withoutGUI", "--up_data", "dwi_proc/dwi_proc.list",
                              "--down_data", "rpe_proc/rpe_proc.list", "--structural", "struct.nii",
-                             "--final_res", voxel_size[0], voxel_size[1], voxel_size[2]])
+                             "--res", voxel_size[0], voxel_size[1], voxel_size[2]])
     # Move Output to Upper Level
 
     # Clean up extra files
