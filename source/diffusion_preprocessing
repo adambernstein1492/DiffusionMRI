@@ -16,7 +16,7 @@ parser = argparse.ArgumentParser(description="Run a conventional diffusion MRI t
 parser.add_argument("-l", "--denoising", action="store_true", help="Perform LPCA denoising. Default=False", default=False)
 parser.add_argument("-b", "--biasfieldcorrection", action="store_true", help="Perform N4 correction. Default=False", default=False)
 parser.add_argument("-e", "--eddycurrentcorrection", action="store_true", help="Perform eddy current correction. Default=False", default=False)
-parser.add_argument("-r", "--epidistortion", type=str, help="Reverse phase encode image. Default=None", nargs=2, default="None", metavar=('RPE_image', 'Number_DWIs'))
+parser.add_argument("-r", "--epidistortion", type=str, help="Reverse phase encode image. Specify 'All' or 'b0'. Default=None", nargs=2, default="None", metavar=('RPE_image', 'Number_DWIs'))
 parser.add_argument("-m", "--mask", type=str, help="Filepath to a mask image to be used. Default=None)", default="None", metavar=('mask'))
 parser.add_argument("-a", "--structural", help="TORTOISE: Anatomical NIFTI image", default="None", metavar=('structural_image'))
 parser.add_argument("-k", "--is_non_human", action="store_true", help="TORTOISE: is human brain? Default=False", default=False)
@@ -292,7 +292,8 @@ if args.software == "TORTOISE_DRBUDDI":
 
     # Run DIFFPREP
     subprocess.call(["DIFFPREP", "-i", "dwi_proc/dwi.list", "-s", "struct.nii", "-c", "quadratic",
-                     "-e", "off", "--is_human_brain", is_human_brain, "--upsampling", "all",
+                     "-e", "off", "--denoising", "for_reg", "--gibbs_ringing_correction", "on", 
+                     "--will_be_drbuddied", "--is_human_brain", is_human_brain, "--upsampling", "all",
                      "--dti_bval", "1000", "--MAPMRI_bval", "3000", "--keep_intermediate", "0",
                      "--res", voxel_size[0], voxel_size[1], voxel_size[2]])
 
@@ -307,18 +308,21 @@ if args.software == "TORTOISE_DRBUDDI":
     elif(len(rpe.shape) == 4):
         # Run DIFFPREP on rpe data
         subprocess.call(["DIFFPREP", "-i", "rpe_proc/rpe.list", "-s", "struct.nii", "-c", "quadratic",
-                         "-e", "off", "--is_human_brain", is_human_brain, "--upsampling", "all",
+                         "-e", "off", "--denoising", "for_reg", "--gibbs_ringing_correction", "on", 
+                         "--will_be_drbuddied", "--is_human_brain", is_human_brain, "--upsampling", "all",
                          "--dti_bval", "1000", "--MAPMRI_bval", "3000", "--keep_intermediate", "0",
-                         "--res", args.voxel_size[0], args.voxel_size[1], args.voxel_size[2]])
+                         "--res", voxel_size[0], voxel_size[1], voxel_size[2]])
 
         # Run DR. BUDDI
         if(args.epidistortion[1] == "None"):
             subprocess.call(["DR_BUDDI_withoutGUI", "--up_data", "dwi_proc/dwi_proc.list",
                              "--down_data", "rpe_proc/rpe_proc.list", "--structural", "struct.nii",
-                             "--n_DWIs", "0", "--res", voxel_size[0], voxel_size[1], voxel_size[2]])
+                             "--n_DWIs", "0", "--enforce_deformation_antisymmetry", "1", 
+                             "--res", voxel_size[0], voxel_size[1], voxel_size[2]])
         if(args.epidistortion[1] == "All"):
             subprocess.call(["DR_BUDDI_withoutGUI", "--up_data", "dwi_proc/dwi_proc.list",
                              "--down_data", "rpe_proc/rpe_proc.list", "--structural", "struct.nii",
+                             "--enforce_deformation_antisymmetry", "1", 
                              "--res", voxel_size[0], voxel_size[1], voxel_size[2]])
     # Move Output to Upper Level
 
