@@ -292,7 +292,7 @@ if args.software == "TORTOISE_DRBUDDI":
 
     # Run DIFFPREP
     subprocess.call(["DIFFPREP", "-i", "dwi_proc/dwi.list", "-s", "struct.nii", "-c", "quadratic",
-                     "-e", "off", "--denoising", "for_reg", "--gibbs_ringing_correction", "on", 
+                     "-e", "off", "--denoising", "for_reg", "--gibbs_ringing_correction", "on",
                      "--will_be_drbuddied", "--is_human_brain", is_human_brain, "--upsampling", "all",
                      "--dti_bval", "1000", "--MAPMRI_bval", "3000", "--keep_intermediate", "0",
                      "--res", voxel_size[0], voxel_size[1], voxel_size[2]])
@@ -308,21 +308,21 @@ if args.software == "TORTOISE_DRBUDDI":
     elif(len(rpe.shape) == 4):
         # Run DIFFPREP on rpe data
         subprocess.call(["DIFFPREP", "-i", "rpe_proc/rpe.list", "-s", "struct.nii", "-c", "quadratic",
-                         "-e", "off", "--denoising", "for_reg", "--gibbs_ringing_correction", "on", 
+                         "-e", "off", "--denoising", "for_reg", "--gibbs_ringing_correction", "on",
                          "--will_be_drbuddied", "--is_human_brain", is_human_brain, "--upsampling", "all",
                          "--dti_bval", "1000", "--MAPMRI_bval", "3000", "--keep_intermediate", "0",
                          "--res", voxel_size[0], voxel_size[1], voxel_size[2]])
 
         # Run DR. BUDDI
-        if(args.epidistortion[1] == "None"):
+        if(args.epidistortion[1] == "b0"):
             subprocess.call(["DR_BUDDI_withoutGUI", "--up_data", "dwi_proc/dwi_proc.list",
                              "--down_data", "rpe_proc/rpe_proc.list", "--structural", "struct.nii",
-                             "--n_DWIs", "0", "--enforce_deformation_antisymmetry", "1", 
+                             "--n_DWIs", "0", "--enforce_deformation_antisymmetry", "1",
                              "--res", voxel_size[0], voxel_size[1], voxel_size[2]])
         if(args.epidistortion[1] == "All"):
             subprocess.call(["DR_BUDDI_withoutGUI", "--up_data", "dwi_proc/dwi_proc.list",
                              "--down_data", "rpe_proc/rpe_proc.list", "--structural", "struct.nii",
-                             "--enforce_deformation_antisymmetry", "1", 
+                             "--enforce_deformation_antisymmetry", "1",
                              "--res", voxel_size[0], voxel_size[1], voxel_size[2]])
     # Move Output to Upper Level
 
