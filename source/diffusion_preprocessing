@@ -256,7 +256,6 @@ if args.software == "FSL":
         os.remove("dwi.eddy_outlier_report")
         os.remove("dwi.eddy_parameters")
         os.remove("dwi.eddy_post_eddy_shell_alignment_parameters")
-
 ################################################################################
 
 
@@ -324,9 +323,29 @@ if args.software == "TORTOISE_DRBUDDI":
                              "--down_data", "rpe_proc/rpe_proc.list", "--structural", "struct.nii",
                              "--enforce_deformation_antisymmetry", "1",
                              "--res", voxel_size[0], voxel_size[1], voxel_size[2]])
-    # Move Output to Upper Level
+
+    subprocess.call(["TORTOISEBmatrixToFSLBVecs", "dwi_proc_DRBUDDI_proc/dwi_proc_DRBUDDI_up_final.bmtxt"])
 
     # Clean up extra files
+    os.remove("bval")
+    os.remove("bvec")
+    os.remove("dwi.nii")
+    os.remove("rpe.nii")
+    os.remove("rpe_bval")
+    os.remove("rpe_bvec")
+    os.remove("struct.nii")
+
+    shutil.move("dwi_proc_DRBUDDI_proc/dwi_proc_DRBUDDI_up_final.nii", "dwi.nii")
+    shutil.move("dwi_proc_DRBUDDI_proc/dwi_proc_DRBUDDI_up_final.bval", "bval")
+    shutil.move("dwi_proc_DRBUDDI_proc/dwi_proc_DRBUDDI_up_final.bvec", "bvec")
+    shutil.move("dwi_proc_DRBUDDI_proc/structural_used.nii", "struct.nii")
+
+    shutil.rmtree("dwi_proc_DRBUDDI_proc")
+    shutil.rmtree("dwi_proc")
+    shutil.rmtree("rpe_proc")
+
+    if(args.mask != "None"):
+        subprocess.call(["dwi2mask", "-fslgrad", "bvec", "bval", "dwi.nii", "mask.nii"])
 ################################################################################
 
 
