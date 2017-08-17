@@ -93,7 +93,7 @@ def create_avg_b0(dwi_file, bval_file, bvec_file):
 
     count = 0
     for i in bvals:
-        if i < 100:
+        if i < 50:
             count += 1
 
     b0s = np.zeros((dwi_data.shape[0], dwi_data.shape[1], dwi_data.shape[2], count))
@@ -101,7 +101,7 @@ def create_avg_b0(dwi_file, bval_file, bvec_file):
     index = 0
     count = 0
     for i in bvals:
-        if i < 100:
+        if i < 50:
             b0s[:,:,:,index] = dwi_data[:,:,:,count]
             index += 1
         count += 1
@@ -139,9 +139,9 @@ def organize_by_bval(dwi_file, bval_file, bvec_file):
     low_count = 0
     high_count = 0
     for i in bvals:
-        if i < 100:
+        if i < 50:
             low_count += 1
-        if i >= 100:
+        if i >= 50:
             high_count +=1
 
     # Allocate Space
@@ -156,12 +156,12 @@ def organize_by_bval(dwi_file, bval_file, bvec_file):
     high_index = 0
     index = 0
     for i in bvals:
-        if i < 100:
+        if i < 50:
             b0s[:,:,:,low_index] = dwi_data[:,:,:,index]
             bvals_low[0,low_index] = bvals[index]
             bvecs_low[low_index,:] = bvecs[index,:]
             low_index += 1
-        if i >= 100:
+        if i >= 50:
             diffs[:,:,:,high_index] = dwi_data[:,:,:,index]
             bvals_high[0,high_index] = bvals[index]
             bvecs_high[high_index,:] = bvecs[index,:]
@@ -178,3 +178,42 @@ def organize_by_bval(dwi_file, bval_file, bvec_file):
     nib.save(dwi, 'dwi.nii')
     np.savetxt('bval', bvals, delimiter=' ', fmt='%d')
     np.savetxt('bvec', bvecs.T, delimiter=' ', fmt='%f')
+
+def tSNR(dwi_file, bval_file, bvec_file, out_file):
+    dwi = nib.load(dwi_file)
+    dwi_data = dwi.get_data()
+    dwi_data[np.isnan(dwi_data)] = 0.0
+    bvals, bvecs = dipy.io.read_bvals_bvecs(bval_file, bvec_file)
+    b0s = filter_bvals(dwi_data, bvals, bvecs, 50)
+    snr = np.mean(b0s, axis=3) / np.std(b0s, axis=3)
+    snr_img = nib.Nifti1Image(snr, dwi.affine, dwi.header)
+    nib.save(snr_img, out_file)
+
+def field_map(xfm_file, out_file, echo_spacing = 0.7):
+    xfm = nib.load(xfm_file)
+    xfm_data = xfm.get_data()[:,:,:,1] / echo_spacing
+    xfm_data[np.isnan(xfm_data)] = 0.0
+    xfm_img = nib.Nifti1Image(xfm_data, xfm.affine, xfm.header)
+    nib.save(xfm_img, out_file)
+	
+def filter_bvals(dwi, bvals, bvecs, bval_threshold=10000):
+
+    count = 0
+    for i in range(bvals.shape[0]):
+        if bvals[i] <= bval_threshold:
+            count += 1
+
+    bval_thresh = np.zeros((count))
+    bvec_thresh = np.zeros((count,3))
+    dwi_thresh = np.zeros((dwi.shape[0], dwi.shape[1], dwi.shape[2], count))
+
+    index = 0
+    for i in range(bvals.shape[0]):
+        if bvals[i] <= bval_threshold:
+            bval_thresh[index] = bvals[i]
+            bvec_thresh[index,:] = bvecs[i,:]
+            dwi_thresh[:,:,:,index] = dwi[:,:,:,i]
+            index += 1
+
+    return dwi_thresh, bval_thresh, bvec_thresh	
+	
