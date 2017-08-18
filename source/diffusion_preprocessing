@@ -328,7 +328,6 @@ if args.software == "TORTOISE_DRBUDDI":
     subprocess.call(["TORTOISEBmatrixToFSLBVecs", "dwi_proc_DRBUDDI_proc/dwi_proc_DRBUDDI_up_final.bmtxt"])
 
     # Compute SNR and FM
-    # TODO: define echo_spacing
     snr = tSNR("dwi_proc_DRBUDDI_proc/rpe_proc_DRBUDDI_down_final.nii", "dwi_proc_DRBUDDI_proc/rpe_proc_DRBUDDI_down_final.bvals", "dwi_proc_DRBUDDI_proc/rpe_proc_DRBUDDI_down_final.bvecs", "snr.nii")
     if args.field_map != "None":
 		subprocess.call(["mrconvert", "dwi_proc_DRBUDDI_proc/deformation_FINV.nii.gz", "dwi_proc_DRBUDDI_proc/deformation_FINV.nii"])
@@ -344,8 +343,8 @@ if args.software == "TORTOISE_DRBUDDI":
     os.remove("struct.nii")
 
     shutil.move("dwi_proc_DRBUDDI_proc/dwi_proc_DRBUDDI_up_final.nii", "dwi.nii")
-    shutil.move("dwi_proc_DRBUDDI_proc/dwi_proc_DRBUDDI_up_final.bval", "bval")
-    shutil.move("dwi_proc_DRBUDDI_proc/dwi_proc_DRBUDDI_up_final.bvec", "bvec")
+    shutil.move("dwi_proc_DRBUDDI_proc/dwi_proc_DRBUDDI_up_final.bvals", "bval")
+    shutil.move("dwi_proc_DRBUDDI_proc/dwi_proc_DRBUDDI_up_final.bvecs", "bvec")
     shutil.move("dwi_proc_DRBUDDI_proc/structural_used.nii", "struct.nii")
 
     shutil.rmtree("dwi_proc_DRBUDDI_proc")
