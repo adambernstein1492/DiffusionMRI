@@ -300,7 +300,7 @@ if args.software == "TORTOISE_DRBUDDI":
     rpe = nib.load("rpe.nii")
     if(len(rpe.shape) == 3):
         # Run DR. BUDDI
-        subprocess.call(["DR_BUDDI_withoutGUI", "--up_data", "dwi_proc/dwi_proc.list",
+        subprocess.call(["DR_BUDDI", "--up_data", "dwi_proc/dwi_proc.list",
                          "--down_data", "rpe_proc/rpe.list", "--structural", "struct.nii",
                          "--n_DWIs", "0", "--res", voxel_size[0], voxel_size[1], voxel_size[2]])
 
@@ -315,17 +315,18 @@ if args.software == "TORTOISE_DRBUDDI":
 
         # Run DR. BUDDI
         if(args.epidistortion[1] == "b0"):
-            subprocess.call(["DR_BUDDI_withoutGUI", "--up_data", "dwi_proc/dwi_proc.list",
+            subprocess.call(["DR_BUDDI", "--up_data", "dwi_proc/dwi_proc.list",
                              "--down_data", "rpe_proc/rpe_proc.list", "--structural", "struct.nii",
                              "--n_DWIs", "0", "--enforce_deformation_antisymmetry", "1",
                              "--res", voxel_size[0], voxel_size[1], voxel_size[2]])
         if(args.epidistortion[1] == "All"):
-            subprocess.call(["DR_BUDDI_withoutGUI", "--up_data", "dwi_proc/dwi_proc.list",
+            subprocess.call(["DR_BUDDI", "--up_data", "dwi_proc/dwi_proc.list",
                              "--down_data", "rpe_proc/rpe_proc.list", "--structural", "struct.nii",
                              "--enforce_deformation_antisymmetry", "1",
                              "--res", voxel_size[0], voxel_size[1], voxel_size[2]])
 
     subprocess.call(["TORTOISEBmatrixToFSLBVecs", "dwi_proc_DRBUDDI_proc/dwi_proc_DRBUDDI_up_final.bmtxt"])
+    subprocess.call(["TORTOISEBmatrixToFSLBVecs", "dwi_proc_DRBUDDI_proc/rpe_proc_DRBUDDI_down_final.bmtxt"])
 
     # Compute SNR and FM
     snr = tSNR("dwi_proc_DRBUDDI_proc/rpe_proc_DRBUDDI_down_final.nii", "dwi_proc_DRBUDDI_proc/rpe_proc_DRBUDDI_down_final.bvals", "dwi_proc_DRBUDDI_proc/rpe_proc_DRBUDDI_down_final.bvecs", "snr.nii")
