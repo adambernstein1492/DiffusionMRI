@@ -180,21 +180,32 @@ def organize_by_bval(dwi_file, bval_file, bvec_file):
     np.savetxt('bvec', bvecs.T, delimiter=' ', fmt='%f')
 
 def tSNR(dwi_file, bval_file, bvec_file, out_file):
+    # Load Corrected DWI
     dwi = nib.load(dwi_file)
     dwi_data = dwi.get_data()
     dwi_data[np.isnan(dwi_data)] = 0.0
+    
+    # Load in bvals and bvecs
     bvals, bvecs = dipy.io.read_bvals_bvecs(bval_file, bvec_file)
-    b0s = filter_bvals(dwi_data, bvals, bvecs, 50)
+    b0s,_,_ = filter_bvals(dwi_data, bvals, bvecs, 50)
+    
+    # Calculate SNR
     snr = np.mean(b0s, axis=3) / np.std(b0s, axis=3)
+    # Remove nan
+    snr[np.isnan(snr)] = 0.0
+    
+    # Save SNR Map
     snr_img = nib.Nifti1Image(snr, dwi.affine, dwi.header)
     nib.save(snr_img, out_file)
+    
 
 def field_map(xfm_file, out_file, echo_spacing = 0.7):
     xfm = nib.load(xfm_file)
-    xfm_data = xfm.get_data()[:,:,:,1] / echo_spacing
+    xfm_data = xfm.get_data()[:,:,:,0,1] / echo_spacing
     xfm_data[np.isnan(xfm_data)] = 0.0
     xfm_img = nib.Nifti1Image(xfm_data, xfm.affine, xfm.header)
     nib.save(xfm_img, out_file)
+    
 	
 def filter_bvals(dwi, bvals, bvecs, bval_threshold=10000):
 

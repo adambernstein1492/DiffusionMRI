@@ -17,7 +17,7 @@ parser.add_argument("-l", "--denoising", action="store_true", help="Perform LPCA
 parser.add_argument("-b", "--biasfieldcorrection", action="store_true", help="Perform N4 correction. Default=False", default=False)
 parser.add_argument("-e", "--eddycurrentcorrection", action="store_true", help="Perform eddy current correction. Default=False", default=False)
 parser.add_argument("-r", "--epidistortion", type=str, help="Reverse phase encode image. Specify 'All' or 'b0'. Default=None", nargs=2, default="None", metavar=('RPE_image', 'Number_DWIs'))
-parser.add_argument("-f", "--field_map", type=str, help="echo spacing for field map computation in ms", nargs=1, default="None", metavar=('esp'))
+parser.add_argument("-f", "--field_map", type=str, help="echo spacing for field map computation in ms", default="None", metavar=('esp'))
 parser.add_argument("-m", "--mask", type=str, help="Filepath to a mask image to be used. Default=None)", default="None", metavar=('mask'))
 parser.add_argument("-a", "--structural", help="TORTOISE: Anatomical NIFTI image", default="None", metavar=('structural_image'))
 parser.add_argument("-k", "--is_non_human", action="store_true", help="TORTOISE: is human brain? Default=False", default=False)
@@ -31,8 +31,6 @@ parser.add_argument("Output", type=str, help="Output directory for the final pro
 
 args = parser.parse_args()
 ################################################################################
-
-
 
 # Save Script location to call Config files later
 file_location = os.path.dirname(__file__)
@@ -240,7 +238,9 @@ if args.software == "FSL":
         diffusion_preprocessing_functions.no_topup_index_acqp('bval', 'bvec')
 
         print "Running EDDY"
-        subprocess.call(["eddy_openmp", "--imain=dwi.nii", "--mask=mask.nii", "--index=index.txt", "--acqp=acqp.txt", "--bvecs=bvec", "--bvals=bval", "--out=dwi", "--data_is_shelled", "-v"])
+        subprocess.call(["eddy_openmp", "--imain=dwi.nii", "--mask=mask.nii", "--index=index.txt", 
+                         "--acqp=acqp.txt", "--bvecs=bvec", "--bvals=bval", "--out=dwi", 
+                         "--data_is_shelled", "-v"])
 
         # Replace old bvec file with rotated_bvec file
         os.remove("bvec")
@@ -277,7 +277,8 @@ if args.software == "TORTOISE_DRBUDDI":
         if(args.diffusion_times == "None"):
             subprocess.call(["ImportNIFTI", "-i", "dwi.nii", "-p", "vertical", "-b", "bval", "-v", "bvec"])
         else:
-            subprocess.call(["ImportNIFTI", "-i", "dwi.nii", "-p", "vertical", "-b", "bval", "-v", "bvec", "-d", args.diffusion_times[0], "-D", args.diffusion_times[1]])
+            subprocess.call(["ImportNIFTI", "-i", "dwi.nii", "-p", "vertical", "-b", "bval", "-v", "bvec", 
+                             "-d", args.diffusion_times[0], "-D", args.diffusion_times[1]])
 
         subprocess.call(["ImportNIFTI", "-i", "rpe.nii", "-p", "vertical", "-b", "rpe_bval", "-v", "rpe_bvec"])
 
@@ -287,8 +288,10 @@ if args.software == "TORTOISE_DRBUDDI":
             subprocess.call(["ImportNIFTI", "-i", "dwi.nii", "-p", "vertical", "-b", "bval", "-v", "bvec"])
             subprocess.call(["ImportNIFTI", "-i", "rpe.nii", "-p", "vertical", "-b", "bval", "-v", "bvec"])
         else:
-            subprocess.call(["ImportNIFTI", "-i", "dwi.nii", "-p", "vertical", "-b", "bval", "-v", "bvec", "-d", args.diffusion_times[0], "-D", args.diffusion_times[1]])
-            subprocess.call(["ImportNIFTI", "-i", "rpe.nii", "-p", "vertical", "-b", "bval", "-v", "bvec", "-d", args.diffusion_times[0], "-D", args.diffusion_times[1]])
+            subprocess.call(["ImportNIFTI", "-i", "dwi.nii", "-p", "vertical", "-b", "bval", "-v", "bvec", 
+                             "-d", args.diffusion_times[0], "-D", args.diffusion_times[1]])
+            subprocess.call(["ImportNIFTI", "-i", "rpe.nii", "-p", "vertical", "-b", "bval", "-v", "bvec", 
+                             "-d", args.diffusion_times[0], "-D", args.diffusion_times[1]])
 
     # Run DIFFPREP
     subprocess.call(["DIFFPREP", "-i", "dwi_proc/dwi.list", "-s", "struct.nii", "-c", "quadratic",
@@ -300,7 +303,7 @@ if args.software == "TORTOISE_DRBUDDI":
     rpe = nib.load("rpe.nii")
     if(len(rpe.shape) == 3):
         # Run DR. BUDDI
-        subprocess.call(["DR_BUDDI", "--up_data", "dwi_proc/dwi_proc.list",
+        subprocess.call(["DR_BUDDI_withoutGUI", "--up_data", "dwi_proc/dwi_proc.list",
                          "--down_data", "rpe_proc/rpe.list", "--structural", "struct.nii",
                          "--n_DWIs", "0", "--res", voxel_size[0], voxel_size[1], voxel_size[2]])
 
@@ -315,12 +318,12 @@ if args.software == "TORTOISE_DRBUDDI":
 
         # Run DR. BUDDI
         if(args.epidistortion[1] == "b0"):
-            subprocess.call(["DR_BUDDI", "--up_data", "dwi_proc/dwi_proc.list",
+            subprocess.call(["DR_BUDDI_withoutGUI", "--up_data", "dwi_proc/dwi_proc.list",
                              "--down_data", "rpe_proc/rpe_proc.list", "--structural", "struct.nii",
                              "--n_DWIs", "0", "--enforce_deformation_antisymmetry", "1",
                              "--res", voxel_size[0], voxel_size[1], voxel_size[2]])
         if(args.epidistortion[1] == "All"):
-            subprocess.call(["DR_BUDDI", "--up_data", "dwi_proc/dwi_proc.list",
+            subprocess.call(["DR_BUDDI_withoutGUI", "--up_data", "dwi_proc/dwi_proc.list",
                              "--down_data", "rpe_proc/rpe_proc.list", "--structural", "struct.nii",
                              "--enforce_deformation_antisymmetry", "1",
                              "--res", voxel_size[0], voxel_size[1], voxel_size[2]])
@@ -329,10 +332,15 @@ if args.software == "TORTOISE_DRBUDDI":
     subprocess.call(["TORTOISEBmatrixToFSLBVecs", "dwi_proc_DRBUDDI_proc/rpe_proc_DRBUDDI_down_final.bmtxt"])
 
     # Compute SNR and FM
-    snr = tSNR("dwi_proc_DRBUDDI_proc/rpe_proc_DRBUDDI_down_final.nii", "dwi_proc_DRBUDDI_proc/rpe_proc_DRBUDDI_down_final.bvals", "dwi_proc_DRBUDDI_proc/rpe_proc_DRBUDDI_down_final.bvecs", "snr.nii")
-    if args.field_map != "None":
+    if(len(rpe.shape) == 4):
+        snr = diffusion_preprocessing_functions.tSNR("dwi_proc_DRBUDDI_proc/rpe_proc_DRBUDDI_down_final.nii", 
+                   "dwi_proc_DRBUDDI_proc/rpe_proc_DRBUDDI_down_final.bvals", 
+                   "dwi_proc_DRBUDDI_proc/rpe_proc_DRBUDDI_down_final.bvecs", 
+                   "snr.nii")
+               
+    if(args.field_map != "None"):
 		subprocess.call(["mrconvert", "dwi_proc_DRBUDDI_proc/deformation_FINV.nii.gz", "dwi_proc_DRBUDDI_proc/deformation_FINV.nii"])
-		fm = field_map("dwi_proc_DRBUDDI_proc/deformation_FINV.nii", "fm.nii", float(args.field_map))
+		fm = diffusion_preprocessing_functions.field_map("dwi_proc_DRBUDDI_proc/deformation_FINV.nii", "fm.nii", float(args.field_map))
 
     # Clean up extra files
     os.remove("bval")
