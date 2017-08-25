@@ -266,8 +266,10 @@ if args.software == "TORTOISE_DRBUDDI":
 
     if args.is_non_human:
         is_human_brain = "0"
+        distortion_level = "very_large"
     else:
         is_human_brain = "1"
+        distortion_level = "medium"
 
     # Create blank bval and bvec files for rpe images
     if(args.epidistortion[1] == "b0"):
@@ -305,6 +307,7 @@ if args.software == "TORTOISE_DRBUDDI":
         # Run DR. BUDDI
         subprocess.call(["DR_BUDDI_withoutGUI", "--up_data", "dwi_proc/dwi_proc.list",
                          "--down_data", "rpe_proc/rpe.list", "--structural", "struct.nii",
+                         "--enforce_deformation_antisymmetry", "1", "distortion_level", distortion_level,
                          "--n_DWIs", "0", "--res", voxel_size[0], voxel_size[1], voxel_size[2]])
 
 
@@ -320,12 +323,13 @@ if args.software == "TORTOISE_DRBUDDI":
         if(args.epidistortion[1] == "b0"):
             subprocess.call(["DR_BUDDI_withoutGUI", "--up_data", "dwi_proc/dwi_proc.list",
                              "--down_data", "rpe_proc/rpe_proc.list", "--structural", "struct.nii",
-                             "--n_DWIs", "0", "--enforce_deformation_antisymmetry", "1",
+                             "--n_DWIs", "0", "--enforce_deformation_antisymmetry", "1", "--distortion_level", distortion_level,
                              "--res", voxel_size[0], voxel_size[1], voxel_size[2]])
+                             
         if(args.epidistortion[1] == "All"):
             subprocess.call(["DR_BUDDI_withoutGUI", "--up_data", "dwi_proc/dwi_proc.list",
                              "--down_data", "rpe_proc/rpe_proc.list", "--structural", "struct.nii",
-                             "--enforce_deformation_antisymmetry", "1",
+                             "--enforce_deformation_antisymmetry", "1", "--distortion_level", distortion_level,
                              "--res", voxel_size[0], voxel_size[1], voxel_size[2]])
 
     subprocess.call(["TORTOISEBmatrixToFSLBVecs", "dwi_proc_DRBUDDI_proc/dwi_proc_DRBUDDI_up_final.bmtxt"])
