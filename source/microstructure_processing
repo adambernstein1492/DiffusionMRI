@@ -6,6 +6,7 @@ import argparse
 import shutil
 import nibabel as nib
 import dipy.io
+import numpy as np
 import diffusion_functions.dti as dti
 import diffusion_functions.map as map
 import diffusion_functions.amico as amico
@@ -15,15 +16,15 @@ import diffusion_functions.dki as dki
 
 ### DEFINE INPUTS ##############################################################
 parser = argparse.ArgumentParser(description="Process a Diffusion MRI dataset using any of several microstructural analysis techniques")
-parser.add_argument("-d", "--dti", type=int, help="Perform Diffusion Tensor Imaging.", nargs="?", default=0, const=2100, metavar='b_value_cutoff')
-parser.add_argument("-k", "--dki", type=int, help="Perform Diffusion Kurtosis Imaging", nargs="?", default=0, const=2100, metavar='b_value_cutoff')
+parser.add_argument("-d", "--dti", type=int, help="Perform Diffusion Tensor Imaging.", nargs="?", default=0, const=2100, metavar="b_value_cutoff")
+parser.add_argument("-k", "--dki", type=int, help="Perform Diffusion Kurtosis Imaging", nargs="?", default=0, const=2100, metavar="b_value_cutoff")
 parser.add_argument("-n", "--noddi", action="store_true", help="Perform NODDI", default=False)
 parser.add_argument("-a", "--afd", action="store_true", help="Estimate the Apparent Fiber Density", default=False)
-parser.add_argument("-m", "--map", type=float, help="Estimate the Mean Apparent Propagator", nargs=3, default=0, metavar=('d', 'D', 'b_value_cutoff'))
+parser.add_argument("-m", "--map", type=float, help="Estimate the Mean Apparent Propagator", nargs=3, default=0, metavar=("d", "D", "b_value_cutoff"))
+parser.add_argument("-b", "--mask", type=str, help="Filepath to a mask image to be used. Default=None)", default="None", metavar=('mask'))
 parser.add_argument("Image", type=str, help="Diffusion Weighted MRI filepath")
 parser.add_argument("bval", type=str, help="b-value filepath")
 parser.add_argument("bvec", type=str, help="b-vector filepath")
-parser.add_argument("mask", type=str, help="mask filepath")
 parser.add_argument("Output", type=str, help="Output directory")
 
 args = parser.parse_args()
@@ -73,16 +74,28 @@ if args.afd and number_high_bvals < 30:
 if args.map != 0 and (number_high_bvals < 50 or b0_present==False):
     print "Error: Measurement scheme does not meet MAP minimums"
     quit()
+
+if args.mask != "None":
+    temp_mask = False
 ################################################################################
 
 
 
 # Create Output Directory for Processing
-if args.Output[-1] != '/':
-    outpath = args.Output + '/'
+if args.Output[-1] != "/":
+    outpath = args.Output + "/"
 else:
     outpath = args.Output
 os.mkdir(outpath)
+
+# Create Temporary Mask
+if args.mask == "None":
+    temp_mask = True
+    dwi = nib.load(args.Image)
+    mask = np.ones((dwi.shape[0], dwi.shape[1], dwi.shape[2]))
+    mask_img = nib.Nifti1Image(mask, dwi.affine, dwi.header)
+    nib.save(mask_img, (outpath + "mask.nii"))
+    args.mask = outpath + "mask.nii"
 
 ### DTI ########################################################################
 if args.dti != 0:
@@ -172,7 +185,7 @@ if args.noddi:
     shutil.move("Study01/Subject01/AMICO/NODDI/FIT_ISOVF.nii.gz", "ICOVF.nii.gz")
 
     shutil.rmtree("Study01", ignore_errors=True)
-
-
-
 ################################################################################
+
+if temp_mask:
+    os.remove(outpath + "mask.nii")

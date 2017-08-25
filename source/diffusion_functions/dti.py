@@ -3,7 +3,8 @@ import nibabel as nib
 import util
 
 def main_dti(dwi_file, bval_file, bvec_file, mask_file, out_path, b_thresh=2100,
-             calc_FA = True, calc_MD = True, calc_AD = True, calc_RD = True):
+             calc_FA = True, calc_MD = True, calc_AD = True, calc_RD = True,
+             output_dec_map = True, output_eig_vals = True):
 
     # Load in data
     dwi, mask, bvals, bvecs = util.load_diffusion_data(dwi_file, bval_file, bvec_file, mask_file)
@@ -37,6 +38,18 @@ def main_dti(dwi_file, bval_file, bvec_file, mask_file, out_path, b_thresh=2100,
         if calc_RD:
             RD_img = nib.Nifti1Image(RD, dwi.affine, dwi.header)
             nib.save(RD_img, (out_path + 'RadialDiffusivity.nii'))
+        if output_eig_vals:
+            eig_values = nib.Nifti1Image(eigen_values, dwi.affine, dwi.header)
+            nib.save(eig_values, (out_path + 'EigenValues.nii'))
+
+    if output_dec_map:
+        dec = np.zeros(eigen_values.shape)
+        dec[:,:,:,0] = eigen_vectors[:,:,:,0,2] * FA
+        dec[:,:,:,1] = eigen_vectors[:,:,:,1,2] * FA
+        dec[:,:,:,2] = eigen_vectors[:,:,:,2,2] * FA
+
+        dec_map = nib.Nifti1Image(dec, dwi.affine, dwi.header)
+        nib.save(dec_map, (out_path + 'DECmap.nii'))
 
     return eigen_values, eigen_vectors
 

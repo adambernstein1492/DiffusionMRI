@@ -16,9 +16,7 @@ FSF_OUTPUT_FORMAT=nii
 SUBJECTS_DIR=$HOME
 MNI_DIR=/software/freesurfer/mni
 FSL_DIR=/software/fsl
-
-
-
+FSLDIR=/software/fsl
 
 %runscript
 
