@@ -86,4 +86,7 @@ FSLDIR=/software/fsl
     ./configure
     ./build
     cd /software
+    
+    ### Custom Software ########################################################
+    git clone https://github.com/adambernstein1492/DiffusionMRI
 
