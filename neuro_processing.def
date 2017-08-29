@@ -8,22 +8,32 @@ From: ubuntu:xenial
 #%labels
 
 %environment
-SINGULARITY_SHELL="/bin/bash --norc"
-PATH=/software/ANTs/bin/bin:/software/dcm2niix/bin/bin:/software/mrtrix3/bin:/software/DiffusionMRI/source:/software/anaconda2/bin:/software/fsl/bin:/software/freesurfer/bin:/software/freesurfer/fsfast/bin:/software/freesurfer/tktools:/software/freesurfer/mni/bin:/software/:/software/TORTOISE/DIFFPREPV31/bin/bin/:/software/TORTOISE/DRBUDDIV31/bin/:$PATH
-FREESURFER_HOME=/software/freesurfer
-FSFAST_HOME=/software/freesurfer/fsfast
-FSF_OUTPUT_FORMAT=nii
-SUBJECTS_DIR=$HOME
-MNI_DIR=/software/freesurfer/mni
-FSL_DIR=/software/fsl
-FSLDIR=/software/fsl
+export SINGULARITY_SHELL="/bin/bash --norc"
+
+export PATH=/software/ANTs/bin/bin:/software/dcm2niix/bin/bin:/software/mrtrix3/bin:/software/DiffusionMRI/source:/software/anaconda2/bin:/software/fsl/bin:/software/freesurfer/bin:/software/freesurfer/fsfast/bin:/software/freesurfer/tktools:/software/freesurfer/mni/bin:/software/:/software/TORTOISE/DIFFPREPV31/bin/bin/:/software/TORTOISE/DRBUDDIV31/bin/:$PATH
+
+export FREESURFER_HOME=/software/freesurfer
+
+export FSFAST_HOME=/software/freesurfer/fsfast
+
+export FSF_OUTPUT_FORMAT=nii
+
+export SUBJECTS_DIR=$HOME
+
+export MNI_DIR=/software/freesurfer/mni
+
+export FSL_DIR=/software/fsl
+
+export FSLDIR=/software/fsl
+
+export FSLOUTPUTTYPE=NIFTI
 
 %runscript
 
 %post
     ### UPDATE AND INSTALL DEPENDENCIES ########################################
     apt-get update -y && apt-get upgrade -y
-    apt-get install build-essential cmake wget tcsh git g++ python python-numpy libeigen3-dev zlib1g-dev libqt4-opengl-dev libgl1-mesa-dev -y
+    apt-get install build-essential cmake wget tcsh git g++ python python-numpy libeigen3-dev zlib1g-dev libqt4-opengl-dev libgl1-mesa-dev dc -y
 
     mkdir /software
     cd /software
