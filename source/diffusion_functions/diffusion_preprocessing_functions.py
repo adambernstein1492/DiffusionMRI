@@ -16,20 +16,29 @@ def write_index_acqp(dwi_file, bval_file, bvec_file, rpe_file, echo_spacing=0.05
     rpe = nib.load(rpe_file)
     rpe_data = rpe.get_data()
 
-    count = 0
+    AP = 0
     for i in bvals:
         if i <= 100:
-            count += 1
+            AP += 1
 
     if len(rpe.shape) == 3:
-        num_b0s = 1
+        PA = 1
+        
+        # Same number of AP and PA images used for TOPUP
+        if AP > 1:
+            AP = 1
+            
     elif len(rpe.shape) == 4:
-        num_b0s = rpe.shape[3]
+        PA = rpe.shape[3]
+        
+        # Same number of AP and PA images used for TOPUP
+        if AP > PA:
+            AP = PA
 
-    acqp_file = np.zeros((count+num_b0s, 4))
+    acqp_file = np.zeros((AP + PA, 4))
 
-    for i in range(count+num_b0s):
-        if i < count:
+    for i in range(AP + PA):
+        if i < AP:
             acqp_file[i,1] = -1
         else:
             acqp_file[i,1] = 1
@@ -39,19 +48,19 @@ def write_index_acqp(dwi_file, bval_file, bvec_file, rpe_file, echo_spacing=0.05
     np.savetxt('acqp.txt', acqp_file, delimiter=' ', fmt = '%f')
 
     # Combine all B0 images and normalize by the mean
-    B0s = np.zeros((dwi.shape[0], dwi.shape[1], dwi.shape[2], count+num_b0s))
+    B0s = np.zeros((dwi.shape[0], dwi.shape[1], dwi.shape[2], AP + PA))
     index = 0
     count = 0
     for i in bvals:
-        if i <= 100:
+        if ((i <= 100) and (count < AP)):
             B0s[:,:,:,index] = dwi_data[:,:,:,count]/np.mean(dwi_data[:,:,:,count])
             index += 1
         count += 1
 
-    if num_b0s > 1:
-        for i in range(num_b0s):
+    if PA > 1:
+        for i in range(PA):
             B0s[:,:,:,i+index] = rpe_data[:,:,:,i]/np.mean(rpe_data[:,:,:,i])
-    elif num_b0s == 1:
+    elif PA == 1:
         B0s[:,:,:,index] = rpe_data/np.mean(rpe_data)
 
     # Write out B0s file
