@@ -3,8 +3,8 @@ import nibabel as nib
 import util
 
 def main_dti(dwi_file, bval_file, bvec_file, mask_file, out_path, b_thresh=2100,
-             calc_FA = True, calc_MD = True, calc_AD = True, calc_RD = True,
-             output_dec_map = True, output_eig_vals = True):
+             calc_FA=True, calc_MD=True, calc_AD=True, calc_RD=True,
+             output_dec_map=True, output_eig_vals=True):
 
     # Load in data
     dwi, mask, bvals, bvecs = util.load_diffusion_data(dwi_file, bval_file, bvec_file, mask_file)

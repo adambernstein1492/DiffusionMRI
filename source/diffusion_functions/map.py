@@ -17,11 +17,11 @@ def main_map(dwi_file, bval_file, bvec_file, mask_file, little_delta, big_delta,
     # Fit DTI
     if return_dti:
         eigen_values, eigen_vectors = dti.main_dti(dwi_file, bval_file, bvec_file,
-                            mask_file, (out_path + "DTI_"), b_thresh_dti, True, True, True, True)
+                            mask_file, (out_path + "DTI_"), b_thresh_dti, True, True, True, True, True, True)
         eigen_values[eigen_values <= 0] = 1e-5
     else:
         eigen_values, eigen_vectors = dti.main_dti(dwi_file, bval_file, bvec_file,
-                            mask_file, "", b_thresh_dti, False, False, False, False)
+                            mask_file, "", b_thresh_dti, False, False, False, False, False, False)
         eigen_values[eigen_values <= 0] = 1e-5
 
     # Determine Diffusion Time
