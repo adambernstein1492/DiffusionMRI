@@ -10,30 +10,32 @@ From: ubuntu:xenial
 %environment
 export SINGULARITY_SHELL="/bin/bash --norc"
 
-export PATH=/software/ANTs/bin/bin:/software/dcm2niix/bin/bin:/software/mrtrix3/bin:/software/DiffusionMRI/source:/software/anaconda2/bin:/software/fsl/bin:/software/freesurfer/bin:/software/freesurfer/fsfast/bin:/software/freesurfer/tktools:/software/freesurfer/mni/bin:/software/:/software/TORTOISE/DIFFPREPV31/bin/bin/:/software/TORTOISE/DRBUDDIV31/bin/:$PATH
+export PATH=/software/ANTs/bin/bin:/software/dcm2niix/bin/bin:/software/mrtrix3/bin:/software/DiffusionMRI/source:/software/anaconda2/bin:/software/TORTOISE/DIFFPREPV31/bin/bin:/software/TORTOISE/DRBUDDIV31/bin:$PATH
 
-export FREESURFER_HOME=/software/freesurfer
-
-export FSFAST_HOME=/software/freesurfer/fsfast
-
-export FSF_OUTPUT_FORMAT=nii
-
-export SUBJECTS_DIR=$HOME
-
-export MNI_DIR=/software/freesurfer/mni
-
-export FSL_DIR=/software/fsl
-
-export FSLDIR=/software/fsl
-
+FSLDIR=/software/fsl
+. ${FSLDIR}/etc/fslconf/fsl.sh
+PATH=${FSLDIR}/bin:${PATH}
+export FSLDIR PATH
 export FSLOUTPUTTYPE=NIFTI
 
+export FREESURFER_HOME=/software/freesurfer
+. $FREESURFER_HOME/SetUpFreeSurfer.sh
+
+
 %runscript
+FSLDIR=/software/fsl
+. ${FSLDIR}/etc/fslconf/fsl.sh
+PATH=${FSLDIR}/bin:${PATH}
+export FSLDIR PATH
+
+export FREESURFER_HOME=/software/freesurfer
+. $FREESURFER_HOME/SetUpFreeSurfer.sh
+
 
 %post
     ### UPDATE AND INSTALL DEPENDENCIES ########################################
     apt-get update -y && apt-get upgrade -y
-    apt-get install build-essential cmake wget tcsh git g++ python python-numpy libeigen3-dev zlib1g-dev libqt4-opengl-dev libgl1-mesa-dev dc -y
+    apt-get install build-essential cmake wget tcsh git g++ python python-numpy libeigen3-dev zlib1g-dev libqt4-opengl-dev libgl1-mesa-dev dc bc -y
 
     mkdir /software
     cd /software
