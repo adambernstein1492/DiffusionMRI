@@ -310,7 +310,6 @@ if args.software == "TORTOISE_DRBUDDI":
                          "--enforce_deformation_antisymmetry", "1", "distortion_level", distortion_level,
                          "--n_DWIs", "0", "--res", voxel_size[0], voxel_size[1], voxel_size[2]])
 
-
     elif(len(rpe.shape) == 4):
         # Run DIFFPREP on rpe data
         subprocess.call(["DIFFPREP", "-i", "rpe_proc/rpe.list", "-s", "struct.nii", "-c", "quadratic",
@@ -325,7 +324,7 @@ if args.software == "TORTOISE_DRBUDDI":
                              "--down_data", "rpe_proc/rpe_proc.list", "--structural", "struct.nii",
                              "--n_DWIs", "0", "--enforce_deformation_antisymmetry", "1", "--distortion_level", distortion_level,
                              "--res", voxel_size[0], voxel_size[1], voxel_size[2]])
-                             
+
         if(args.epidistortion[1] == "All"):
             subprocess.call(["DR_BUDDI_withoutGUI", "--up_data", "dwi_proc/dwi_proc.list",
                              "--down_data", "rpe_proc/rpe_proc.list", "--structural", "struct.nii",

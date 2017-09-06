@@ -23,10 +23,10 @@ export FREESURFER_HOME=/software/freesurfer
 
 
 %runscript
-FSLDIR=/software/fsl
-. ${FSLDIR}/etc/fslconf/fsl.sh
-PATH=${FSLDIR}/bin:${PATH}
-export FSLDIR PATH
+#FSLDIR=/software/fsl
+#. ${FSLDIR}/etc/fslconf/fsl.sh
+#PATH=${FSLDIR}/bin:${PATH}
+#export FSLDIR PATH
 
 export FREESURFER_HOME=/software/freesurfer
 . $FREESURFER_HOME/SetUpFreeSurfer.sh
@@ -98,7 +98,6 @@ export FREESURFER_HOME=/software/freesurfer
     ./configure
     ./build
     cd /software
-    
+
     ### Custom Software ########################################################
     git clone https://github.com/adambernstein1492/DiffusionMRI
-
