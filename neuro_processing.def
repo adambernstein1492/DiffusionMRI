@@ -8,29 +8,19 @@ From: ubuntu:xenial
 #%labels
 
 %environment
-#!/bin/bash
 export SINGULARITY_SHELL="/bin/bash --norc"
 
 export PATH=/software/ANTs/bin/bin:/software/dcm2niix/bin/bin:/software/mrtrix3/bin:/software/DiffusionMRI/source:/software/anaconda2/bin:/software/TORTOISE/DIFFPREPV31/bin/bin:/software/TORTOISE/DRBUDDIV31/bin:$PATH
 
+
+%runscript
 FSLDIR=/software/fsl
 . ${FSLDIR}/etc/fslconf/fsl.sh
 PATH=${FSLDIR}/bin:${PATH}
 export FSLDIR PATH
-export FSLOUTPUTTYPE=NIFTI
 
 export FREESURFER_HOME=/software/freesurfer
 . $FREESURFER_HOME/SetUpFreeSurfer.sh
-
-
-%runscript
-#FSLDIR=/software/fsl
-#. ${FSLDIR}/etc/fslconf/fsl.sh
-#PATH=${FSLDIR}/bin:${PATH}
-#export FSLDIR PATH
-
-#export FREESURFER_HOME=/software/freesurfer
-#. $FREESURFER_HOME/SetUpFreeSurfer.sh
 
 exec "$@"`
 
