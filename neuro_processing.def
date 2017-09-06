@@ -8,6 +8,7 @@ From: ubuntu:xenial
 #%labels
 
 %environment
+#!/bin/bash
 export SINGULARITY_SHELL="/bin/bash --norc"
 
 export PATH=/software/ANTs/bin/bin:/software/dcm2niix/bin/bin:/software/mrtrix3/bin:/software/DiffusionMRI/source:/software/anaconda2/bin:/software/TORTOISE/DIFFPREPV31/bin/bin:/software/TORTOISE/DRBUDDIV31/bin:$PATH
@@ -28,9 +29,10 @@ export FREESURFER_HOME=/software/freesurfer
 #PATH=${FSLDIR}/bin:${PATH}
 #export FSLDIR PATH
 
-export FREESURFER_HOME=/software/freesurfer
-. $FREESURFER_HOME/SetUpFreeSurfer.sh
+#export FREESURFER_HOME=/software/freesurfer
+#. $FREESURFER_HOME/SetUpFreeSurfer.sh
 
+exec "$@"`
 
 %post
     ### UPDATE AND INSTALL DEPENDENCIES ########################################
@@ -41,17 +43,17 @@ export FREESURFER_HOME=/software/freesurfer
     cd /software
 
     ### INSTALL MINICONDA AND SELECT PACKAGES ##################################
-    wget https://repo.continuum.io/miniconda/Miniconda2-latest-Linux-x86_64.sh -O miniconda.sh
-    bash miniconda.sh -b -p /software/anaconda2
-    rm miniconda.sh
+    #wget https://repo.continuum.io/miniconda/Miniconda2-latest-Linux-x86_64.sh -O miniconda.sh
+    #bash miniconda.sh -b -p /software/anaconda2
+    #rm miniconda.sh
 
     ## Add extra python packages for neuroimaging
-    /software/anaconda2/bin/conda install numpy -y
-    /software/anaconda2/bin/conda install scipy -y
-    /software/anaconda2/bin/pip install nibabel
-    /software/anaconda2/bin/pip install nipy
-    /software/anaconda2/bin/pip install dipy
-    /software/anaconda2/bin/conda install -c conda-forge python-spams=2.6 -y
+    #/software/anaconda2/bin/conda install numpy -y
+    #/software/anaconda2/bin/conda install scipy -y
+    #/software/anaconda2/bin/pip install nibabel
+    #/software/anaconda2/bin/pip install nipy
+    #/software/anaconda2/bin/pip install dipy
+    #/software/anaconda2/bin/conda install -c conda-forge python-spams=2.6 -y
 
 
     ### INSTALL FSL ############################################################
@@ -74,30 +76,30 @@ export FREESURFER_HOME=/software/freesurfer
 
 
     ### INSTALL DCM2NIIX #######################################################
-    git clone https://github.com/rordenlab/dcm2niix
-    mkdir dcm2niix/bin
-    cd dcm2niix/bin
-    cmake ../
-    make
-    cd /software
+    #git clone https://github.com/rordenlab/dcm2niix
+    #mkdir dcm2niix/bin
+    #cd dcm2niix/bin
+    #cmake ../
+    #make
+    #cd /software
 
 
     ### INSTALL ANTS ###########################################################
-    git clone https://github.com/stnava/ANTs
-    cd ANTs
-    mkdir bin
-    cd bin
-    cmake ../
-    make
-    cd /software
+    #git clone https://github.com/stnava/ANTs
+    #cd ANTs
+    #mkdir bin
+    #cd bin
+    #cmake ../
+    #make
+    #cd /software
 
 
     ### INSTALL MRTRIX3 ########################################################
-    git clone https://github.com/MRtrix3/mrtrix3.git
-    cd mrtrix3
-    ./configure
-    ./build
-    cd /software
+    #git clone https://github.com/MRtrix3/mrtrix3.git
+    #cd mrtrix3
+    #./configure
+    #./build
+    #cd /software
 
     ### Custom Software ########################################################
     git clone https://github.com/adambernstein1492/DiffusionMRI
