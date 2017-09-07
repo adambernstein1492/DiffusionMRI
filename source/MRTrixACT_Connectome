@@ -112,18 +112,18 @@ os.rename("dwi_up.mif", "dwi.mif")
 subprocess.call(["dwi2fod", "msmt_csd", "dwi.mif", "RF_WM.txt", "WM_FODs.mif", "RF_GM.txt", "GM.mif", "RF_CSF.txt", "CSF.mif", "-mask", "mask.nii"])
 
 # Tractography
-subprocess.call(["tckgen", "WM_FODs.mif", "20M.tck", "-act", "5TT.mif", "-backtrack", "-crop_at_gmwmi", "-seed_dynamic", "WM_FODs.mif", "-maxlength", "250", "-select", "1M", "-cutoff", "0.06"])
-subprocess.call(["tcksift", "20M.tck", "WM_FODs.mif", "10M_SIFT.tck", "-act", "5TT.mif", "-term_number", "500k"])
+subprocess.call(["tckgen", "WM_FODs.mif", "20M.tck", "-act", "5TT.mif", "-backtrack", "-crop_at_gmwmi", "-seed_dynamic", "WM_FODs.mif", "-maxlength", "250", "-select", "20M", "-cutoff", "0.06"])
+subprocess.call(["tcksift", "20M.tck", "WM_FODs.mif", "2M_SIFT.tck", "-act", "5TT.mif", "-term_number", "2M"])
 ###############################################################################
 
 
 
 ### CONNECTOME GENERATION #####################################################
-subprocess.call(["tck2connectome", "10M_SIFT.tck", "nodes.mif", "connectome.csv", "-out_assignments", "tcklabels.txt"])
+subprocess.call(["tck2connectome", "2M_SIFT.tck", "nodes.mif", "connectome.csv", "-out_assignments", "tcklabels.txt"])
 
 # Parse out Tracts between regions
 os.mkdir("Tracts")
-subprocess.call(["connectome2tck", "10M_SIFT.tck", "tcklabels.txt", "Tracts/IsoTracts"])
+subprocess.call(["connectome2tck", "2M_SIFT.tck", "tcklabels.txt", "Tracts/IsoTracts"])
 ###############################################################################
 
 
