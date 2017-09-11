@@ -237,6 +237,11 @@ if args.software == "FSL":
         # Create ACQP and INDEX text files
         diffusion_preprocessing_functions.no_topup_index_acqp('bval', 'bvec')
 
+	if args.mask == "None":
+		    subprocess.call(["bet", "dwi", "brain", "-m", "-f", "0.3", "-R"])
+		    os.remove("brain.nii")
+		    shutil.move("brain_mask.nii", "mask.nii")
+
         print "Running EDDY"
         subprocess.call(["eddy_openmp", "--imain=dwi.nii", "--mask=mask.nii", "--index=index.txt",
                          "--acqp=acqp.txt", "--bvecs=bvec", "--bvals=bval", "--out=dwi",
@@ -447,6 +452,6 @@ if (args.software == 'FSL'):
             break
     shutil.move('dwi_resize.nii', 'dwi.nii')
 
-    if(args.mask != "None"):
+    if(args.mask == "None"):
         subprocess.call(["dwi2mask", "-fslgrad", "bvec", "bval", "dwi.nii", "mask.nii"])
 ################################################################################
