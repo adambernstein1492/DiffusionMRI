@@ -426,7 +426,7 @@ if args.biasfieldcorrection:
     diffusion_preprocessing_functions.remove_header('mask.nii', 'mask_bias.nii')
 
     print "Calculating Bias Field"
-    subprocess.call(["N4BiasFieldCorrection", "-d", "3", "-i", "mean_b0_bias.nii", "-x", "mask_bias.nii", "-o", "[bias_correct.nii,field.nii]"])
+    subprocess.call(["N4BiasFieldCorrection", "-d", "3", "-i", "mean_b0_bias.nii", "-x", "mask_bias.nii", "-v", "-o", "[bias_correct.nii,field.nii]"])
 
     print "Applying Bias Field"
     diffusion_preprocessing_functions.apply_bias_field("dwi.nii", "field.nii")
