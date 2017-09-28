@@ -1,0 +1,58 @@
+#! /usr/bin/env python
+
+import diffusion_functions.create_diffusion_directions as create_diff_dirs
+import argparse
+
+### DEFINE INPUTS ##############################################################
+parser = argparse.ArgumentParser(description="Create a set of Diffusion Directions for use with a specified scanner")
+parser.add_argument("-d", "--directions", type=str, help="Enter a comma separated list of the number of directions per shell. Default=32,48,64", default='32,48,64')
+parser.add_argument("-b", "--bvalues", type=str, help="Enter a comma separated list of the b-values corresponding to each shell. Default=1000,2000,3000", default='1000,2000,3000')
+parser.add_argument("-m", "--manufacturer", type=str, help="Scanner type to create the direction set for", choices=["Siemens", "GE", "Phillips", "Bruker"], default="Siemens")
+parser.add_argument("-l", "--leadingb0s", type=int, help="Enter the number of b=0s to append to the beginning of the scan. Default=1", default=1)
+parser.add_argument("-s", "--b0spacing", type=int, help="Enter the number of DWIs between each b=0 image. Default=10", default=10)
+parser.add_argument("-o", "--outpath", type=str, help="Full filepath to the output direction file. Default=dirs.dvs", default='dirs.dvs')
+
+args = parser.parse_args()
+################################################################################
+
+
+
+### SPLIT BVECTORS AND BVALUES INPUT ###########################################
+directions = args.directions.split(',')
+bvals = args.bvalues.split(',')
+for i in range(len(directions)):
+    directions[i] = int(directions[i])
+    bvals[i] = int(bvals[i])
+################################################################################
+
+
+
+### CREATE DIRECTIONS AND SAVE FILE ############################################
+shells = create_diff_dirs.sample_spheres(directions, alpha=0.5, tolerance=1e-10, iterations=10000)
+
+bvecs,bvals = create_diff_dirs.optimize_direction_order(shells, bvals)
+
+bvecs,bvals = create_diff_dirs.add_b_zeros(bvecs, bvals, args.b0spacing, args.leadingb0s)
+
+f1 = open('bvec_test', 'w+')
+f2 = open('bval_test', 'w+')
+
+for i in range(len(bvals)):
+    f1.write('%f %f %f\n' % (bvecs[i,0], bvecs[i,1], bvecs[i,2]))
+    f2.write('%d ' % bvals[i])
+
+f1.close()
+f2.close()
+
+if args.manufacturer == 'Siemens':
+    create_diff_dirs.write_siemens_direction_file(bvecs,bvals,args.outpath)
+
+if args.manufacturer == 'Phillips':
+    create_diff_dirs.write_phillips_direction_file(bvecs,bvals,args.outpath)
+
+if args.manufacturer == 'GE':
+    create_diff_dirs.write_ge_direction_file(bvecs,bvals,args.outpath)
+
+if args.manufacturer == 'Bruker':
+    create_diff_dirs.write_bruker_direction_file(bvecs,bvals,args.outpath)
+################################################################################
