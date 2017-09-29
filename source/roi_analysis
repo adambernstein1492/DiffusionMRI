@@ -74,7 +74,7 @@ for param_map in param_map_copy:
 
 
 
-### PEROFM ROI ANALYSIS FOR ALL PARAMETER MAPS #################################
+### PERFORM ROI ANALYSIS FOR ALL PARAMETER MAPS #################################
 for param_map in param_map_copy:
     aparc_aseg, aparc_aseg_2009, aparc_aseg_wm = roi_functions.calc_roi_stats(param_map[:-4] + "_reg.nii")
 

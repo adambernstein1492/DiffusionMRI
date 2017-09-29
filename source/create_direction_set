@@ -10,7 +10,7 @@ parser.add_argument("-b", "--bvalues", type=str, help="Enter a comma separated l
 parser.add_argument("-m", "--manufacturer", type=str, help="Scanner type to create the direction set for", choices=["Siemens", "GE", "Phillips", "Bruker"], default="Siemens")
 parser.add_argument("-l", "--leadingb0s", type=int, help="Enter the number of b=0s to append to the beginning of the scan. Default=1", default=1)
 parser.add_argument("-s", "--b0spacing", type=int, help="Enter the number of DWIs between each b=0 image. Default=10", default=10)
-parser.add_argument("-o", "--outpath", type=str, help="Full filepath to the output direction file. Default=dirs.dvs", default='dirs.dvs')
+parser.add_argument("-o", "--outpath", type=str, help="Full filepath to the output direction file. Default=dirs.dvs", default='None')
 
 args = parser.parse_args()
 ################################################################################
@@ -33,16 +33,6 @@ shells = create_diff_dirs.sample_spheres(directions, alpha=0.5, tolerance=1e-10,
 bvecs,bvals = create_diff_dirs.optimize_direction_order(shells, bvals)
 
 bvecs,bvals = create_diff_dirs.add_b_zeros(bvecs, bvals, args.b0spacing, args.leadingb0s)
-
-f1 = open('bvec_test', 'w+')
-f2 = open('bval_test', 'w+')
-
-for i in range(len(bvals)):
-    f1.write('%f %f %f\n' % (bvecs[i,0], bvecs[i,1], bvecs[i,2]))
-    f2.write('%d ' % bvals[i])
-
-f1.close()
-f2.close()
 
 if args.manufacturer == 'Siemens':
     create_diff_dirs.write_siemens_direction_file(bvecs,bvals,args.outpath)

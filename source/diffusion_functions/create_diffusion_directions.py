@@ -1,6 +1,9 @@
 import numpy as np
-from matplotlib import pyplot
+import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
+from Tkinter import *
+import Tkinter
+import tkFileDialog
 
 
 def sample_spheres(directions=[32,48,64], alpha=0.5, tolerance=10e-10, iterations=10000):
@@ -94,7 +97,7 @@ def sample_spheres(directions=[32,48,64], alpha=0.5, tolerance=10e-10, iteration
 
 		# Check if current move is too big
 		if cost_function >= prev_cost_function:
-			force_scale_factor *= 0.99
+			force_scale_factor *= 0.95
 
 		delta_cost_function = np.absolute(cost_function-prev_cost_function)
 		if (delta_cost_function < tolerance):
@@ -258,7 +261,11 @@ def write_siemens_direction_file(bvecs,bvals,out_path):
 	for i in range(len(bvals)):
 		bvecs[i,:] = bvecs[i,:] * np.sqrt(float(bvals[i]) / float(maxB))
 
-	f1 = open(out_path, 'w+')
+	if out_path == "None":
+		f1 = tkFileDialog.asksaveasfile(mode='w',defaultextension=".dvs")
+	else:
+		f1 = open(out_path, 'w+')
+
 	f1.write('[Directions=%d]\nCoordinateSystem = XYZ\nNormalisation = None\n' % len(bvals))
 
 	for i in range(len(bvals)):
@@ -285,7 +292,11 @@ def write_phillips_direction_file(bvecs,bvals,out_path):
 			bvecs[i,:] = np.random.rand(1,3)
 			bvecs[i,:] = bvecs[i,:] / np.linalg.norm(bvecs[i,:])
 
-	f1 = open(out_path, 'w+')
+	if out_path == "None":
+		f1 = tkFileDialog.asksaveasfile(mode='w',defaultextension=".txt")
+	else:
+		f1 = open(out_path, 'w+')
+
 	for i in range(len(bvals)):
 		f1.write('%f %f %f %f\n' % (bvecs[i,0], bvecs[i,1], bvecs[i,2], bvals[i]))
 
