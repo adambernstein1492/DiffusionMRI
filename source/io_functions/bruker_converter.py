@@ -35,15 +35,15 @@ def read_bruker_header_file(filename):
 					prev_spot = f.tell()
 					next_char = f.read(1)
 					info = ''
-					
+
 					# Read file until next attribute is reached
-					while (next_char != '#') and (next_char != '$'): 
+					while (next_char != '#') and (next_char != '$'):
 						info += next_char
 
 						next_char = f.read(1)
 						if (next_char != '#') and (next_char != '$'):
 							prev_spot = f.tell()
-					
+
 					# Split Info Field based on type of information
 					# Handle Strings
 					if info[0] == '<':
@@ -57,8 +57,10 @@ def read_bruker_header_file(filename):
 						info = info.replace('\n', '').split(') (')
 
 						for i in range(len(info)):
-							info[i] = info[i].replace('(', '').replace(')', '')
+							info[i] = info[i].replace('(', '').replace(')', '').replace('<','').replace('>','')
+							info[i] = info[i].split(', ')
 
+					# Handle Arrays and Vectors
 					elif (info[0] != '<') and (info[0] != '('):
 						info = info.replace('\n', '').split()
 						info = np.reshape(info, field_size)
@@ -68,7 +70,7 @@ def read_bruker_header_file(filename):
 							is_repeated = True
 
 							for i in range(len(info)):
-								if (info[i] != info[0]):
+								if (np.any(info[i] != info[0])):
 									is_repeated = False
 
 							if is_repeated:
@@ -83,3 +85,145 @@ def read_bruker_header_file(filename):
 	f.close()
 
 	return header
+
+def get_affine(visu_pars):
+
+	affine_orientation = visu_pars['VisuCoreOrientation']
+	affine_orientation = np.reshape(affine_orientation, (3,3))
+	for i in range(3):
+		for j in range(3):
+			affine_orientation[i,j] = float(affine_orientation[i,j])
+
+	resolution = get_resolution(visu_pars)
+	offset = get_offset(visu_pars)
+
+	affine = np.eye(4, dtype=np.float32)
+	affine[0:3,0:3] = affine_orientation
+	affine[0:3,3] = offset
+
+	affine = np.linalg.inv(affine)
+
+	affine[0:3,0:3] = affine[0:3,0:3].dot(np.array([[1, 0, 0], [0, 0, 1], [0, 1, 0]]))
+
+	for i in range(3):
+		max = 0
+		index = 0
+		for j in range(3):
+			if np.abs(affine[j,i]) > max:
+				max = np.abs(affine[j,i])
+				index = j
+
+		if i != 2:
+			if affine[index,i] > 0:
+				affine[:,i] *= -1
+		if i == 2:
+			if affine[index,i] < 0:
+				affine[:,i] *= -1
+
+
+	affine[0:3,0:3] = affine[0:3,0:3].dot(np.diag(resolution))
+
+	return affine
+
+def get_offset(visu_pars):
+
+	offset = np.zeros(3)
+
+	# 2D case
+	if visu_pars['VisuCoreDim'] == '2':
+		x = float(visu_pars['VisuCorePosition'][0][0])
+		y = float(visu_pars['VisuCorePosition'][0][1])
+		z = float(visu_pars['VisuCorePosition'][0][2])
+
+		offset[0] = x
+		offset[1] = y
+		offset[2] = z
+
+	# 3D case
+	if visu_pars['VisuCoreDim'] == '3':
+		x = float(visu_pars['VisuCorePosition'][0][0])
+		y = float(visu_pars['VisuCorePosition'][0][1])
+		z = float(visu_pars['VisuCorePosition'][0][2])
+
+		offset[0] = x
+		offset[1] = y
+		offset[2] = z
+
+	return offset
+
+def get_resolution(visu_pars):
+
+	resolution = np.zeros(3)
+
+	# 2D case
+	if visu_pars['VisuCoreDim'] == '2':
+		resolution[0] = float(visu_pars['VisuCoreExtent'][0]) / float(visu_pars['VisuCoreSize'][0])
+		resolution[1] = float(visu_pars['VisuCoreExtent'][1]) / float(visu_pars['VisuCoreSize'][1])
+
+		depth = np.zeros(3)
+		for i in range(len(depth)):
+			depth[i] = (float(visu_pars['VisuCorePosition'][-1][i]) - float(visu_pars['VisuCorePosition'][0][i]))
+
+		depth = np.linalg.norm(depth)
+
+		for i in range(len(visu_pars['VisuFGOrderDesc'])):
+			if visu_pars['VisuFGOrderDesc'][i][1] == 'FG_SLICE':
+				num_slices = float(visu_pars['VisuFGOrderDesc'][i][0])
+
+		resolution[2] = depth / (num_slices - 1)
+
+	# 3D case
+	if visu_pars['VisuCoreDim'] == '3':
+		resolution[0] = float(visu_pars['VisuCoreExtent'][0]) / float(visu_pars['VisuCoreSize'][0])
+		resolution[1] = float(visu_pars['VisuCoreExtent'][1]) / float(visu_pars['VisuCoreSize'][1])
+		resolution[2] = float(visu_pars['VisuCoreExtent'][2]) / float(visu_pars['VisuCoreSize'][2])
+
+	return resolution
+
+def get_matrix(visu_pars):
+
+	matrix = np.zeros(3)
+
+	# 2D case
+	if visu_pars['VisuCoreDim'] == '2':
+		if visu_pars['VisuFGOrderDescDim'] == '2':
+			matrix = np.zeros(4)
+
+		matrix[0] = int(visu_pars['VisuCoreSize'][0])
+		matrix[1] = int(visu_pars['VisuCoreSize'][0])
+
+		for i in range(len(visu_pars['VisuFGOrderDesc'])):
+			if visu_pars['VisuFGOrderDesc'][i][1] == 'FG_SLICE':
+				matrix[2] = int(visu_pars['VisuFGOrderDesc'][i][0])
+
+			if visu_pars['VisuFGOrderDesc'][i][1] == 'FG_MOVIE':
+				matrix[3] = int(visu_pars['VisuFGOrderDesc'][i][0])
+
+	# 3D case
+	if visu_pars['VisuCoreDim'] == '3':
+		matrix[0] = int(visu_pars['VisuCoreSize'][0])
+		matrix[1] = int(visu_pars['VisuCoreSize'][1])
+		matrix[2] = int(visu_pars['VisuCoreSize'][2])
+
+	return tuple([int(i) for i in matrix])
+
+def convert_to_nifti(recon_data, visu_pars, out_path):
+
+	# Get Word Size
+	word_size = visu_pars['VisuCoreWordType']
+
+	if word_size == '_16BIT_SGN_INT':
+		word_size = np.int16
+
+	# Get Matrix Size
+	matrix = get_matrix(visu_pars)
+
+	# Get affine transformation
+	affine = get_affine(visu_pars)
+
+	img_data = np.fromfile(recon_data, dtype=word_size)
+	img_data = np.reshape(img_data, matrix, order='F')
+
+	# Convert to Nifti and Save
+	img = nib.Nifti2Image(img_data, affine)
+	nib.save(img, out_path)
