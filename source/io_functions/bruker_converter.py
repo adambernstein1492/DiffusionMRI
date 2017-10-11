@@ -26,6 +26,10 @@ def create_nifti(path_2dseq, path_visu_pars, path_method, flip_rpe, save_path):
 
 	if 'PVM_DwGradVec' in method:
 		bvec = np.asfarray(method['PVM_DwGradVec'], dtype='float')
+		bvec[:,0] = bvec[:,0] / np.linalg.norm(bvec,axis=1)
+		bvec[:,1] = bvec[:,1] / np.linalg.norm(bvec,axis=1)
+		bvec[:,2] = bvec[:,2] / np.linalg.norm(bvec,axis=1)
+		bvec[np.isnan(bvec)] = 0
 		bvecs = np.zeros(bvec.shape)
 		bvecs[:,0] = bvec[:,0]
 		bvecs[:,1] = bvec[:,2]
