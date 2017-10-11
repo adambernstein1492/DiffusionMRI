@@ -128,26 +128,19 @@ def get_affine(visu_pars):
 def get_offset(visu_pars):
 
 	offset = np.zeros(3)
+	offset_values = np.zeros(visu_pars['VisuCorePosition'].shape)
 
-	# 2D case
-	if visu_pars['VisuCoreDim'] == '2':
-		x = float(visu_pars['VisuCorePosition'][0][0])
-		y = float(visu_pars['VisuCorePosition'][0][1])
-		z = float(visu_pars['VisuCorePosition'][0][2])
+	for i in range(visu_pars['VisuCorePosition'].shape[0]):
 
-		offset[0] = x
-		offset[1] = y
-		offset[2] = z
+		offset_values[i][0] = float(visu_pars['VisuCorePosition'][i][0])
+		offset_values[i][1] = float(visu_pars['VisuCorePosition'][i][1])
+		offset_values[i][2] = float(visu_pars['VisuCorePosition'][i][2])
 
-	# 3D case
-	if visu_pars['VisuCoreDim'] == '3':
-		x = float(visu_pars['VisuCorePosition'][0][0])
-		y = float(visu_pars['VisuCorePosition'][0][1])
-		z = float(visu_pars['VisuCorePosition'][0][2])
+	x = np.amin(offset_values,axis=0)
 
-		offset[0] = x
-		offset[1] = y
-		offset[2] = z
+	offset[0] = x[0]
+	offset[1] = x[1]
+	offset[2] = x[2]
 
 	return offset
 
