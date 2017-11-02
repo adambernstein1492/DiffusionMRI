@@ -58,12 +58,12 @@ for i in range(len(filepaths_2dseq)):
 
 
 ### CREATE NIFTIs ##############################################################
-for i in range(len(files_2dseq)):
-    try:
-        bruker_converter.create_nifti(files_2dseq[i], files_visu_pars[i], files_method[i], args.flip_rpe, args.output_directory)
-    except:
-        print "Could not Convert " + files_2dseq[i]
+#for i in range(len(files_2dseq)):
+#    try:
+bruker_converter.create_nifti(files_2dseq[i], files_visu_pars[i], files_method[i], args.flip_rpe, args.output_directory)
+#    except:
+#        print "Could not Convert " + files_2dseq[i]
 
 
-    print "Converted %d/%d" % (i+1, len(files_2dseq))
+#    print "Converted %d/%d" % (i+1, len(files_2dseq))
 ################################################################################
