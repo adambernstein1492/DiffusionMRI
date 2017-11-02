@@ -4,7 +4,7 @@ import util
 
 def main_dti(dwi_file, bval_file, bvec_file, mask_file, out_path, b_thresh=2100,
              calc_FA=True, calc_MD=True, calc_AD=True, calc_RD=True,
-             output_dec_map=True, output_eig_vals=True):
+             output_dec_map=False, output_eig_vals=False):
 
     # Load in data
     dwi, mask, bvals, bvecs = util.load_diffusion_data(dwi_file, bval_file, bvec_file, mask_file)
@@ -23,7 +23,7 @@ def main_dti(dwi_file, bval_file, bvec_file, mask_file, out_path, b_thresh=2100,
 
         # Save
         FA_img = nib.Nifti1Image(FA, dwi.affine, dwi.header)
-        nib.save(FA_img, (out_path + 'FractionalAnisotropy.nii'))
+        nib.save(FA_img, (out_path + 'FA.nii'))
 
     if calc_MD or calc_AD or calc_RD:
         MD, AD, RD = calc_diffusivities(eigen_values)
@@ -31,13 +31,13 @@ def main_dti(dwi_file, bval_file, bvec_file, mask_file, out_path, b_thresh=2100,
         # Save
         if calc_MD:
             MD_img = nib.Nifti1Image(MD, dwi.affine, dwi.header)
-            nib.save(MD_img, (out_path + 'MeanDiffusivity.nii'))
+            nib.save(MD_img, (out_path + 'MD.nii'))
         if calc_AD:
             AD_img = nib.Nifti1Image(AD, dwi.affine, dwi.header)
-            nib.save(AD_img, (out_path + 'AxialDiffusivity.nii'))
+            nib.save(AD_img, (out_path + 'AD.nii'))
         if calc_RD:
             RD_img = nib.Nifti1Image(RD, dwi.affine, dwi.header)
-            nib.save(RD_img, (out_path + 'RadialDiffusivity.nii'))
+            nib.save(RD_img, (out_path + 'RD.nii'))
         if output_eig_vals:
             eig_values = nib.Nifti1Image(eigen_values, dwi.affine, dwi.header)
             nib.save(eig_values, (out_path + 'EigenValues.nii'))

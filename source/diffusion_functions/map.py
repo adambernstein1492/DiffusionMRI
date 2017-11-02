@@ -47,10 +47,10 @@ def main_map(dwi_file, bval_file, bvec_file, mask_file, little_delta, big_delta,
     uvectors = np.sort(uvectors, axis=3)
 
     # Save Coefficients and UVectors
-    img = nib.Nifti1Image(coeffs, dwi.affine, dwi.header)
-    nib.save(img, (out_path + 'coeffs.nii'))
-    img = nib.Nifti1Image(uvectors, dwi.affine, dwi.header)
-    nib.save(img, (out_path + 'uvecs.nii'))
+    #img = nib.Nifti1Image(coeffs, dwi.affine, dwi.header)
+    #nib.save(img, (out_path + 'coeffs.nii'))
+    #img = nib.Nifti1Image(uvectors, dwi.affine, dwi.header)
+    #nib.save(img, (out_path + 'uvecs.nii'))
 
     # Calculate and Save Scalar MAPs
     if calc_pa:
@@ -76,16 +76,28 @@ def main_map(dwi_file, bval_file, bvec_file, mask_file, little_delta, big_delta,
         ng, ng_par, ng_perp, ng_jsd = calc_non_gaussianity(coeffs, order, num_coeffs)
 
         img = nib.Nifti1Image(ng, dwi.affine, dwi.header)
-        nib.save(img, (out_path + 'NonGaussianity.nii'))
+        nib.save(img, (out_path + 'NG.nii'))
 
-        img = nib.Nifti1Image(ng_par, dwi.affine, dwi.header)
-        nib.save(img, (out_path + 'AxialNonGaussianity.nii'))
+        img = nib.Nifti1Image(ng_par[:,:,:,2], dwi.affine, dwi.header)
+        nib.save(img, (out_path + 'AxialNG_X.nii'))
 
-        img = nib.Nifti1Image(ng_perp, dwi.affine, dwi.header)
-        nib.save(img, (out_path + 'RadialNonGaussianity.nii'))
+        img = nib.Nifti1Image(ng_par[:,:,:,1], dwi.affine, dwi.header)
+        nib.save(img, (out_path + 'AxialNG_Y.nii'))
+
+        img = nib.Nifti1Image(ng_par[:,:,:,0], dwi.affine, dwi.header)
+        nib.save(img, (out_path + 'AxialNG_Z.nii'))
+
+        img = nib.Nifti1Image(ng_perp[:,:,:,2], dwi.affine, dwi.header)
+        nib.save(img, (out_path + 'RadialNG_X.nii'))
+
+        img = nib.Nifti1Image(ng_perp[:,:,:,1], dwi.affine, dwi.header)
+        nib.save(img, (out_path + 'RadialNG_Y.nii'))
+
+        img = nib.Nifti1Image(ng_perp[:,:,:,0], dwi.affine, dwi.header)
+        nib.save(img, (out_path + 'RadialNG_Z.nii'))
 
         img = nib.Nifti1Image(ng_jsd, dwi.affine, dwi.header)
-        nib.save(img, (out_path + 'NonGaussianity_JSD.nii'))
+        nib.save(img, (out_path + 'NG_JSD.nii'))
 
     if calc_rtps:
         print "Calculating Return origin, axis, and plane probabilities"
@@ -94,27 +106,39 @@ def main_map(dwi_file, bval_file, bvec_file, mask_file, little_delta, big_delta,
         img = nib.Nifti1Image(rtop, dwi.affine, dwi.header)
         nib.save(img, (out_path + 'RTOP.nii'))
 
-        img = nib.Nifti1Image(rtap, dwi.affine, dwi.header)
-        nib.save(img, (out_path + 'RTAP.nii'))
+        img = nib.Nifti1Image(rtap[:,:,:,2], dwi.affine, dwi.header)
+        nib.save(img, (out_path + 'RTAP_X.nii'))
 
-        img = nib.Nifti1Image(rtpp, dwi.affine, dwi.header)
-        nib.save(img, (out_path + 'RTPP.nii'))
+        img = nib.Nifti1Image(rtap[:,:,:,1], dwi.affine, dwi.header)
+        nib.save(img, (out_path + 'RTAP_Y.nii'))
+
+        img = nib.Nifti1Image(rtap[:,:,:,0], dwi.affine, dwi.header)
+        nib.save(img, (out_path + 'RTAP_Z.nii'))
+
+        img = nib.Nifti1Image(rtpp[:,:,:,2], dwi.affine, dwi.header)
+        nib.save(img, (out_path + 'RTPP_X.nii'))
+
+        img = nib.Nifti1Image(rtpp[:,:,:,1], dwi.affine, dwi.header)
+        nib.save(img, (out_path + 'RTPP_Y.nii'))
+
+        img = nib.Nifti1Image(rtpp[:,:,:,0], dwi.affine, dwi.header)
+        nib.save(img, (out_path + 'RTPP_Z.nii'))
 
     if calc_dki:
         print "Calculating DKI parameters from MAP Coefficients"
         mk, k_par, k_perp, fa_k = calc_gdti_params(coeffs, uvectors, mask, little_delta, big_delta, order, moment_order=4)
 
         img = nib.Nifti1Image(mk, dwi.affine, dwi.header)
-        nib.save(img, (out_path + 'MeanKurtosis.nii'))
+        nib.save(img, (out_path + 'MK_MAP.nii'))
 
         img = nib.Nifti1Image(k_par, dwi.affine, dwi.header)
-        nib.save(img, (out_path + 'AxialKurtosis.nii'))
+        nib.save(img, (out_path + 'AK_MAP.nii'))
 
         img = nib.Nifti1Image(k_perp, dwi.affine, dwi.header)
-        nib.save(img, (out_path + 'RadialKurtosis.nii'))
+        nib.save(img, (out_path + 'RK_MAP.nii'))
 
         img = nib.Nifti1Image(fa_k, dwi.affine, dwi.header)
-        nib.save(img, (out_path + 'KurtosisAnisotropy.nii'))
+        nib.save(img, (out_path + 'KA_MAP.nii'))
 
     if return_dti:
         img = nib.Nifti1Image(eigen_vectors, dwi.affine, dwi.header)

@@ -5,16 +5,17 @@ import subprocess
 import argparse
 import shutil
 import csv
+import scipy.io as sio
 import diffusion_functions.roi_functions as roi_functions
+import io_functions.file_finder as file_finder
 
 
 
 ### DEFINE INPUTS ##############################################################
 parser = argparse.ArgumentParser(description="Estimate Statistics on Parameter Values with FreeSurfer ROIs")
-parser.add_argument("-i", "--dwi", type=str, help="Input the Diffusion weighted image to perform registration", default="None")
-parser.add_argument("-s", "--t1", type=str, help="FreeSurfer Subject Directory", default="None")
-parser.add_argument("-p", "--parameter_maps", type=str, nargs="+", help="Paths to all parameter_maps to be analyzed", default="None")
-parser.add_argument("-o", "--output", type=str, help="Output Directory", default="None")
+parser.add_argument("-i", "--subject_dir", nargs='+', type=str, help="Subject Directory containing dwi, microstructure, and structural data", default="None")
+parser.add_argument("-p", "--parcellation_name", type=str, help="Choose a predefined parcellation from [FS_default, FS_a2009, AAL, SD_Rat]", choices=["FS_default", "FS_a2009", "AAL", "SD_Rat"], default="FS_default")
+parser.add_argument("-o", "--output", type=str, help="Output Filename", default="None")
 
 args = parser.parse_args()
 ################################################################################
@@ -27,98 +28,107 @@ args = parser.parse_args()
 
 
 ### SET UP OUTPUT DIRECTORY ####################################################
-if args.output[-1] != '/':
-    outpath = args.output + '/'
-else:
-    outpath = args.output
-
-if args.t1[-1] != '/':
-    t1_path = args.t1 + '/'
-else:
-    t1_path = args.t1
-
+present_dir = os.getcwd()
+outpath = args.output[:-4] + '_temp/'
 os.makedirs(outpath)
+
+subject_dir = []
+for i in range(len(args.subject_dir)):
+    subject_dir.append(os.path.abspath(args.subject_dir[i]) + '/')
+
 os.environ["FSLOUTPUTTYPE"] = "NIFTI"
-subprocess.call(["mri_convert", (t1_path + "mri/aparc+aseg.mgz"), (outpath + "aparc+aseg.nii")])
-subprocess.call(["mri_convert", (t1_path + "mri/aparc.a2009s+aseg.mgz"), (outpath + "aparc.a2009s+aseg.nii")])
-subprocess.call(["mri_convert", (t1_path + "mri/wmparc.mgz"), (outpath + "wmparc.nii")])
-subprocess.call(["mri_convert", (t1_path + "mri/orig.mgz"), (outpath + "t1.nii")])
-shutil.copyfile(args.dwi, (outpath + "dwi.nii"))
-shutil.copyfile((t1_path + "stats/lh.aparc.stats"), (outpath + "lh.aparc.stats"))
-shutil.copyfile((t1_path + "stats/rh.aparc.stats"), (outpath + "rh.aparc.stats"))
-shutil.copyfile((t1_path + "stats/lh.aparc.a2009s.stats"), (outpath + "lh.aparc.a2009s.stats"))
-shutil.copyfile((t1_path + "stats/rh.aparc.a2009s.stats"), (outpath + "rh.aparc.a2009s.stats"))
-shutil.copyfile((t1_path + "stats/wmparc.stats"), (outpath + "wmparc.stats"))
+
+Subject_ROIs = {}
+for subject in subject_dir:
+    # Copy parcellated images depending on parcellation used
+    if args.parcellation_name == 'FS_default':
+        subprocess.call(["mri_convert", (subject + "FreeSurfer/mri/wmparc.mgz"), (outpath + "parc.nii")])
+        subprocess.call(["mri_convert", (subject + "FreeSurfer/mri/orig.mgz"), (outpath + "t1.nii")])
+        #shutil.copyfile((subject_dir + "FreeSurfer/stats/lh.aparc.stats"), (outpath + "lh.aparc.stats"))
+        #shutil.copyfile((subject_dir + "FreeSurfer/stats/rh.aparc.stats"), (outpath + "rh.aparc.stats"))
+        #shutil.copyfile((subject_dir + "FreeSurfer/stats/wmparc.stats"), (outpath + "wmparc.stats"))
+
+    if args.parcellation_name == 'FS_a2009':
+        subprocess.call(["mri_convert", (subject + "FreeSurfer/mri/aparc.a2009s+aseg.mgz"), (outpath + "parc.nii")])
+        subprocess.call(["mri_convert", (subject + "FreeSurfer/mri/orig.mgz"), (outpath + "t1.nii")])
+        #shutil.copyfile((t1_path + "FreeSurfer/stats/lh.aparc.a2009s.stats"), (outpath + "lh.aparc.a2009s.stats"))
+        #shutil.copyfile((t1_path + "FreeSurfer/stats/rh.aparc.a2009s.stats"), (outpath + "rh.aparc.a2009s.stats"))
+
+    ### TODO ###
+    # Add more atlases (will require different registration procedure)
+    if args.parcellation_name == 'AAL':
+        pass
+    if args.parcellation_name == 'SD_Rat':
+        pass
+    ### TODO ###
+
+    shutil.copyfile((subject + "preprocessed/dwi.nii"), (outpath + "dwi.nii"))
+
+    param_map_copy = []
+    parameter_maps = file_finder.scan_for_nifti((subject + 'MicroStructure'), [])
+    for param_map in parameter_maps:
+        shutil.copyfile(param_map, (outpath + os.path.split(param_map)[1]))
+        param_map_copy.append(os.path.split(param_map)[1])
+
+    os.chdir(outpath)
+    ################################################################################
 
 
-param_map_copy = []
-for param_map in args.parameter_maps:
-    shutil.copyfile(param_map, (outpath + os.path.split(param_map)[1]))
-    param_map_copy.append(os.path.split(param_map)[1])
+    ### REGISTER DWI TO T1 #########################################################
+    # Run BET on T1
+    subprocess.call(["bet", "t1.nii", "brain.nii", "-f", "0.5", "-R"])
 
-os.chdir(outpath)
-################################################################################
+    # Register dwi to T1
+    subprocess.call(["epi_reg", "--epi=dwi.nii", "--t1=t1.nii", "--t1brain=brain.nii", "--out=dwi2t1"])
 
+    # Remove large, unnecessary files
+    os.remove('dwi2t1.nii')
+    os.remove('dwi2t1_fast_wmedge.nii')
+    os.remove('dwi2t1_fast_wmseg.nii')
+    os.remove('dwi2t1_init.mat')
+    os.remove('brain.nii')
 
-### REGISTER DWI TO T1 #########################################################
-# Run BET on T1
-subprocess.call(["bet", "t1.nii", "brain.nii", "-f", "0.5", "-R"])
-
-# Register dwi to T1
-subprocess.call(["epi_reg", "--epi=dwi.nii", "--t1=t1.nii", "--t1brain=brain.nii", "--out=dwi2t1"])
-
-# Apply Transformation to all parameter maps
-for param_map in param_map_copy:
-    subprocess.call(["flirt", "-interp", "spline", "-in", param_map, "-ref", "t1.nii", "-applyxfm", "-init", "dwi2t1.mat", "-out", param_map[:-4] + "_reg"])
-################################################################################
-
-
-
-### PERFORM ROI ANALYSIS FOR ALL PARAMETER MAPS #################################
-for param_map in param_map_copy:
-    aparc_aseg, aparc_aseg_2009, aparc_aseg_wm = roi_functions.calc_roi_stats(param_map[:-4] + "_reg.nii")
-
-    # Save as .csv files
-    with open(outpath + param_map[:-4] + "_aparc_aseg.csv", "wb") as f:
-        writer = csv.writer(f)
-        writer.writerows(aparc_aseg)
-
-    with open(outpath + param_map[:-4] + "_aparc_aseg_2009.csv", "wb") as f:
-        writer = csv.writer(f)
-        writer.writerows(aparc_aseg_2009)
-
-    with open(outpath + param_map[:-4] + "_aparc_aseg_wm.csv", "wb") as f:
-        writer = csv.writer(f)
-        writer.writerows(aparc_aseg_wm)
-
-roi_functions.parse_freesurfer_stats("lh.aparc.stats", "T1_lh_stats.csv")
-roi_functions.parse_freesurfer_stats("rh.aparc.stats", "T1_rh_stats.csv")
-roi_functions.parse_freesurfer_stats("lh.aparc.a2009s.stats", "T1_lh_2009_stats.csv")
-roi_functions.parse_freesurfer_stats("rh.aparc.a2009s.stats", "T1_rh__2009_stats.csv")
-roi_functions.parse_freesurfer_stats("wmparc.stats", "T1_wm_stats.csv")
-################################################################################
+    # Can now remove T1 and DWI to save more room
+    os.remove('dwi.nii')
+    ################################################################################
 
 
 
-### CLEAN UP EXTRA FILES #######################################################
-os.remove("aparc.a2009s+aseg.nii")
-os.remove("aparc+aseg.nii")
-os.remove("brain.nii")
-os.remove("dwi.nii")
-os.remove("dwi2t1.nii")
-os.remove("dwi2t1.mat")
-os.remove("dwi2t1_fast_wmedge.nii")
-os.remove("dwi2t1_fast_wmseg.nii")
-os.remove("dwi2t1_init.mat")
-os.remove("wmparc.nii")
-os.remove("t1.nii")
-os.remove("lh.aparc.stats")
-os.remove("rh.aparc.stats")
-os.remove("lh.aparc.a2009s.stats")
-os.remove("rh.aparc.a2009s.stats")
-os.remove("wmparc.stats")
+    ### PERFORM ROI ANALYSIS FOR ALL PARAMETER MAPS #################################
+    # Select specified LUT
+    file_location = os.path.dirname(__file__)
+    if args.parcellation_name == 'FS_default':
+        LUT_location = file_location + "/config/fs_default_wm.txt"
 
-for param_map in param_map_copy:
-    os.remove(param_map)
-    os.remove(param_map[:-4] + "_reg.nii")
-################################################################################
+    if args.parcellation_name == 'FS_a2009':
+        LUT_location = file_location + "/config/fs_a2009_roi.txt"
+
+    if args.parcellation_name == 'AAL':
+        LUT_location = file_location + "/config/aal.txt"
+
+    if args.parcellation_name == 'SD_Rat':
+        LUT_location = file_location + "/config/sd_rat.txt"
+
+    param_stats = {}
+    for param_map in param_map_copy:
+        # Transform Current Parameter Map
+        subprocess.call(["flirt", "-interp", "spline", "-in", param_map, "-ref", "t1.nii", "-applyxfm", "-init", "dwi2t1.mat", "-out", param_map[:-4] + "_reg"])
+        param_stats[param_map[:-4]] = roi_functions.calc_roi_stats(param_map[:-4] + "_reg.nii", LUT_location)
+
+        # Remove parameter maps as they are large
+        os.remove(param_map)
+        os.remove(param_map[:-4] + "_reg.nii")
+
+    subject_path,subject_name = os.path.split(subject[:-1])
+    Subject_ROIs["subj" + subject_name] = param_stats
+
+    ### CLEAN UP EXTRA FILES #######################################################
+    os.remove('dwi2t1.mat')
+    os.remove('parc.nii')
+    os.remove('t1.nii')
+    ################################################################################
+
+    os.chdir(present_dir)
+
+shutil.rmtree(outpath)
+sio.savemat(args.output, Subject_ROIs)

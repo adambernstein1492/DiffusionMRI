@@ -2,78 +2,49 @@ import numpy as np
 import nibabel as nib
 import os
 
-def calc_roi_stats(param_map_path):
+def calc_roi_stats(param_map_path, lut):
     # Load in Paramter Map
     params = nib.load(param_map_path)
     params = params.get_data()
+    params[np.isnan(params)] = 0.0
 
     # Load in aparc+aseg ROIs and save voxel size
-    rois1 = nib.load("aparc+aseg.nii")
-    voxel_size = rois1.header.get_zooms()
+    rois = nib.load("parc.nii")
+    voxel_size = rois.header.get_zooms()
     voxel_volume = voxel_size[0] * voxel_size[1] * voxel_size[2]
-    rois1 = rois1.get_data()
-    rois2 = nib.load("aparc.a2009s+aseg.nii")
-    rois2 = rois2.get_data()
-    rois3 = nib.load("wmparc.nii")
-    rois3 = rois3.get_data()
+    rois = rois.get_data()
 
     # Read in Region Key
-    file_location = os.path.dirname(__file__)
-    fs_color_lut = file_location + "/../config/FreeSurferColorLUT.txt"
-
-    with open(fs_color_lut) as f:
+    with open(lut) as f:
         lines = f.readlines()
 
-    stats_aparc_aseg = [['StructureName', 'Mean', 'Median', 'Min', 'Max', 'STD', 'Number of Voxels', 'Volume (mm^3)']]
-    stats_aparc_aseg_2009 = [['StructureName', 'Mean', 'Median', 'Min', 'Max', 'STD', 'Number of Voxels', 'Volume (mm^3)']]
-    stats_aparc_aseg_wm = [['StructureName', 'Mean', 'Median', 'Min', 'Max', 'STD', 'Number of Voxels', 'Volume (mm^3)']]
-    index_1 = 1
-    index_2 = 1
-    index_3 = 1
-    for i in range(len(lines)):
-        if lines[i][0] != '#' and lines[i][0] != "\n" and lines[i][0] != "\r" and lines[i][0] != "0":
-            line_values = lines[i].split()
-            param_values = params[rois1 == int(line_values[0])]
-            
-            if len(param_values) != 0:
-                stats_aparc_aseg.append([])
-                stats_aparc_aseg[index_1].append(line_values[1])
-                stats_aparc_aseg[index_1].append(np.mean(param_values))
-                stats_aparc_aseg[index_1].append(np.median(param_values))
-                stats_aparc_aseg[index_1].append(np.amax(param_values))
-                stats_aparc_aseg[index_1].append(np.amin(param_values))
-                stats_aparc_aseg[index_1].append(np.std(param_values))
-                stats_aparc_aseg[index_1].append(len(param_values))
-                stats_aparc_aseg[index_1].append(len(param_values) * voxel_volume)
-                index_1 += 1
+    lines_split = []
+    for line in lines:
+        lines_split.append(line.split())
 
-            param_values = params[rois2 == int(line_values[0])]
-            if len(param_values) != 0:
-                stats_aparc_aseg_2009.append([])
-                stats_aparc_aseg_2009[index_2].append(line_values[1])
-                stats_aparc_aseg_2009[index_2].append(np.mean(param_values))
-                stats_aparc_aseg_2009[index_2].append(np.median(param_values))
-                stats_aparc_aseg_2009[index_2].append(np.amax(param_values))
-                stats_aparc_aseg_2009[index_2].append(np.amin(param_values))
-                stats_aparc_aseg_2009[index_2].append(np.std(param_values))
-                stats_aparc_aseg_2009[index_2].append(len(param_values))
-                stats_aparc_aseg_2009[index_2].append(len(param_values) * voxel_volume)
-                index_2 += 1
+    # Create Dictionary
+    region_stats = {'region_name': [],
+                    'region_mean': np.zeros(len(lines_split)),
+                    'region_median': np.zeros(len(lines_split)),
+                    'region_min': np.zeros(len(lines_split)),
+                    'region_max': np.zeros(len(lines_split)),
+                    'region_std': np.zeros(len(lines_split)),
+                    'region_volume': np.zeros(len(lines_split))}
 
-            param_values = params[rois3 == int(line_values[0])]
-            if len(param_values) != 0:
-                stats_aparc_aseg_wm.append([])
-                stats_aparc_aseg_wm[index_3].append(line_values[1])
-                stats_aparc_aseg_wm[index_3].append(np.mean(param_values))
-                stats_aparc_aseg_wm[index_3].append(np.median(param_values))
-                stats_aparc_aseg_wm[index_3].append(np.amax(param_values))
-                stats_aparc_aseg_wm[index_3].append(np.amin(param_values))
-                stats_aparc_aseg_wm[index_3].append(np.std(param_values))
-                stats_aparc_aseg_wm[index_3].append(len(param_values))
-                stats_aparc_aseg_wm[index_3].append(len(param_values) * voxel_volume)
-                index_3 += 1
+    for i in range(len(lines_split)):
+        param_values = params[rois == int(lines_split[i][0])]
 
-    return stats_aparc_aseg, stats_aparc_aseg_2009, stats_aparc_aseg_wm
+        region_stats['region_name'].append(lines_split[i][1])
+
+        if len(param_values) != 0:
+            region_stats['region_mean'][i] = np.mean(param_values)
+            region_stats['region_median'][i] = np.median(param_values)
+            region_stats['region_min'][i] = np.median(param_values)
+            region_stats['region_max'][i] = np.median(param_values)
+            region_stats['region_std'][i] = np.std(param_values)
+            region_stats['region_volume'][i] = len(param_values) * voxel_volume
+
+    return region_stats
 
 def parse_freesurfer_stats(filename, output):
     with open(filename) as f:

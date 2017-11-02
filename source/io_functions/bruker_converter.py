@@ -26,15 +26,14 @@ def create_nifti(path_2dseq, path_visu_pars, path_method, flip_rpe, save_path):
 
 	if 'PVM_DwGradVec' in method:
 		bvec = np.asfarray(method['PVM_DwGradVec'], dtype='float')
-		bvec[:,0] = bvec[:,0] / np.linalg.norm(bvec,axis=1)
-		bvec[:,1] = bvec[:,1] / np.linalg.norm(bvec,axis=1)
-		bvec[:,2] = bvec[:,2] / np.linalg.norm(bvec,axis=1)
-		bvec[np.isnan(bvec)] = 0
-		bvecs = np.zeros(bvec.shape)
-		bvecs[:,0] = bvec[:,0]
-		bvecs[:,1] = bvec[:,2]
-		bvecs[:,2] = bvec[:,1]
-		bvecs = bvecs.T
+		for i in range(bvec.shape[0]):
+			if np.linalg.norm(bvec[i,:]) == 0:
+				bvec[i,:] = 0
+			else:
+				bvec[i,0] = bvec[i,0] / np.linalg.norm(bvec[i,:])
+				bvec[i,1] = bvec[i,1] / np.linalg.norm(bvec[i,:])
+				bvec[i,2] = bvec[i,2] / np.linalg.norm(bvec[i,:])
+		bvecs = bvec.T
 
 	# Read in and shape the image filename
 	img = np.fromfile(path_2dseq, dtype=np.int16)
@@ -42,6 +41,21 @@ def create_nifti(path_2dseq, path_visu_pars, path_method, flip_rpe, save_path):
 	img = np.reshape(img, matrix, order='F')
 
 	if flip_rpe:
+		# Remove all non-bzero images
+		b0_count = 0
+		for i in range(bvals.shape[1]):
+			if bvals[0,i] < 50:
+				b0_count += 1
+
+		img_new = np.zeros((img.shape[0], img.shape[1], img.shape[2], b0_count))
+		b0_count = 0
+		for i in range(bvals.shape[1]):
+			if bvals[0,i] < 50:
+				img_new[:,:,:,b0_count] = img[:,:,:,i]
+				b0_count += 1
+
+		img = img_new
+
 		img = np.flip(img, 1)
 
 	# Create the NIFTI
@@ -58,18 +72,19 @@ def create_nifti(path_2dseq, path_visu_pars, path_method, flip_rpe, save_path):
 		save_filepath = save_path + visu_pars['VisuStudyId'][0] + '/' + visu_pars['VisuAcquisitionProtocol'][0] + '_' + study_number
 		nib.save(nii, save_filepath)
 
-		if 'bval' in locals():
+		if(('bval' in locals()) and (flip_rpe == False)):
 			np.savetxt(save_path + visu_pars['VisuStudyId'][0] + '/' + visu_pars['VisuAcquisitionProtocol'][0] + '_' + study_number + '.bval', bvals, fmt='%f')
-		if 'bvec' in locals():
+		if(('bvec' in locals()) and (flip_rpe == False)):
 			np.savetxt(save_path + visu_pars['VisuStudyId'][0] + '/' + visu_pars['VisuAcquisitionProtocol'][0] + '_' + study_number + '.bvec', bvecs, fmt='%f')
 	else:
 		os.makedirs(save_path + visu_pars['VisuStudyId'][0])
 		save_filepath = save_path + visu_pars['VisuStudyId'][0] + '/' + visu_pars['VisuAcquisitionProtocol'][0] + '_' + study_number
 		nib.save(nii, save_filepath)
 
-		if 'bval' in locals():
+		# Only save bvals and bvecs if it is not an RPE image
+		if(('bval' in locals()) and (flip_rpe == False)):
 			np.savetxt(save_path + visu_pars['VisuStudyId'][0] + '/' + visu_pars['VisuAcquisitionProtocol'][0] + '_' + study_number + '.bval', bvals, fmt='%f')
-		if 'bvec' in locals():
+		if (('bvec' in locals()) and (flip_rpe == False)):
 			np.savetxt(save_path + visu_pars['VisuStudyId'][0] + '/' + visu_pars['VisuAcquisitionProtocol'][0] + '_' + study_number + '.bvec', bvecs, fmt='%f')
 
 def read_bruker_header_file(filename):
