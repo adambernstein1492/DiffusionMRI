@@ -192,11 +192,17 @@ if args.software == "FSL":
     # Run TOPUP if specified
     if args.epidistortion != "None":
         # Create ACQP and INDEX text files
-        diffusion_preprocessing_functions.write_index_acqp('dwi.nii', 'bval', 'bvec', 'rpe.nii')
+        if args.field_map != "None":
+            diffusion_preprocessing_functions.write_index_acqp('dwi.nii', 'bval', 'bvec', 'rpe.nii', float(args.field_map))
+        else:
+            diffusion_preprocessing_functions.write_index_acqp('dwi.nii', 'bval', 'bvec', 'rpe.nii')
         topup_config = file_location + "/config/b02b0.cnf"
 
         print "Running TOPUP"
-        subprocess.call(["topup", "--imain=B0s.nii", "--datain=acqp.txt", ("--config=" + topup_config), "--out=topup_results", "--iout=b0_corrected", "-v"])
+        if args.field_map != "None":
+            subprocess.call(["topup", "--imain=B0s.nii", "--datain=acqp.txt", ("--config=" + topup_config), "--out=topup_results", "--iout=b0_corrected", "--fout=fm"-v"])
+        else:
+            subprocess.call(["topup", "--imain=B0s.nii", "--datain=acqp.txt", ("--config=" + topup_config), "--out=topup_results", "--iout=b0_corrected", "-v"])
 
         if args.mask == "None":
             subprocess.call(["fslmaths", "b0_corrected", "-Tmean", "b0_corrected"])
