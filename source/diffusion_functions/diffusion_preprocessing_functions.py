@@ -208,7 +208,7 @@ def tSNR(dwi_file, bval_file, bvec_file, out_file):
     nib.save(snr_img, out_file)
     
 
-def field_map(xfm_file, out_file, echo_spacing = 0.7):
+def field_map(xfm_file, out_file, echo_spacing = 1):
     xfm = nib.load(xfm_file)
     xfm_data = xfm.get_data()[:,:,:,0,1] / echo_spacing
     xfm_data[np.isnan(xfm_data)] = 0.0
