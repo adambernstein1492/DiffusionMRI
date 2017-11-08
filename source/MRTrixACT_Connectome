@@ -4,19 +4,26 @@ import os
 import subprocess
 import argparse
 import shutil
+import scipy.io as sio
+import numpy as np
+import io_functions.file_finder as file_finder
+import diffusion_functions.connectome_functions as connectome_functions
+import diffusion_functions.util as util
 
 
 ### DEFINE INPUTS #############################################################
 parser = argparse.ArgumentParser(description="Perform Anatomically Constrained Tractography and Connectome Analysis using MRtrix3")
-parser.add_argument("-i", "--dwi", type=str, help="Input Diffusion weighted image to perform registration", default="None");
+parser.add_argument("-i", "--dwi", type=str, help="Input dMRI", default="None");
 parser.add_argument("-b", "--bval", type=str, help="bval file", default="None")
 parser.add_argument("-v", "--bvec", type=str, help="bvec file", default="None")
 parser.add_argument("-m", "--mask", type=str, help="mask file", default="None")
-parser.add_argument("-p", "--mrtrix_path", type=str, help="path to mrtrix directory", default="None")
+parser.add_argument("-p", "--parameters", type=str, help="Directory Containing MicroStructural Parameters", default="None")
 parser.add_argument("-s", "--t1", type=str, help="FreeSurfer Subject Directory", default="None")
 parser.add_argument("-o", "--output", type=str, help="Output Directory", default="None")
 
 args = parser.parse_args()
+file_location = os.path.dirname(__file__)
+parameter_maps = file_finder.scan_for_nifti(os.path.abspath(args.parameters), [])
 ###############################################################################
 
 
@@ -79,8 +86,9 @@ subprocess.call(["5ttgen", "freesurfer", "aparc+aseg_reg.mif", "5TT.mif"])
 
 
 ### CONVERT LABELS ############################################################
-fs_home = os.getenv('FREESURFER_HOME')
-subprocess.call(["labelconvert", "aparc+aseg_reg.mif", (fs_home + "/FreeSurferColorLUT.txt"), (args.mrtrix_path + "share/mrtrix3/labelconvert/fs_default.txt"), "nodes.mif"])
+LUT_location = file_location + '/config/FreeSurferColorLUT.txt'
+convert_table = file_location + '/config/fs_default.txt'
+subprocess.call(["labelconvert", "aparc+aseg_reg.mif", LUT_location, convert_table, "nodes.mif"])
 ###############################################################################
 
 
@@ -112,25 +120,57 @@ os.rename("dwi_up.mif", "dwi.mif")
 subprocess.call(["dwi2fod", "msmt_csd", "dwi.mif", "RF_WM.txt", "WM_FODs.mif", "RF_GM.txt", "GM.mif", "RF_CSF.txt", "CSF.mif", "-mask", "mask.nii"])
 
 # Tractography
-subprocess.call(["tckgen", "WM_FODs.mif", "20M.tck", "-act", "5TT.mif", "-backtrack", "-crop_at_gmwmi", "-seed_dynamic", "WM_FODs.mif", "-maxlength", "250", "-select", "20M", "-cutoff", "0.06"])
-subprocess.call(["tcksift", "20M.tck", "WM_FODs.mif", "2M_SIFT.tck", "-act", "5TT.mif", "-term_number", "2M"])
+subprocess.call(["tckgen", "WM_FODs.mif", "60M.tck", "-act", "5TT.mif", "-backtrack", "-crop_at_gmwmi", "-seed_dynamic", "WM_FODs.mif", "-maxlength", "250", "-select", "60k", "-cutoff", "0.06"])
+subprocess.call(["tcksift", "60M.tck", "WM_FODs.mif", "10M_SIFT.tck", "-act", "5TT.mif", "-term_number", "2k"])
 ###############################################################################
 
 
 
-### CONNECTOME GENERATION #####################################################
-subprocess.call(["tck2connectome", "2M_SIFT.tck", "nodes.mif", "connectome.csv", "-out_assignments", "tcklabels.txt"])
+### CONNECTOME GENERATION ######################################################
+subprocess.call(["tck2connectome", "10M_SIFT.tck", "nodes.mif", "connectome.csv", "-out_assignments", "tcklabels.txt"])
 
 # Parse out Tracts between regions
 os.mkdir("Tracts")
-subprocess.call(["connectome2tck", "2M_SIFT.tck", "tcklabels.txt", "Tracts/IsoTracts"])
-###############################################################################
+subprocess.call(["connectome2tck", "10M_SIFT.tck", "tcklabels.txt", "Tracts/IsoTracts"])
+
+# Generate Track-wise Parameter Data
+track_files = file_finder.scan_for_tracts(os.path.abspath("Tracts"), [])
+
+track_values = {}
+for parameter in parameter_maps:
+    track_means = []
+    track_stds = []
+
+    param_path, param_name = os.path.split(parameter)
+    count = 0.0
+    percent_prev = 0.0
+
+    for track in track_files:
+        subprocess.call(["tcksample", track, parameter, "Tracts/values.txt", "-force", "-quiet"])
+        mean, std = connectome_functions.track_stats(os.path.abspath("Tracts/values.txt"))
+
+        track_means.append(mean)
+        track_stds.append(std)
+
+        # Update Progress
+        count += 1.0
+        percent = np.around((count / float(len(track_files)) * 100), decimals = 1)
+        if(percent != percent_prev):
+            util.progress_update(param_name + ": ", percent)
+            percent_prev = percent
+
+    track_values[param_name[:-4] + "_mean"] = track_means
+    track_values[param_name[:-4] + "_std"] = track_stds
+
+# Save MATLAB File
+sio.savemat("Trackwise_Parameters.mat", track_values)
+################################################################################
 
 
 
 ### CLEAN UP ###################################################################
 os.remove("5TT.mif")
-os.remove("20M.tck")
+os.remove("60M.tck")
 os.remove("aparc+aseg.nii")
 os.remove("brain.nii")
 os.remove("bval")
@@ -150,5 +190,5 @@ os.remove("RF_voxels.mif")
 os.remove("RF_WM.txt")
 os.remove("t1.nii")
 os.remove("t12dwi_mrtrix.txt")
-os.remove("WM_FODs.mif")
+shutil.rmtree("Tracts")
 ################################################################################
