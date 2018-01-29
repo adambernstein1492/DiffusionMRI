@@ -130,40 +130,40 @@ subprocess.call(["tcksift", "60M.tck", "WM_FODs.mif", "10M_SIFT.tck", "-act", "5
 subprocess.call(["tck2connectome", "10M_SIFT.tck", "nodes.mif", "connectome.csv", "-out_assignments", "tcklabels.txt"])
 
 # Parse out Tracts between regions
-os.mkdir("Tracts")
-subprocess.call(["connectome2tck", "10M_SIFT.tck", "tcklabels.txt", "Tracts/IsoTracts"])
+#os.mkdir("Tracts")
+#subprocess.call(["connectome2tck", "10M_SIFT.tck", "tcklabels.txt", "Tracts/IsoTracts"])
 
 # Generate Track-wise Parameter Data
-track_files = file_finder.scan_for_tracts(os.path.abspath("Tracts"), [])
+#track_files = file_finder.scan_for_tracts(os.path.abspath("Tracts"), [])
 
-track_values = {}
-for parameter in parameter_maps:
-    track_means = []
-    track_stds = []
+#track_values = {}
+#for parameter in parameter_maps:
+#    track_means = []
+#    track_stds = []
 
-    param_path, param_name = os.path.split(parameter)
-    count = 0.0
-    percent_prev = 0.0
+#    param_path, param_name = os.path.split(parameter)
+#    count = 0.0
+#    percent_prev = 0.0
 
-    for track in track_files:
-        subprocess.call(["tcksample", track, parameter, "Tracts/values.txt", "-force", "-quiet"])
-        mean, std = connectome_functions.track_stats(os.path.abspath("Tracts/values.txt"))
+#    for track in track_files:
+#        subprocess.call(["tcksample", track, parameter, "Tracts/values.txt", "-force", "-quiet"])
+#        mean, std = connectome_functions.track_stats(os.path.abspath("Tracts/values.txt"))
 
-        track_means.append(mean)
-        track_stds.append(std)
+#        track_means.append(mean)
+#        track_stds.append(std)
 
         # Update Progress
-        count += 1.0
-        percent = np.around((count / float(len(track_files)) * 100), decimals = 1)
-        if(percent != percent_prev):
-            util.progress_update(param_name + ": ", percent)
-            percent_prev = percent
+#        count += 1.0
+#        percent = np.around((count / float(len(track_files)) * 100), decimals = 1)
+#        if(percent != percent_prev):
+#            util.progress_update(param_name + ": ", percent)
+#            percent_prev = percent
 
-    track_values[param_name[:-4] + "_mean"] = track_means
-    track_values[param_name[:-4] + "_std"] = track_stds
+#    track_values[param_name[:-4] + "_mean"] = track_means
+#    track_values[param_name[:-4] + "_std"] = track_stds
 
 # Save MATLAB File
-sio.savemat("Trackwise_Parameters.mat", track_values)
+#sio.savemat("Trackwise_Parameters.mat", track_values)
 ################################################################################
 
 
@@ -190,5 +190,5 @@ os.remove("RF_voxels.mif")
 os.remove("RF_WM.txt")
 os.remove("t1.nii")
 os.remove("t12dwi_mrtrix.txt")
-shutil.rmtree("Tracts")
+#shutil.rmtree("Tracts")
 ################################################################################
