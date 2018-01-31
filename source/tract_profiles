@@ -1,0 +1,241 @@
+#! /usr/bin/env python
+
+import os
+import subprocess
+import argparse
+import shutil
+import scipy.io as sio
+import numpy as np
+import io_functions.file_finder as file_finder
+import diffusion_functions.connectome_functions as connectome_functions
+import diffusion_functions.util as util
+
+
+### DEFINE INPUTS #############################################################
+parser = argparse.ArgumentParser(description="Perform Tract Profiling on Provided Parameter Maps")
+parser.add_argument("-i", "--dwi", type=str, help="Input dMRI", default="None");
+parser.add_argument("-b", "--bval", type=str, help="bval file", default="None")
+parser.add_argument("-v", "--bvec", type=str, help="bvec file", default="None")
+parser.add_argument("-m", "--mask", type=str, help="mask file", default="None")
+#parser.add_argument("-p", "--parameters", type=str, help="Directory Containing MicroStructural Parameters", default="None")
+parser.add_argument("-s", "--t1", type=str, help="FreeSurfer Subject Directory", default="None")
+parser.add_argument("-o", "--output", type=str, help="Output Directory", default="None")
+
+args = parser.parse_args()
+file_location = os.path.dirname(__file__)
+#parameter_maps = file_finder.scan_for_nifti(os.path.abspath(args.parameters), [])
+###############################################################################
+
+
+
+### ERROR CHECKING ############################################################
+###############################################################################
+
+
+
+### SET UP OUTPUT DIRECTORY ###################################################
+if args.output[-1] != '/':
+    outpath = args.output + '/'
+else:
+    outpath = args.output
+
+if args.t1[-1] != '/':
+    t1_path = args.t1 + '/'
+else:
+    t1_path = args.t1
+
+os.makedirs(outpath)
+os.environ["FSLOUTPUTTYPE"] = "NIFTI"
+
+# Copy T1
+subprocess.call(["mri_convert", (t1_path + "mri/orig.mgz"), (outpath + "t1.nii")])
+
+# Copy DWI files
+shutil.copyfile(args.dwi, (outpath + "dwi.nii"))
+shutil.copyfile(args.bval, (outpath + "bval"))
+shutil.copyfile(args.bvec, (outpath + "bvec"))
+shutil.copyfile(args.mask, (outpath + "mask.nii"))
+
+os.mkdir(outpath + "Tracts")
+os.chdir(outpath)
+###############################################################################
+
+
+
+### Specify Tracts to be Isolated #############################################
+tract_names = ["LeftAnteriorThalamicRadiation.tck",
+               "LeftCinculumCingulateGyrus.tck",
+               "LeftCingulumHippocampalPart.tck",
+               "LeftCorticoSpinalTract.tck",
+               "LeftInferiorFrontoOccipitalFasciculus.tck",
+               "LeftInferiorLongitudinalFasciculus.tck",
+               "LeftSuperiorLongitudinalFasciculus.tck",
+               "LeftUncinateFasciculus.tck"
+               "RightAnteriorThalamicRadiation.tck",
+               "RightCinculumCingulateGyrus.tck",
+               "RightCingulumHippocampalPart.tck",
+               "RightCorticoSpinalTract.tck",
+               "RightInferiorFrontoOccipitalFasciculus.tck",
+               "RightInferiorLongitudinalFasciculus.tck",
+               "RightSuperiorLongitudinalFasciculus.tck",
+               "RightUncinateFasciculus.tck"
+               "ForcepsMajor",
+               "ForcepsMinor"]
+
+start_roi = ["FMaj_1", "FMin_1"]
+end_roi = ["FMaj_2", "FMin_2"]
+#start_roi = ["FMaj_1",
+#             "FMin_1",
+#             "L_ATR_1",
+#             "L_CCG_1",
+#             "L_CH_1",
+#             "L_CST_1",
+#             "L_IFOF_1",
+#             "L_ILF_1",
+#             "L_SLF_1",
+#             "L_SLFt_1",
+#             "L_UF_1",
+#             "R_ATR_1",
+#             "R_CCG_1",
+#             "R_CH_1",
+#             "R_CST_1",
+#             "R_IFOF_1",
+#             "R_ILF_1",
+#             "R_SLF_1",
+#             "R_SLFt_1",
+#             "R_UF_1",
+#             ]
+
+#end_roi =   ["FMaj_2",
+#             "FMin_2",
+#             "L_ATR_2",
+#             "L_CCG_2",
+#             "L_CH_2",
+#             "L_CST_2",
+#             "L_IFOF_2",
+#             "L_ILF_2",
+#             "L_SLF_2",
+#             "L_SLFt_2",
+#             "L_UF_2",
+#             "R_ATR_2",
+#             "R_CCG_2",
+#             "R_CH_2",
+#             "R_CST_2",
+#             "R_IFOF_2",
+#             "R_ILF_2",
+#             "R_SLF_2",
+#             "R_SLFt_2",
+#             "R_UF_2",
+#             ]
+
+### REGISTER MNI to DWI #######################################################
+# Run FLIRT on MNI T1 to subject T1 Space
+subprocess.call(["flirt", "-in", file_location + "/Atlases/MNI152_T1_1mm.nii.gz", "-ref", "t1.nii", "-omat", "T1_to_MNI.mat", "-v"])
+
+# Run FNIRT on MNI T1 to subject T1 Space
+subprocess.call(["fnirt", "--ref=t1.nii", "--in=" + file_location + "/Atlases/MNI152_T1_1mm.nii.gz", "--aff=T1_to_MNI.mat", "-v"])
+
+# Run BET on T1
+subprocess.call(["bet", "t1.nii", "brain.nii", "-f", "0.5", "-R"])
+
+# Register dwi to T1
+subprocess.call(["epi_reg", "--epi=dwi.nii", "--t1=t1.nii", "--t1brain=brain.nii", "--out=dwi2t1"])
+
+# Convert Registration Matrix to MRTrix Format
+subprocess.call(["transformconvert", "dwi2t1.mat", "dwi.nii", "t1.nii", "flirt_import", "dwi2t1_mrtrix.txt"])
+
+# Apply Inverse Transform to T1 and Parcellation
+subprocess.call(["transformcalc", "dwi2t1_mrtrix.txt", "invert", "t12dwi_mrtrix.txt"])
+
+subprocess.call(["mrtransform", "-linear", "t12dwi_mrtrix.txt", "t1.nii", "t1_reg.mif"])
+
+for roi_name in start_roi:
+    current_roi_file = file_location + "/Tractography_ROIs/" + roi_name + ".nii"
+
+    subprocess.call(["applywarp", "-i", current_roi_file, "-r", "t1.nii", "-o", roi_name + ".nii", "-w", "MNI152_T1_1mm_warpcoef.nii"])
+    subprocess.call(["mrtransform", "-linear", "t12dwi_mrtrix.txt", roi_name + ".nii", roi_name + "_reg.mif"])
+
+for roi_name in end_roi:
+    current_roi_file = file_location + "/Tractography_ROIs/" + roi_name + ".nii"
+
+    subprocess.call(["applywarp", "-i", current_roi_file, "-r", "t1.nii", "-o", roi_name + ".nii", "-w", "MNI152_T1_1mm_warpcoef.nii"])
+    subprocess.call(["mrtransform", "-interp", "nearest", "-linear", "t12dwi_mrtrix.txt", roi_name + ".nii", roi_name + "_reg.mif"])
+###############################################################################
+
+
+
+### DWI PROCESSING ############################################################
+# Convert to mif
+subprocess.call(["mrconvert", "dwi.nii", "-fslgrad", "bvec", "bval", "dwi.mif"])
+
+# Estimate Response Function
+subprocess.call(["dwi2response", "tournier", "dwi.mif", "response.txt"])
+
+# Upsample
+#subprocess.call(["mrresize", "-voxel", "1,1,1", "dwi.mif", "dwi_up.mif"])
+#subprocess.call(["mrresize", "-interp", "nearest", "-voxel", "1,1,1", "mask.nii", "mask_up.nii"])
+
+#while True:
+#    try:
+#        os.remove('dwi.nii')
+#        os.remove('mask.nii')
+#    except:
+#        continue
+#    else:
+#        break
+
+#os.rename("mask_up.nii", "mask.nii")
+#os.rename("dwi_up.mif", "dwi.mif")
+
+# Estimate FODs
+subprocess.call(["dwi2fod", "csd", "dwi.mif", "response.txt", "fod.mif", "-mask", "mask.nii"])
+###############################################################################
+
+
+
+### Tractography ##############################################################
+# Create Each Specified Track
+for i in range(len(tract_names)):
+    subprocess.call(["tckgen", "-seed_image", start_roi[i] + "_reg.mif", "-include", end_roi[i] + "_reg.mif", "-maxlength", "250", "-select", "500", "fod.mif", outpath + "Tracts/" + tract_names[i]])
+# Parse out Tracts between regions
+#os.mkdir("Tracts")
+#subprocess.call(["connectome2tck", "10M_SIFT.tck", "tcklabels.txt", "Tracts/IsoTracts"])
+
+# Generate Track-wise Parameter Data
+#track_files = file_finder.scan_for_tracts(os.path.abspath("Tracts"), [])
+
+#track_values = {}
+#for parameter in parameter_maps:
+#    track_means = []
+#    track_stds = []
+
+#    param_path, param_name = os.path.split(parameter)
+#    count = 0.0
+#    percent_prev = 0.0
+
+#    for track in track_files:
+#        subprocess.call(["tcksample", track, parameter, "Tracts/values.txt", "-force", "-quiet"])
+#        mean, std = connectome_functions.track_stats(os.path.abspath("Tracts/values.txt"))
+
+#        track_means.append(mean)
+#        track_stds.append(std)
+
+        # Update Progress
+#        count += 1.0
+#        percent = np.around((count / float(len(track_files)) * 100), decimals = 1)
+#        if(percent != percent_prev):
+#            util.progress_update(param_name + ": ", percent)
+#            percent_prev = percent
+
+#    track_values[param_name[:-4] + "_mean"] = track_means
+#    track_values[param_name[:-4] + "_std"] = track_stds
+
+# Save MATLAB File
+#sio.savemat("Trackwise_Parameters.mat", track_values)
+################################################################################
+
+
+
+### CLEAN UP ###################################################################
+
+################################################################################
