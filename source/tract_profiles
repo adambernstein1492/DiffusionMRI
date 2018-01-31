@@ -17,13 +17,13 @@ parser.add_argument("-i", "--dwi", type=str, help="Input dMRI", default="None");
 parser.add_argument("-b", "--bval", type=str, help="bval file", default="None")
 parser.add_argument("-v", "--bvec", type=str, help="bvec file", default="None")
 parser.add_argument("-m", "--mask", type=str, help="mask file", default="None")
-#parser.add_argument("-p", "--parameters", type=str, help="Directory Containing MicroStructural Parameters", default="None")
-parser.add_argument("-s", "--t1", type=str, help="FreeSurfer Subject Directory", default="None")
+parser.add_argument("-p", "--parameters", type=str, help="Directory Containing MicroStructural Parameters", default="None")
+parser.add_argument("-s", "--t1", type=str, help="T1-weighted Image Path", default="None")
 parser.add_argument("-o", "--output", type=str, help="Output Directory", default="None")
 
 args = parser.parse_args()
 file_location = os.path.dirname(__file__)
-#parameter_maps = file_finder.scan_for_nifti(os.path.abspath(args.parameters), [])
+parameter_maps = file_finder.scan_for_nifti(os.path.abspath(args.parameters), [])
 ###############################################################################
 
 
@@ -39,16 +39,12 @@ if args.output[-1] != '/':
 else:
     outpath = args.output
 
-if args.t1[-1] != '/':
-    t1_path = args.t1 + '/'
-else:
-    t1_path = args.t1
-
 os.makedirs(outpath)
 os.environ["FSLOUTPUTTYPE"] = "NIFTI"
 
 # Copy T1
-subprocess.call(["mri_convert", (t1_path + "mri/orig.mgz"), (outpath + "t1.nii")])
+shutil.copyfile(file_location + "/Atlases/MNI152_T1_1mm.nii.gz", (outpath + "MNI_T1.nii.gz"))
+shutil.copyfile(args.t1, (outpath + "T1.nii.gz"))
 
 # Copy DWI files
 shutil.copyfile(args.dwi, (outpath + "dwi.nii"))
@@ -63,13 +59,16 @@ os.chdir(outpath)
 
 
 ### Specify Tracts to be Isolated #############################################
-tract_names = ["LeftAnteriorThalamicRadiation.tck",
+tract_names = ["ForcepsMajor.tck",
+               "ForcepsMinor.tck",
+               "LeftAnteriorThalamicRadiation.tck",
                "LeftCinculumCingulateGyrus.tck",
                "LeftCingulumHippocampalPart.tck",
                "LeftCorticoSpinalTract.tck",
                "LeftInferiorFrontoOccipitalFasciculus.tck",
                "LeftInferiorLongitudinalFasciculus.tck",
                "LeftSuperiorLongitudinalFasciculus.tck",
+               "LeftSuperiorLongitudinalFasciculusTemporal.tck",
                "LeftUncinateFasciculus.tck"
                "RightAnteriorThalamicRadiation.tck",
                "RightCinculumCingulateGyrus.tck",
@@ -78,88 +77,84 @@ tract_names = ["LeftAnteriorThalamicRadiation.tck",
                "RightInferiorFrontoOccipitalFasciculus.tck",
                "RightInferiorLongitudinalFasciculus.tck",
                "RightSuperiorLongitudinalFasciculus.tck",
-               "RightUncinateFasciculus.tck"
-               "ForcepsMajor",
-               "ForcepsMinor"]
+               "RightSuperiorLongitudinalFasciculusTemporal.tck",
+               "RightUncinateFasciculus.tck"]
 
-start_roi = ["FMaj_1", "FMin_1"]
-end_roi = ["FMaj_2", "FMin_2"]
-#start_roi = ["FMaj_1",
-#             "FMin_1",
-#             "L_ATR_1",
-#             "L_CCG_1",
-#             "L_CH_1",
-#             "L_CST_1",
-#             "L_IFOF_1",
-#             "L_ILF_1",
-#             "L_SLF_1",
-#             "L_SLFt_1",
-#             "L_UF_1",
-#             "R_ATR_1",
-#             "R_CCG_1",
-#             "R_CH_1",
-#             "R_CST_1",
-#             "R_IFOF_1",
-#             "R_ILF_1",
-#             "R_SLF_1",
-#             "R_SLFt_1",
-#             "R_UF_1",
-#             ]
+start_roi = ["FMaj_1",
+             "FMin_1",
+             "L_ATR_1",
+             "L_CCG_1",
+             "L_CH_1",
+             "L_CST_1",
+             "L_IFOF_1",
+             "L_ILF_1",
+             "L_SLF_1",
+             "L_SLFt_1",
+             "L_UF_1",
+             "R_ATR_1",
+             "R_CCG_1",
+             "R_CH_1",
+             "R_CST_1",
+             "R_IFOF_1",
+             "R_ILF_1",
+             "R_SLF_1",
+             "R_SLFt_1",
+             "R_UF_1"]
 
-#end_roi =   ["FMaj_2",
-#             "FMin_2",
-#             "L_ATR_2",
-#             "L_CCG_2",
-#             "L_CH_2",
-#             "L_CST_2",
-#             "L_IFOF_2",
-#             "L_ILF_2",
-#             "L_SLF_2",
-#             "L_SLFt_2",
-#             "L_UF_2",
-#             "R_ATR_2",
-#             "R_CCG_2",
-#             "R_CH_2",
-#             "R_CST_2",
-#             "R_IFOF_2",
-#             "R_ILF_2",
-#             "R_SLF_2",
-#             "R_SLFt_2",
-#             "R_UF_2",
-#             ]
+end_roi =   ["FMaj_2",
+             "FMin_2",
+             "L_ATR_2",
+             "L_CCG_2",
+             "L_CH_2",
+             "L_CST_2",
+             "L_IFOF_2",
+             "L_ILF_2",
+             "L_SLF_2",
+             "L_SLFt_2",
+             "L_UF_2",
+             "R_ATR_2",
+             "R_CCG_2",
+             "R_CH_2",
+             "R_CST_2",
+             "R_IFOF_2",
+             "R_ILF_2",
+             "R_SLF_2",
+             "R_SLFt_2",
+             "R_UF_2"]
 
 ### REGISTER MNI to DWI #######################################################
 # Run FLIRT on MNI T1 to subject T1 Space
-subprocess.call(["flirt", "-in", file_location + "/Atlases/MNI152_T1_1mm.nii.gz", "-ref", "t1.nii", "-omat", "T1_to_MNI.mat", "-v"])
+subprocess.call(["flirt", "-in", "MNI_T1.nii.gz", "-ref", "T1.nii.gz", "-omat", "MNI_2_T1.mat", "-v"])
 
 # Run FNIRT on MNI T1 to subject T1 Space
-subprocess.call(["fnirt", "--ref=t1.nii", "--in=" + file_location + "/Atlases/MNI152_T1_1mm.nii.gz", "--aff=T1_to_MNI.mat", "-v"])
+subprocess.call(["fnirt", "--ref=T1.nii.gz", "--in=MNI_T1.nii.gz", "--aff=MNI_2_T1.mat", "-v"])
 
 # Run BET on T1
-subprocess.call(["bet", "t1.nii", "brain.nii", "-f", "0.5", "-R"])
+subprocess.call(["bet", "T1.nii.gz", "brain.nii", "-f", "0.5", "-R"])
 
 # Register dwi to T1
-subprocess.call(["epi_reg", "--epi=dwi.nii", "--t1=t1.nii", "--t1brain=brain.nii", "--out=dwi2t1"])
+subprocess.call(["epi_reg", "--epi=dwi.nii", "--t1=T1.nii.gz", "--t1brain=brain.nii", "--out=dwi2t1"])
 
 # Convert Registration Matrix to MRTrix Format
-subprocess.call(["transformconvert", "dwi2t1.mat", "dwi.nii", "t1.nii", "flirt_import", "dwi2t1_mrtrix.txt"])
+subprocess.call(["transformconvert", "dwi2t1.mat", "dwi.nii", "T1.nii.gz", "flirt_import", "dwi2t1_mrtrix.txt"])
 
 # Apply Inverse Transform to T1 and Parcellation
 subprocess.call(["transformcalc", "dwi2t1_mrtrix.txt", "invert", "t12dwi_mrtrix.txt"])
 
-subprocess.call(["mrtransform", "-linear", "t12dwi_mrtrix.txt", "t1.nii", "t1_reg.mif"])
+subprocess.call(["mrtransform", "-linear", "t12dwi_mrtrix.txt", "T1.nii.gz", "T1_reg.nii"])
 
 for roi_name in start_roi:
     current_roi_file = file_location + "/Tractography_ROIs/" + roi_name + ".nii"
 
-    subprocess.call(["applywarp", "-i", current_roi_file, "-r", "t1.nii", "-o", roi_name + ".nii", "-w", "MNI152_T1_1mm_warpcoef.nii"])
+    subprocess.call(["applywarp", "-i", current_roi_file, "-r", "T1.nii.gz", "-o", roi_name + ".nii", "-w", "MNI_T1_warpcoef.nii"])
     subprocess.call(["mrtransform", "-linear", "t12dwi_mrtrix.txt", roi_name + ".nii", roi_name + "_reg.mif"])
 
 for roi_name in end_roi:
     current_roi_file = file_location + "/Tractography_ROIs/" + roi_name + ".nii"
 
-    subprocess.call(["applywarp", "-i", current_roi_file, "-r", "t1.nii", "-o", roi_name + ".nii", "-w", "MNI152_T1_1mm_warpcoef.nii"])
-    subprocess.call(["mrtransform", "-interp", "nearest", "-linear", "t12dwi_mrtrix.txt", roi_name + ".nii", roi_name + "_reg.mif"])
+    subprocess.call(["applywarp", "-i", current_roi_file, "-r", "T1.nii.gz", "-o", roi_name + ".nii", "-w", "MNI_T1_warpcoef.nii"])
+    subprocess.call(["mrtransform", "-linear", "t12dwi_mrtrix.txt", roi_name + ".nii", roi_name + "_reg.mif"])
+
 ###############################################################################
 
 
@@ -172,20 +167,20 @@ subprocess.call(["mrconvert", "dwi.nii", "-fslgrad", "bvec", "bval", "dwi.mif"])
 subprocess.call(["dwi2response", "tournier", "dwi.mif", "response.txt"])
 
 # Upsample
-#subprocess.call(["mrresize", "-voxel", "1,1,1", "dwi.mif", "dwi_up.mif"])
-#subprocess.call(["mrresize", "-interp", "nearest", "-voxel", "1,1,1", "mask.nii", "mask_up.nii"])
+subprocess.call(["mrresize", "-voxel", "1,1,1", "dwi.mif", "dwi_up.mif"])
+subprocess.call(["mrresize", "-interp", "nearest", "-voxel", "1,1,1", "mask.nii", "mask_up.nii"])
 
-#while True:
-#    try:
-#        os.remove('dwi.nii')
-#        os.remove('mask.nii')
-#    except:
-#        continue
-#    else:
-#        break
+while True:
+    try:
+        os.remove('dwi.nii')
+        os.remove('mask.nii')
+    except:
+        continue
+    else:
+        break
 
-#os.rename("mask_up.nii", "mask.nii")
-#os.rename("dwi_up.mif", "dwi.mif")
+os.rename("mask_up.nii", "mask.nii")
+os.rename("dwi_up.mif", "dwi.mif")
 
 # Estimate FODs
 subprocess.call(["dwi2fod", "csd", "dwi.mif", "response.txt", "fod.mif", "-mask", "mask.nii"])
@@ -194,48 +189,86 @@ subprocess.call(["dwi2fod", "csd", "dwi.mif", "response.txt", "fod.mif", "-mask"
 
 
 ### Tractography ##############################################################
+os.chdir("Tracts")
+
 # Create Each Specified Track
 for i in range(len(tract_names)):
-    subprocess.call(["tckgen", "-seed_image", start_roi[i] + "_reg.mif", "-include", end_roi[i] + "_reg.mif", "-maxlength", "250", "-select", "500", "fod.mif", outpath + "Tracts/" + tract_names[i]])
-# Parse out Tracts between regions
-#os.mkdir("Tracts")
-#subprocess.call(["connectome2tck", "10M_SIFT.tck", "tcklabels.txt", "Tracts/IsoTracts"])
+    subprocess.call(["tckgen", "-seed_image", "../" + start_roi[i] + "_reg.mif", "-include", "../" + end_roi[i] + "_reg.mif", "-maxlength", "250", "-select", "5000", "../fod.mif", tract_names[i]])
 
 # Generate Track-wise Parameter Data
-#track_files = file_finder.scan_for_tracts(os.path.abspath("Tracts"), [])
 
-#track_values = {}
-#for parameter in parameter_maps:
-#    track_means = []
-#    track_stds = []
+track_values = {}
+for parameter in parameter_maps:
+    track_means = []
+    track_stds = []
 
-#    param_path, param_name = os.path.split(parameter)
-#    count = 0.0
-#    percent_prev = 0.0
+    param_path, param_name = os.path.split(parameter)
+    count = 0.0
+    percent_prev = 0.0
 
-#    for track in track_files:
-#        subprocess.call(["tcksample", track, parameter, "Tracts/values.txt", "-force", "-quiet"])
-#        mean, std = connectome_functions.track_stats(os.path.abspath("Tracts/values.txt"))
+    for track in tract_names:
+        subprocess.call(["tcksample", track, parameter, "values.txt", "-force", "-quiet"])
+        mean, std = connectome_functions.track_stats(os.path.abspath("values.txt"))
 
-#        track_means.append(mean)
-#        track_stds.append(std)
+        track_means.append(mean)
+        track_stds.append(std)
 
         # Update Progress
-#        count += 1.0
-#        percent = np.around((count / float(len(track_files)) * 100), decimals = 1)
-#        if(percent != percent_prev):
-#            util.progress_update(param_name + ": ", percent)
-#            percent_prev = percent
+        count += 1.0
+        percent = np.around((count / float(len(tract_names)) * 100), decimals = 1)
+        if(percent != percent_prev):
+            util.progress_update(param_name + ": ", percent)
+            percent_prev = percent
 
-#    track_values[param_name[:-4] + "_mean"] = track_means
-#    track_values[param_name[:-4] + "_std"] = track_stds
+    track_values[param_name[:-4] + "_mean"] = track_means
+    track_values[param_name[:-4] + "_std"] = track_stds
 
 # Save MATLAB File
-#sio.savemat("Trackwise_Parameters.mat", track_values)
+sio.savemat("../TrackProfiles.mat", track_values)
 ################################################################################
 
 
 
 ### CLEAN UP ###################################################################
+os.chdir("..")
+os.remove("brain.nii")
+os.remove("bval")
+os.remove("bvec")
+os.remove("dwi.mif")
+os.remove("dwi2t1.mat")
+os.remove("dwi2t1.nii")
+os.remove("dwi2t1_fast_wmedge.nii")
+os.remove("dwi2t1_fast_wmseg.nii")
+os.remove("dwi2t1_init.mat")
+os.remove("dwi2t1_mrtrix.txt")
+os.remove("fod.mif")
+os.remove("mask.nii")
+os.remove("MNI_2_T1.mat")
+os.remove("MNI_T1.nii.gz")
+os.remove("MNI_T1_to_T1.log")
+os.remove("MNI_T1_warpcoef.nii")
+os.remove("response.txt")
+os.remove("T1.nii.gz")
+os.remove("t12dwi_mrtrix.txt")
+os.remove("Tracts/values.txt")
 
+for i in start_roi:
+    while True:
+        try:
+            os.remove(i + '.nii')
+            os.remove(i + '_reg.mif')
+        except:
+            continue
+        else:
+            break
+
+for i in end_roi:
+    while True:
+        try:
+            os.remove(i + '.nii')
+            os.remove(i + '_reg.mif')
+        except:
+            continue
+        else:
+            break
 ################################################################################
