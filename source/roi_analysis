@@ -63,7 +63,7 @@ for subject in subject_dir:
         pass
     ### TODO ###
 
-    shutil.copyfile((subject + "preprocessed/dwi.nii"), (outpath + "dwi.nii"))
+    shutil.copyfile((subject + "DiffPreproc/dwi.nii"), (outpath + "dwi.nii"))
 
     param_map_copy = []
     parameter_maps = file_finder.scan_for_nifti((subject + 'MicroStructure'), [])
