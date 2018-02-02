@@ -1,0 +1,261 @@
+DifSim HOWTO
+by David P. Rideout, drideout@math.ucsd.edu
+v0.1, July-August 2016
+
+This document attempts to explain how to use DifSim, assuming no previous
+knowledge of any of the accompanying software.  At places I may assume basic
+familiarity with standard Linux conventions, etc.  Let me know if you would
+like me to remove this assumption.
+
+
+0.1   Filename.  Some HOWTOs are named this way, and some aren't.  I choose this name so that people can recognize that it is a HOWTO just from the filename.  c.f. http://www.tldp.org/HOWTO/HOWTO-INDEX/howtos.html
+0.1.1 I should probably read http://www.tldp.org/LDP/LDP-Author-Guide/html/index.html for instructions on how to write a document like this.  Hmm.
+
+0.2   Package name.  The name of DifSim does not even seem to be agreed upon!  Sometimes it also appears as "DiffSim".  My impression is that Ben Regner calls it DifSim, and Larry DiffSim.  I'll go with two f's for now.  Though maybe one is better, as that would capture a single syllable.  So I may not be consistent either
+My impression as of 21Jul016 is that DifSim is the official name.  I will go with that.
+0.3   Purpose.  My intent is to explain how to use all software surrounding DifSim, as I learn to use it myself.  My hope is that this will be a useful resource to new group members, and perhaps some day can be published with the code itself.
+0.4   File Format.  For the moment I use a simple text format.  Some day it should be ported to a more generic HOWTO format, however I do not want to take time with this right now.
+According to http://www.tldp.org/HOWTO/HOWTO-INDEX/writing.html
+"HOWTOs should be submitted to us in either DocBook or linuxdoc SGML; or DocBook XML. Refer to the LDP Author Guide for further information."
+
+
+
+1.0   Blender.  DifSim (really MCell within DifSim) reads a mesh which defines the geometry of tissue to be simulated.  Blender is a convenient package for generating these meshes.
+[ Installation instructions should go here. ]
+  For now I assume you have it installed.  I will also assume for the moment that you are familiar with much of its terminology etc.  [My intent is to come back and fill in some necessary bits, when which these are becomes more clear.  Some terms to define follow.  I will try to capitalize these 'Blender defined terms', as Blender seems to.  Even better would be to use a different font, though I do not really understand how to do this properly within a HOWTO yet.]
+[Maybe I will try a <bl> tag for blender terms.  Can I just define my own tags like this?  I am guessing not, but who knows?]
+Area
+Editor
+3D View Editor
+Toolshelf and Properties Regions(?) of 3D View Editor
+
+
+1.1   One can develop GUIs for other software packages which operate within Blender.  These come packaged as .zip files.
+      When one of these packages is run within Blender, it seems to generate a directory <blender_filename_root>_examples/, and put output there.
+
+
+1.2 Bullet Physics.  Bullet Physics is a package which runs within Blender,
+which can be used to generate meshes.  Ben Regner has some .blend files
+available on his website (at http://cnl.salk.edu/~bmregner/blender_models/),
+which employ Bullet Physics to generate a mesh.  (He also has has the GUIs for
+CellBlender and DifSim available there.)
+
+The Blender window is decomposed into a set of five rectangles called
+<bl>Areas</bl>.  In each is an <bl>Editor</bl>.  The Editors are arranged as
+follows:
+	Info
+3D View		Outliner
+Timeline	Properties
+The <bl>Properties Editor</bl> appears to allow us to edit the properties of
+the currently selected object, which is the one highlighted in white in the
+<bl>Outliner Editor</bl>.
+
+('Substeps' below are optional, perhaps do these during subsequent run
+throughs.)
+
+0) Download shape_filler.blend from http://cnl.salk.edu/~bmregner/blender_models/
+1) Click on "Run Script" at the bottom of the text editor Editor at the bottom.  This generates a panel(?) on the left in the <bl>3D View Editor</bl>, in the <bl>Toolshelf</bl>, under the Physics tab, entitled "Particles to Simulation".
+2) On the right is the Outliner Editor.  It has an "Emitter", which is hidden (the eyeball next to it is grayed out).  Go ahead and unhide it by clicking.
+(To me it appears on the edge of the cube.)
+
+2.0) (Optional) Design the object which will be copied in step (3).  The file starts it
+as an 'Icosphere', which is an isotropic ellipsoid with aspect ratio 2.  
+a) Its shape can be changed by selecting the Icosphere (either by clicking on it in the Outliner, or right clicking on it in the 3D View), and then changing its dimensions in the <bl>Properties Region of the 3D View Editor</bl>.
+
+b) You can also create an entirely new object to copy.
+b.1) In the <bl>3D View Editor Toolshelf Region</bl> on the right, select the
+"Create" vertical tab, and then select something to create.
+b.2) Modify its shape etc so that you are happy with it.
+b.3) Select the new object, then the existing Icosphere.  Hit spacebar and
+type "Copy Rigid Body Settings" and hit enter to give it the same rigid body
+properties as the Icosphere.  (I think these 'rigid body settings' are those
+specified under the Physics panel.)
+b.4) The <bl>Properties
+Region</bl> of step (2.0) seems to specify common properties of objects, such
+as location and orientation, while
+the larger <bl>Properties Editor<br> seems to control much more specific sorts
+of properties, such as how flexible is the wood of which it is made.  The
+properties are grouped into categories of sorts, which are labeled by icons in
+a horizontal row at the top (<bl>Header</bl>) of the <bl>Properties Editor</bl>.
+Select the Emitter object, and the "ParticleSystem" category icon (four stars).
+Under the Render panel is an Object selection, under which is a Dupli Object:
+setting which allows you to specify which object gets copied.  Select your new
+object here.
+
+3) Then click on "Copy Particles" in the (Physics tab of the) Toolshelf.  (If you can't find this button, be sure that the Emitter is selected.)  This
+creates a bezillion copies of an object, and they appear in the <bl>Outliner
+Editor</bl> in a 'hierarchy' under the name "Bullet Particles".
+(Actually the number is specified under the Emission panel of the
+ParticleSystem category of the Emitter object properties, available in the
+Properties Editor, currently set to 250.)
+(Somehow the Emitter seems to teleport to the center of the cube when I click
+on "Copy Particles". Not sure what is happening here.)
+4) Now click on "play" in the <bl>Timeline Editor</bl> to launch them into the cube!
+4a) If some of the objects escape the cube, you have to kill them off by hand.
+We don't want these included in the final mesh below.  Scrolling down zooms
+out.  There is some way to get it to connect to the origin of the Emitter or
+something with a dashed line, which helps with this task.
+
+To create a mesh:
+5) Click on the Bullet Particles hierarchy in the <bl>Outliner</bl>.
+6) Hover mouse over main 3D viewport.
+7) Press ']'.  This selects all objects in the hierarchy.
+8) Press c-j to join the meshes of each individual object into a single object.
+This takes some time on my laptop.
+The display goes crazy at this point.  Just ignore the craziness.  Everything
+is fine somehow.  Maybe it is better not to visualize the emitter.
+(This joining is so that we don't have to instantiate a bezillion objects in
+MCell later on.)
+[There are some issues regarding the mesh here which I do not understand.
+First off the objects need to be a closed mesh, e.g. if you build something
+other than the default Icosphere.  I forget how to do this.  And then there
+are many comments such as the one below which seem to involve various issues
+which arise in constructing the final mesh.]
+9) Now export the mesh:
+In <bl>Info Editor</bl>: File->Export->MCell MDL Geometry
+
+Ben Regner writes the following, though I don't know what it means:
+"A model can be built where this object is added to the MCell objects, but note that the "Bullet Particles" is a hierarchy, so you need to expand that in the Outliner on the right to select the mesh. I would delete the rest of the objects at this point though to keep everything simple. You might have the make them visible, which can be toggled with the eyeball symbol in Outliner, in order to delete them."
+
+To set up a DifSim run:
+Set up mesh and export MCell geometry, as above
+cellblender tab
+* create water molecule
+diffusion constant 2e-5 (room temp)
+* model objects
+select object e.g. 'cuboid_mesh', click add
+* molecule placement
+site name
+molecule --> water
+shape is object/region
+region is selected model object 'cuboid_mesh' above
+* settings & preferences
+project base name to something e.g. cuboid (otherwise will be 'scene')
+* partitions
+automatically generate and then change step sizes to e.g. 1
+(I used 40x40x40.  uses lots of memory)
+* Visualization Settings
+turn off export all
+
+difsim tab
+periodic is good
+click on update from mcell model
+DPFG 5-design 72 directions
+(remember our delta and Delta are defined differently from everyone else!)
+
+export difsim config file!
+run difsim
+
+Can edit .mdl files and difsim config file
+Scene.main.mdl
+difsim_params.txt
+Scene.molecules.mdl
+
+
+2.0   CellBlender.  Okay really Blender was just a front end for CellBlender, which is software for generating and working with biological models of cells and tissue and the like.
+Install CellBlender as described in http://mcell.org/tutorials/install_cellblender.html#cellblender-install
+
+
+
+3.0   MCell.  Okay really CellBlender was just a GUI front end for MCell, which simulates diffusion of molecules.
+
+
+
+4.0   DifSim.  <correctme>
+DifSim is developed on a private git repository hosted at the Center for Scientific Computation in Imaging (CSCI) at UCSD.  It is available upon request at http://abeta.ucsd.edu/DifSim.
+The author list includes Vitaly Galinsky and Ben Regner.
+[I should include full version information.  This document should be current as of 21 July 2016.]
+</correctme>
+
+Build it with:
+$ cmake .
+$ make
+
+
+4.1	It comes with a GUI, which is hosted in the same git repository above.  Perhaps it has to be packed into a .zip file to be handed to Blender?
+The DiffSim GUI places its output in <blender_filename_root>_examples/mcell/.
+From here on I will endeavor to refer to the GUI as 'DifSim', and the standalone binary as 'difsim'.
+
+
+4.2  GUI output:
+difsim_params.txt : the parameter file, to pass to the difsim binary (created above, assuming all went well.  Good luck...!)
+signal/ : I am not clear on whether this is generated by the difsim binary or the GUI.  in any event this is where difsim output goes.
+
+Regner: "Note that the signal file includes whats called a b0 value for the first line. In the case of no relaxation this is just 1, but including relaxation this value will be effected by the relaxation, so that the signal can be normalized to get at the diffusion and not just the relaxation. This isn't super important at this point, just make sure you ignore the first value."
+
+
+4.3	MDL format.  MDL stands for "Model Description Language".  It is a CellBlender format.  DifSim uses MCell therefore CellBlender therefore the MDL format for its input, including the description of the mesh.  See
+http://www.mcell.org/tutorials/examine_mdls.html
+for details.
+C and C++ style comments seem to work.  # not.
+Appears to be case-sensitive.
+
+Meshes have to be both defined (in a geometry file) and instantiated.  We also need to instantiate release sites.
+
+TIME_STEP is in seconds
+Each ITERATION is one TIME_STEP.
+
+
+5.0 Input files:  DifSim takes a number of input files, which I document here:
+For starters I will document my own names and approach, rather than what the Blender GUI generates?  Not sure.  I'll bounce back and forth as I keep changing my mind on this.
+
+There seems to be an overall 'name' present, which defaults to 'Scene'?  I'll call it <name>.
+
+
+5.1 Parameter file: The difsim command takes a single argument, which is the
+name of a parameter file.  The parameter file generated by the DifSim GUI is
+called <code>difsim_params.txt</code>.
+Specify DifSim parameters in this file, with lines in the format:
+<parname> = <value>
+I believe that the parameter names are case sensitive.
+# indicate comments, though they can clobber a subsequent parameter setting if
+# the comment appears in the middle of a line!
+
+DifSim Parameters:
+=================
+name		    default description
+----		    ------- -----------
+periodic	    	    1 if opposite faces of the cuboid are
+			    identified (periodic boundary conditions)
+			    0 for open boundaries
+[xyz] dim		    dimensions of the cuboid in microns
+pulse 			    pulse sequence type:
+			    0 spin echo
+			    1 gradient echo
+			    2 DPFG
+			    3 DWSSFP
+			    4 multi spin echo
+delta			    duration of the encoding pulse, in microsec
+Delta		    100000  separation between encoding pulses, in microsec
+gradient strength	    magnitude of gradient of magnetic field, in	Gauss/cm
+gradient directions	    number of field gradient directions
+ramp	 		    time for gradient strength to reach its full value
+step size		    integration time step size in microsec
+mixing time		    time between DPFG pairs in microsec
+tensor file DPFG  	    1 if using DPFG 'tensor' file
+tensor file 	  	    the 'tensor' file which holds gradient directions
+mcell file	  	    file with mcell instructions.  This can be
+      			    generated by CellBlender.
+signal file	  	    name of file to record output signal
+
+random seed	    1	    value of seed for pseudorandom number generator
+       			    used by MCell.  If this is unset, DifSim / MCell
+			    uses the same seed for every run.
+
+I believe all times are in microseconds!
+
+5.2 mdl files:
+<name>.main.mdl :
+
+
+A FAQ.
+1) The software uses some fftw package, fftw-3 or something.
+2) It uses bison too.  You'll have to be sure that these are installed.
+3) cmake too.
+4) Sometimes the build finishes with some error message or other.  Be sure to check if the binary is generated anyway.  It my experience it generally is!
+
+
+B Feature Requests.
+1) Output parameter setting such as gradient strength into the signal file.
+
+ LocalWords:  DiffSim cellblender correctme params fftw

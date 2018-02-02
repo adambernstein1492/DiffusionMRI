@@ -1,0 +1,74 @@
+#                                               -*- Autoconf -*-
+# Process this file with autoconf to produce a configure script.
+
+AC_PREREQ(2.59)
+AC_INIT(mcell, 3.1, mcell@salk.edu)
+AC_CONFIG_SRCDIR([mcell.c])
+AC_CONFIG_HEADERS([config.h])
+AM_INIT_AUTOMAKE([-Wall -Werror])
+
+# Checks for programs.
+AM_PROG_AR
+AC_PROG_RANLIB
+AC_PROG_YACC
+AC_PROG_CC
+AC_PROG_CC_C99
+if test "$GCC" == "yes"; then
+  CFLAGS_WARN="-Wall -Wextra -Wshadow -Wno-unused-parameter"
+else
+  CFLAGS_WARN=""
+fi
+AC_SUBST(CFLAGS_WARN)
+AM_PROG_LEX
+
+MCELL_UNSAFE_SIGHANDLERS=''
+AC_ARG_ENABLE(unsafe-signals,
+  [AC_HELP_STRING(
+    [--enable-unsafe-signals],
+    [allow signal handlers to flush reaction output when MCell dies due to a signal])
+  ],
+  [
+    if test "$enableval" = "yes"; then
+      MCELL_UNSAFE_SIGHANDLERS="-DMCELL_UNSAFE_SIGNAL_HANDLERS=1"
+    fi
+  ])
+AC_SUBST(MCELL_UNSAFE_SIGHANDLERS)
+
+# Checks for libraries.
+
+# Checks for header files.
+AC_FUNC_ALLOCA
+AC_HEADER_ASSERT
+AC_HEADER_STDC
+AC_CHECK_HEADERS([fcntl.h fenv.h float.h inttypes.h libintl.h limits.h malloc.h memory.h netdb.h stddef.h stdint.h stdlib.h string.h sys/socket.h sys/time.h unistd.h])
+
+# Checks for typedefs, structures, and compiler characteristics.
+AC_HEADER_STDBOOL
+AC_C_CONST
+AC_C_INLINE
+AC_TYPE_INT16_T
+AC_TYPE_INT32_T
+AC_TYPE_INT64_T
+AC_TYPE_INT8_T
+AC_TYPE_SIZE_T
+AC_TYPE_UINT16_T
+AC_TYPE_UINT32_T
+AC_TYPE_UINT8_T
+AC_C_BIGENDIAN
+
+# Checks for library functions.
+AC_FUNC_MALLOC
+AC_FUNC_MEMCMP
+AC_FUNC_REALLOC
+AC_FUNC_SETVBUF_REVERSED
+AC_FUNC_STAT
+AC_FUNC_STRERROR_R
+AC_FUNC_STRFTIME
+AC_FUNC_STRTOD
+AC_FUNC_VPRINTF
+AC_CHECK_FUNCS([alarm floor ftruncate gethostname gettimeofday memmove memset mkdir pow sqrt strchr strdup strerror strrchr strtol strtoul])
+
+AC_SYS_LARGEFILE
+
+AC_CONFIG_FILES([Makefile])
+AC_OUTPUT
