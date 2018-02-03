@@ -138,7 +138,7 @@ subprocess.call(["epi_reg", "--epi=dwi.nii", "--t1=T1.nii.gz", "--t1brain=brain.
 # Convert Registration Matrix to MRTrix Format
 subprocess.call(["transformconvert", "dwi2t1.mat", "dwi.nii", "T1.nii.gz", "flirt_import", "dwi2t1_mrtrix.txt"])
 
-# Apply Inverse Transform to T1 and Parcellation
+# Apply Inverse Transform to T1
 subprocess.call(["transformcalc", "dwi2t1_mrtrix.txt", "invert", "t12dwi_mrtrix.txt"])
 
 subprocess.call(["mrtransform", "-linear", "t12dwi_mrtrix.txt", "T1.nii.gz", "T1_reg.nii"])
