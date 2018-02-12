@@ -134,8 +134,8 @@ subprocess.call(["tck2connectome", "5M_SIFT.tck", "nodes.mif", "connectome.csv"]
 
 ### CLEAN UP ##################################################################
 os.remove("5TT.mif")
-os.remove("20M.tck")
-os.remove("2M_SIFT.tck")
+os.remove("50M.tck")
+os.remove("5M_SIFT.tck")
 os.remove("aparc+aseg.nii")
 os.remove("brain.nii")
 os.remove("bval")
