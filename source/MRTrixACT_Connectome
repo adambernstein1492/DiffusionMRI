@@ -18,6 +18,7 @@ parser.add_argument("-b", "--bval", type=str, help="bval file", default="None")
 parser.add_argument("-v", "--bvec", type=str, help="bvec file", default="None")
 parser.add_argument("-m", "--mask", type=str, help="mask file", default="None")
 parser.add_argument("-s", "--t1", type=str, help="FreeSurfer Subject Directory", default="None")
+parser.add_argument("-t", "--save_tracts", action="store_true", help="Save Large Whole Brian Tractogram", default=False)
 parser.add_argument("-o", "--output", type=str, help="Output Directory", default="None")
 
 args = parser.parse_args()
@@ -133,9 +134,11 @@ subprocess.call(["tck2connectome", "5M_SIFT.tck", "nodes.mif", "connectome.csv"]
 
 
 ### CLEAN UP ##################################################################
+if args.save_tracts is False:
+    os.remove("5M_SIFT.tck")
+
 os.remove("5TT.mif")
 os.remove("50M.tck")
-os.remove("5M_SIFT.tck")
 os.remove("aparc+aseg.nii")
 os.remove("brain.nii")
 os.remove("bval")
