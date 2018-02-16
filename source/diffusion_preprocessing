@@ -361,8 +361,6 @@ if args.software == "TORTOISE_DRBUDDI":
     os.remove("bvec")
     os.remove("dwi.nii")
     os.remove("rpe.nii")
-    os.remove("rpe_bval")
-    os.remove("rpe_bvec")
     os.remove("struct.nii")
 
     shutil.move("dwi_proc_DRBUDDI_proc/dwi_proc_DRBUDDI_up_final.nii", "dwi.nii")
