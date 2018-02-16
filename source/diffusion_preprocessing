@@ -346,11 +346,11 @@ if args.software == "TORTOISE_DRBUDDI":
     subprocess.call(["TORTOISEBmatrixToFSLBVecs", "dwi_proc_DRBUDDI_proc/rpe_proc_DRBUDDI_down_final.bmtxt"])
 
     # Compute SNR and FM
-    if(len(rpe.shape) == 4):
-        snr = diffusion_preprocessing_functions.tSNR("dwi_proc_DRBUDDI_proc/rpe_proc_DRBUDDI_down_final.nii",
-                   "dwi_proc_DRBUDDI_proc/rpe_proc_DRBUDDI_down_final.bvals",
-                   "dwi_proc_DRBUDDI_proc/rpe_proc_DRBUDDI_down_final.bvecs",
-                   "snr.nii")
+    #if(len(rpe.shape) == 4):
+        #snr = diffusion_preprocessing_functions.tSNR("dwi_proc_DRBUDDI_proc/rpe_proc_DRBUDDI_down_final.nii",
+        #           "dwi_proc_DRBUDDI_proc/rpe_proc_DRBUDDI_down_final.bvals",
+        #           "dwi_proc_DRBUDDI_proc/rpe_proc_DRBUDDI_down_final.bvecs",
+        #           "snr.nii")
 
     if(args.field_map != "None"):
 		subprocess.call(["mrconvert", "dwi_proc_DRBUDDI_proc/deformation_FINV.nii.gz", "dwi_proc_DRBUDDI_proc/deformation_FINV.nii"])
