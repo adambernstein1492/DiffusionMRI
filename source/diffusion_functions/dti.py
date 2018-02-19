@@ -4,7 +4,7 @@ import util
 
 def main_dti(dwi_file, bval_file, bvec_file, mask_file, out_path, b_thresh=2100,
              calc_FA=True, calc_MD=True, calc_AD=True, calc_RD=True,
-             output_dec_map=False, output_eig_vals=False):
+             output_dec_map=True, output_eig_vals=True, output_eig_vecs=True):
 
     # Load in data
     dwi, mask, bvals, bvecs = util.load_diffusion_data(dwi_file, bval_file, bvec_file, mask_file)
@@ -39,8 +39,12 @@ def main_dti(dwi_file, bval_file, bvec_file, mask_file, out_path, b_thresh=2100,
             RD_img = nib.Nifti1Image(RD, dwi.affine, dwi.header)
             nib.save(RD_img, (out_path + 'RD.nii'))
         if output_eig_vals:
-            eig_values = nib.Nifti1Image(eigen_values, dwi.affine, dwi.header)
-            nib.save(eig_values, (out_path + 'EigenValues.nii'))
+            eig_values = nib.Nifti1Image(eigen_values[:,:,:,2], dwi.affine, dwi.header)
+            nib.save(eig_values, (out_path + 'EigenValues_1.nii'))
+            eig_values = nib.Nifti1Image(eigen_values[:,:,;,1], dwi.affine, dwi.header)
+            nib.save(eig_values, (out_path + 'EigenValues_2.nii'))
+            eig_values = nib.Nifti1Image(eigen_values[:,:,;,0], dwi.affine, dwi.header)
+            nib.save(eig_values, (out_path + 'EigenValues_3.nii'))
 
     if output_dec_map:
         dec = np.zeros(eigen_values.shape)
@@ -50,6 +54,14 @@ def main_dti(dwi_file, bval_file, bvec_file, mask_file, out_path, b_thresh=2100,
 
         dec_map = nib.Nifti1Image(dec, dwi.affine, dwi.header)
         nib.save(dec_map, (out_path + 'DECmap.nii'))
+
+    if output_eig_vecs:
+        eigvec = nib.Nifti1Image(eigen_vectors[:,:,:,:,0], dwi.affine, dwi.header)
+        nib.save(eigvec, (out_path + 'EigenVector_3.nii'))
+        eigvec = nib.Nifti1Image(eigen_vectors[:,:,:,:,1], dwi.affine, dwi.header)
+        nib.save(eigvec, (out_path + 'EigenVector_2.nii'))
+        eigvec = nib.Nifti1Image(eigen_vectors[:,:,:,:,2], dwi.affine, dwi.header)
+        nib.save(eigvec, (out_path + 'EigenVector_1.nii'))
 
     return eigen_values, eigen_vectors
 
@@ -81,7 +93,9 @@ def fit_dti(dwi, bvals, bvecs, mask):
                                          np.dot(np.dot(b_matrix.T, W), dwi_log[i,j,k,:]))[0])
 
                     # Organize the Tensor
-                    tensor = np.array([[x[1], x[4], x[5]], [x[4], x[2], x[6]], [x[5], x[6], x[3]]])
+                    tensor = np.array([[x[1], x[4], x[5]],
+                                       [x[4], x[2], x[6]],
+                                       [x[5], x[6], x[3]]])
 
                     # Diagonalize the Tensor
                     eigen_values[i,j,k,:], eigen_vectors[i,j,k,:,:] = np.linalg.eig(tensor)

@@ -24,6 +24,7 @@ parser.add_argument("-k", "--is_non_human", action="store_true", help="TORTOISE:
 parser.add_argument("-v", "--voxel_size", type=str, help="Final Voxel size for corrected image", nargs=3, default="None", metavar=('vx', 'vy', 'vz'))
 parser.add_argument("-d", "--diffusion_times", type=str, help="Gradient timing parameters d and D", nargs=2, default="None", metavar=('d', 'D'))
 parser.add_argument("-s", "--software", type=str, help="Software to use for distortion correction. Default=FSL", choices=["FSL","TORTOISE_DRBUDDI", "TORTOISE_STANDARD"], default="FSL")
+parser.add_argument("-c", "--cleanup", action="store_true", help="Tells script to remove all intermediate files", default=False)
 parser.add_argument("Image", type=str, help="Diffusion Weighted MRI filepath")
 parser.add_argument("bval", type=str, help="b-value filepath")
 parser.add_argument("bvec", type=str, help="b-vector filepath")
@@ -222,31 +223,32 @@ if args.software == "FSL":
             shutil.move("dwi_eddy.eddy_rotated_bvecs", "bvec")
 
         # Clean up extra files
-        os.remove("acqp.txt")
-        os.remove("b0_corrected.nii")
-        os.remove("B0s.nii")
-        os.remove("B0s.topup_log")
-        os.remove("dwi_eddy.eddy_movement_rms")
-        os.remove("dwi_eddy.eddy_outlier_map")
-        os.remove("dwi_eddy.eddy_outlier_n_stdev_map")
-        os.remove("dwi_eddy.eddy_outlier_report")
-        os.remove("dwi_eddy.eddy_parameters")
-        os.remove("dwi_eddy.eddy_post_eddy_shell_alignment_parameters")
-        os.remove("dwi_eddy.eddy_outlier_n_sqr_stdev_map")
-        os.remove("dwi_eddy.eddy_restricted_movement_rms")
-        os.remove("index.txt")
-        os.remove("rpe.nii")
-        os.remove("topup_results_fieldcoef.nii")
-        os.remove("topup_results_movpar.txt")
+        if args.cleanup:
+            os.remove("acqp.txt")
+            os.remove("b0_corrected.nii")
+            os.remove("B0s.nii")
+            os.remove("B0s.topup_log")
+            os.remove("dwi_eddy.eddy_movement_rms")
+            os.remove("dwi_eddy.eddy_outlier_map")
+            os.remove("dwi_eddy.eddy_outlier_n_stdev_map")
+            os.remove("dwi_eddy.eddy_outlier_report")
+            os.remove("dwi_eddy.eddy_parameters")
+            os.remove("dwi_eddy.eddy_post_eddy_shell_alignment_parameters")
+            os.remove("dwi_eddy.eddy_outlier_n_sqr_stdev_map")
+            os.remove("dwi_eddy.eddy_restricted_movement_rms")
+            os.remove("index.txt")
+            os.remove("rpe.nii")
+            os.remove("topup_results_fieldcoef.nii")
+            os.remove("topup_results_movpar.txt")
 
     if ((args.eddycurrentcorrection is True) and (args.epidistortion == "None")):
         # Create ACQP and INDEX text files
         diffusion_preprocessing_functions.no_topup_index_acqp('bval', 'bvec')
 
-	if args.mask == "None":
-		    subprocess.call(["bet", "dwi", "brain", "-m", "-f", "0.3", "-R"])
-		    os.remove("brain.nii")
-		    shutil.move("brain_mask.nii", "mask.nii")
+    	if args.mask == "None":
+    		    subprocess.call(["bet", "dwi", "brain", "-m", "-f", "0.3", "-R"])
+    		    os.remove("brain.nii")
+    		    shutil.move("brain_mask.nii", "mask.nii")
 
         print "Running EDDY"
         subprocess.call(["eddy_openmp", "--imain=dwi.nii", "--mask=mask.nii", "--index=index.txt",
@@ -258,16 +260,17 @@ if args.software == "FSL":
         shutil.move("dwi.eddy_rotated_bvecs", "bvec")
 
         # Clean up extra files
-        os.remove("acqp.txt")
-        os.remove("index.txt")
-        os.remove("dwi.eddy_restricted_movement_rms")
-        os.remove("dwi.eddy_movement_rms")
-        os.remove("dwi.eddy_outlier_map")
-        os.remove("dwi.eddy_outlier_n_sqr_stdev_map")
-        os.remove("dwi.eddy_outlier_n_stdev_map")
-        os.remove("dwi.eddy_outlier_report")
-        os.remove("dwi.eddy_parameters")
-        os.remove("dwi.eddy_post_eddy_shell_alignment_parameters")
+        if args.cleanup:
+            os.remove("acqp.txt")
+            os.remove("index.txt")
+            os.remove("dwi.eddy_restricted_movement_rms")
+            os.remove("dwi.eddy_movement_rms")
+            os.remove("dwi.eddy_outlier_map")
+            os.remove("dwi.eddy_outlier_n_sqr_stdev_map")
+            os.remove("dwi.eddy_outlier_n_stdev_map")
+            os.remove("dwi.eddy_outlier_report")
+            os.remove("dwi.eddy_parameters")
+            os.remove("dwi.eddy_post_eddy_shell_alignment_parameters")
 ################################################################################
 
 
@@ -336,14 +339,26 @@ if args.software == "TORTOISE_DRBUDDI":
                              "--n_DWIs", "0", "--enforce_deformation_antisymmetry", "1", "--distortion_level", distortion_level,
                              "--res", voxel_size[0], voxel_size[1], voxel_size[2]])
 
+            subprocess.call(["TORTOISEBmatrixToFSLBVecs", "dwi_proc_DRBUDDI_proc/dwi_proc_DRBUDDI_up_final.bmtxt"])
+
+            shutil.move("dwi_proc_DRBUDDI_proc/dwi_proc_DRBUDDI_up_final.nii", "dwi.nii")
+            shutil.move("dwi_proc_DRBUDDI_proc/dwi_proc_DRBUDDI_up_final.bvals", "bval")
+            shutil.move("dwi_proc_DRBUDDI_proc/dwi_proc_DRBUDDI_up_final.bvecs", "bvec")
+            shutil.move("dwi_proc_DRBUDDI_proc/structural_used.nii", "struct.nii")
+
         if(args.epidistortion[1] == "All"):
             subprocess.call(["DR_BUDDI_withoutGUI", "--up_data", "dwi_proc/dwi_proc.list",
                              "--down_data", "rpe_proc/rpe_proc.list", "--structural", "struct.nii",
                              "--enforce_deformation_antisymmetry", "1", "--distortion_level", distortion_level,
                              "--res", voxel_size[0], voxel_size[1], voxel_size[2]])
 
-    subprocess.call(["TORTOISEBmatrixToFSLBVecs", "dwi_proc_DRBUDDI_proc/dwi_proc_DRBUDDI_up_final.bmtxt"])
-    subprocess.call(["TORTOISEBmatrixToFSLBVecs", "dwi_proc_DRBUDDI_proc/rpe_proc_DRBUDDI_down_final.bmtxt"])
+            subprocess.call(["TORTOISEBmatrixToFSLBVecs", "dwi_proc_DRBUDDI_proc/dwi_proc_DRBUDDI_final.bmtxt"])
+
+            shutil.move("dwi_proc_DRBUDDI_proc/dwi_proc_DRBUDDI_final.nii", "dwi.nii")
+            shutil.move("dwi_proc_DRBUDDI_proc/dwi_proc_DRBUDDI_final.bvals", "bval")
+            shutil.move("dwi_proc_DRBUDDI_proc/dwi_proc_DRBUDDI_final.bvecs", "bvec")
+            shutil.move("dwi_proc_DRBUDDI_proc/structural_used.nii", "struct.nii")
+
 
     # Compute SNR and FM
     #if(len(rpe.shape) == 4):
@@ -357,20 +372,16 @@ if args.software == "TORTOISE_DRBUDDI":
 		fm = diffusion_preprocessing_functions.field_map("dwi_proc_DRBUDDI_proc/deformation_FINV.nii", "fm.nii", float(args.field_map))
 
     # Clean up extra files
-    os.remove("bval")
-    os.remove("bvec")
-    os.remove("dwi.nii")
-    os.remove("rpe.nii")
-    os.remove("struct.nii")
+    if args.cleanup:
+        os.remove("bval")
+        os.remove("bvec")
+        os.remove("dwi.nii")
+        os.remove("rpe.nii")
+        os.remove("struct.nii")
 
-    shutil.move("dwi_proc_DRBUDDI_proc/dwi_proc_DRBUDDI_up_final.nii", "dwi.nii")
-    shutil.move("dwi_proc_DRBUDDI_proc/dwi_proc_DRBUDDI_up_final.bvals", "bval")
-    shutil.move("dwi_proc_DRBUDDI_proc/dwi_proc_DRBUDDI_up_final.bvecs", "bvec")
-    shutil.move("dwi_proc_DRBUDDI_proc/structural_used.nii", "struct.nii")
-
-    shutil.rmtree("dwi_proc_DRBUDDI_proc")
-    shutil.rmtree("dwi_proc")
-    shutil.rmtree("rpe_proc")
+        shutil.rmtree("dwi_proc_DRBUDDI_proc")
+        shutil.rmtree("dwi_proc")
+        shutil.rmtree("rpe_proc")
 
     if(args.mask == "None"):
         subprocess.call(["dwi2mask", "-fslgrad", "bvec", "bval", "dwi.nii", "mask.nii"])
@@ -406,6 +417,11 @@ if args.software == "TORTOISE_STANDARD":
     # Move Output to Upper Level
 
     # Clean up Extra Files
+    if args.cleanup:
+        pass
+
+    if(args.mask == "None"):
+        subprocess.call(["dwi2mask", "-fslgrad", "bvec", "bval", "dwi.nii", "mask.nii"])
 ################################################################################
 
 
@@ -436,11 +452,12 @@ if args.biasfieldcorrection:
     diffusion_preprocessing_functions.apply_bias_field("dwi.nii", "field.nii")
 
     # Clean up Extra Files
-    os.remove("field.nii")
-    os.remove("mask_bias.nii")
-    os.remove("bias_correct.nii")
-    os.remove("mean_b0.nii")
-    os.remove("mean_b0_bias.nii")
+    if args.cleanup:
+        os.remove("field.nii")
+        os.remove("mask_bias.nii")
+        os.remove("bias_correct.nii")
+        os.remove("mean_b0.nii")
+        os.remove("mean_b0_bias.nii")
 ################################################################################
 
 ### INTERPOLATE DWI IF INDICATED ###############################################

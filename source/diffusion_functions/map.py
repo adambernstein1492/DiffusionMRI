@@ -7,7 +7,7 @@ import dti
 
 def main_map(dwi_file, bval_file, bvec_file, mask_file, little_delta, big_delta,
              out_path, order=6, b_thresh_dti=2100, calc_rtps=True, calc_ng=True,
-             calc_pa=True, calc_dki=True, return_dti=False):
+             calc_pa=True, calc_dki=False, return_dti=False):
 
     # Load in Data
     dwi, mask, bvals, bvecs = util.load_diffusion_data(dwi_file, bval_file, bvec_file, mask_file)
@@ -47,10 +47,10 @@ def main_map(dwi_file, bval_file, bvec_file, mask_file, little_delta, big_delta,
     uvectors = np.sort(uvectors, axis=3)
 
     # Save Coefficients and UVectors
-    #img = nib.Nifti1Image(coeffs, dwi.affine, dwi.header)
-    #nib.save(img, (out_path + 'coeffs.nii'))
-    #img = nib.Nifti1Image(uvectors, dwi.affine, dwi.header)
-    #nib.save(img, (out_path + 'uvecs.nii'))
+    img = nib.Nifti1Image(coeffs, dwi.affine, dwi.header)
+    nib.save(img, (out_path + 'coeffs.nii'))
+    img = nib.Nifti1Image(uvectors, dwi.affine, dwi.header)
+    nib.save(img, (out_path + 'uvecs.nii'))
 
     # Calculate and Save Scalar MAPs
     if calc_pa:
@@ -79,22 +79,22 @@ def main_map(dwi_file, bval_file, bvec_file, mask_file, little_delta, big_delta,
         nib.save(img, (out_path + 'NG.nii'))
 
         img = nib.Nifti1Image(ng_par[:,:,:,2], dwi.affine, dwi.header)
-        nib.save(img, (out_path + 'AxialNG_X.nii'))
+        nib.save(img, (out_path + 'AxialNG_1.nii'))
 
         img = nib.Nifti1Image(ng_par[:,:,:,1], dwi.affine, dwi.header)
-        nib.save(img, (out_path + 'AxialNG_Y.nii'))
+        nib.save(img, (out_path + 'AxialNG_2.nii'))
 
         img = nib.Nifti1Image(ng_par[:,:,:,0], dwi.affine, dwi.header)
-        nib.save(img, (out_path + 'AxialNG_Z.nii'))
+        nib.save(img, (out_path + 'AxialNG_3.nii'))
 
         img = nib.Nifti1Image(ng_perp[:,:,:,2], dwi.affine, dwi.header)
-        nib.save(img, (out_path + 'RadialNG_X.nii'))
+        nib.save(img, (out_path + 'RadialNG_1.nii'))
 
         img = nib.Nifti1Image(ng_perp[:,:,:,1], dwi.affine, dwi.header)
-        nib.save(img, (out_path + 'RadialNG_Y.nii'))
+        nib.save(img, (out_path + 'RadialNG_2.nii'))
 
         img = nib.Nifti1Image(ng_perp[:,:,:,0], dwi.affine, dwi.header)
-        nib.save(img, (out_path + 'RadialNG_Z.nii'))
+        nib.save(img, (out_path + 'RadialNG_3.nii'))
 
         img = nib.Nifti1Image(ng_jsd, dwi.affine, dwi.header)
         nib.save(img, (out_path + 'NG_JSD.nii'))
@@ -107,22 +107,22 @@ def main_map(dwi_file, bval_file, bvec_file, mask_file, little_delta, big_delta,
         nib.save(img, (out_path + 'RTOP.nii'))
 
         img = nib.Nifti1Image(rtap[:,:,:,2], dwi.affine, dwi.header)
-        nib.save(img, (out_path + 'RTAP_X.nii'))
+        nib.save(img, (out_path + 'RTAP_1.nii'))
 
         img = nib.Nifti1Image(rtap[:,:,:,1], dwi.affine, dwi.header)
-        nib.save(img, (out_path + 'RTAP_Y.nii'))
+        nib.save(img, (out_path + 'RTAP_2.nii'))
 
         img = nib.Nifti1Image(rtap[:,:,:,0], dwi.affine, dwi.header)
-        nib.save(img, (out_path + 'RTAP_Z.nii'))
+        nib.save(img, (out_path + 'RTAP_3.nii'))
 
         img = nib.Nifti1Image(rtpp[:,:,:,2], dwi.affine, dwi.header)
-        nib.save(img, (out_path + 'RTPP_X.nii'))
+        nib.save(img, (out_path + 'RTPP_1.nii'))
 
         img = nib.Nifti1Image(rtpp[:,:,:,1], dwi.affine, dwi.header)
-        nib.save(img, (out_path + 'RTPP_Y.nii'))
+        nib.save(img, (out_path + 'RTPP_2.nii'))
 
         img = nib.Nifti1Image(rtpp[:,:,:,0], dwi.affine, dwi.header)
-        nib.save(img, (out_path + 'RTPP_Z.nii'))
+        nib.save(img, (out_path + 'RTPP_3.nii'))
 
     if calc_dki:
         print "Calculating DKI parameters from MAP Coefficients"

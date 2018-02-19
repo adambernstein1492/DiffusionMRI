@@ -19,6 +19,9 @@ parser.add_argument("-v", "--bvec", type=str, help="bvec file", default="None")
 parser.add_argument("-m", "--mask", type=str, help="mask file", default="None")
 parser.add_argument("-s", "--t1", type=str, help="FreeSurfer Subject Directory", default="None")
 parser.add_argument("-t", "--save_tracts", action="store_true", help="Save Large Whole Brian Tractogram", default=False)
+parser.add_argument("-n", "--numbertracts", help="Number of Tracts to use to create connectome", default="50M")
+parser.add_argument("-f", "--filteredtracts", help="Number of tracts to output from SIFT", default="5M")
+parser.add_argument("-c", "--cleanup", action="store_true", help="Tells script to remove all intermediate files", default=False)
 parser.add_argument("-o", "--output", type=str, help="Output Directory", default="None")
 
 args = parser.parse_args()
@@ -121,41 +124,43 @@ os.rename("dwi_up.mif", "dwi.mif")
 subprocess.call(["dwi2fod", "msmt_csd", "dwi.mif", "RF_WM.txt", "WM_FODs.mif", "RF_GM.txt", "GM.mif", "RF_CSF.txt", "CSF.mif", "-mask", "mask.nii"])
 
 # Tractography
-subprocess.call(["tckgen", "WM_FODs.mif", "50M.tck", "-act", "5TT.mif", "-backtrack", "-crop_at_gmwmi", "-seed_dynamic", "WM_FODs.mif", "-maxlength", "250", "-select", "50M", "-cutoff", "0.06"])
-subprocess.call(["tcksift", "50M.tck", "WM_FODs.mif", "5M_SIFT.tck", "-act", "5TT.mif", "-term_number", "5M"])
+subprocess.call(["tckgen", "WM_FODs.mif", "orig_tracts.tck", "-act", "5TT.mif", "-backtrack", "-crop_at_gmwmi", "-seed_dynamic", "WM_FODs.mif", "-maxlength", "250", "-select", args.numbertracts, "-cutoff", "0.06"])
+subprocess.call(["tcksift", "orig_tracts.tck", "WM_FODs.mif", "SIFT.tck", "-act", "5TT.mif", "-term_number", "5M"])
 ###############################################################################
 
 
 
 ### CONNECTOME GENERATION #####################################################
-subprocess.call(["tck2connectome", "5M_SIFT.tck", "nodes.mif", "connectome.csv"])
+subprocess.call(["tck2connectome", "SIFT.tck", "nodes.mif", "connectome.csv"])
 ###############################################################################
 
 
 
 ### CLEAN UP ##################################################################
-if args.save_tracts is False:
-    os.remove("5M_SIFT.tck")
+if args.cleanup:
+    if args.save_tracts is False:
+        os.remove("SIFT.tck")
 
-os.remove("5TT.mif")
-os.remove("50M.tck")
-os.remove("aparc+aseg.nii")
-os.remove("brain.nii")
-os.remove("bval")
-os.remove("bvec")
-os.remove("CSF.mif")
-os.remove("dwi.mif")
-os.remove("dwi2t1.mat")
-os.remove("dwi2t1_fast_wmedge.nii")
-os.remove("dwi2t1_fast_wmseg.nii")
-os.remove("dwi2t1_init.mat")
-os.remove("dwi2t1_mrtrix.txt")
-os.remove("GM.mif")
-os.remove("mask.nii")
-os.remove("RF_CSF.txt")
-os.remove("RF_GM.txt")
-os.remove("RF_voxels.mif")
-os.remove("RF_WM.txt")
-os.remove("t1.nii")
-os.remove("t12dwi_mrtrix.txt")
+    os.remove("5TT.mif")
+    os.remove("orig_tracts.tck")
+    os.remove("aparc+aseg.nii")
+    os.remove("brain.nii")
+    os.remove("bval")
+    os.remove("bvec")
+    os.remove("CSF.mif")
+    os.remove("dwi.mif")
+    os.remove("dwi2t1.mat")
+    os.remove("dwi2t1.nii")
+    os.remove("dwi2t1_fast_wmedge.nii")
+    os.remove("dwi2t1_fast_wmseg.nii")
+    os.remove("dwi2t1_init.mat")
+    os.remove("dwi2t1_mrtrix.txt")
+    os.remove("GM.mif")
+    os.remove("mask.nii")
+    os.remove("RF_CSF.txt")
+    os.remove("RF_GM.txt")
+    os.remove("RF_voxels.mif")
+    os.remove("RF_WM.txt")
+    os.remove("t1.nii")
+    os.remove("t12dwi_mrtrix.txt")
 ###############################################################################
