@@ -27,7 +27,6 @@ def main_dti(dwi_file, bval_file, bvec_file, mask_file, out_path, b_thresh=2100,
 
     if calc_MD or calc_AD or calc_RD:
         MD, AD, RD = calc_diffusivities(eigen_values)
-
         # Save
         if calc_MD:
             MD_img = nib.Nifti1Image(MD, dwi.affine, dwi.header)
@@ -41,9 +40,9 @@ def main_dti(dwi_file, bval_file, bvec_file, mask_file, out_path, b_thresh=2100,
         if output_eig_vals:
             eig_values = nib.Nifti1Image(eigen_values[:,:,:,2], dwi.affine, dwi.header)
             nib.save(eig_values, (out_path + 'EigenValues_1.nii'))
-            eig_values = nib.Nifti1Image(eigen_values[:,:,;,1], dwi.affine, dwi.header)
+            eig_values = nib.Nifti1Image(eigen_values[:,:,:,1], dwi.affine, dwi.header)
             nib.save(eig_values, (out_path + 'EigenValues_2.nii'))
-            eig_values = nib.Nifti1Image(eigen_values[:,:,;,0], dwi.affine, dwi.header)
+            eig_values = nib.Nifti1Image(eigen_values[:,:,:,0], dwi.affine, dwi.header)
             nib.save(eig_values, (out_path + 'EigenValues_3.nii'))
 
     if output_dec_map:
