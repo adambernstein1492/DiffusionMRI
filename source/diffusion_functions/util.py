@@ -1,11 +1,11 @@
-import numpy
+import numpy as np
 import dipy.io
 import nibabel as nib
 
 def load_diffusion_data(dwi_file, bvals_file, bvecs_file, mask_file):
     dwi = nib.load(dwi_file)
     data = dwi.get_data()
-    data[numpy.isnan(data)] = 0.0
+    data[np.isnan(data)] = 0.0
     dwi = nib.Nifti1Image(data, dwi.affine, dwi.header)
     mask = nib.load(mask_file)
     bvals,bvecs = dipy.io.read_bvals_bvecs(bvals_file, bvecs_file)
