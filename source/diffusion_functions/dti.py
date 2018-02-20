@@ -102,12 +102,6 @@ def fit_dti(dwi, bvals, bvecs, mask):
                     # Sort the Eigenvalues
                     eigen_values[i,j,k,:], eigen_vectors[i,j,k,:,:] = sort_eigvals(eigen_values[i,j,k,:], eigen_vectors[i,j,k,:])
 
-                    # Update Progress
-                    count += 1.0
-                    percent = np.around((count / num_vox * 100), decimals = 1)
-                    if(percent != percent_prev):
-                        util.progress_update("Fitting DTI: ", percent)
-                        percent_prev = percent
 
     # Return the Eigenvalues and Eigenvectors
     return eigen_values, eigen_vectors

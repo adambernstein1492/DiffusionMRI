@@ -4,7 +4,6 @@ import scipy.special
 import util
 import dti
 
-
 def main_map(dwi_file, bval_file, bvec_file, mask_file, little_delta, big_delta,
              out_path, order=6, b_thresh_dti=2100, calc_rtps=True, calc_ng=True,
              calc_pa=True, calc_dki=False, return_dti=False):
@@ -31,7 +30,7 @@ def main_map(dwi_file, bval_file, bvec_file, mask_file, little_delta, big_delta,
     uvectors = np.sqrt(2 * eigen_values * diffusion_time)
 
     # Convert b values and vectors to q-vectors
-    qvectors = b_to_q(bvals, bvecs, diffusion_time)
+    qvectors = util.b_to_q(bvals, bvecs, big_delta, little_delta)
 
     # Invert Eigenvectors (Inverse of a rotation matrix is its transpose)
     for i in range(data.shape[0]):
@@ -46,6 +45,8 @@ def main_map(dwi_file, bval_file, bvec_file, mask_file, little_delta, big_delta,
     num_coeffs = int(round(1.0/6 * (order/2 + 1) * (order/2 + 2) * (2*order + 3)))
     uvectors = np.sort(uvectors, axis=3)
 
+
+    ### WRITE OUTPUT ###########################################################
     # Save Coefficients and UVectors
     img = nib.Nifti1Image(coeffs, dwi.affine, dwi.header)
     nib.save(img, (out_path + 'coeffs.nii'))
@@ -146,6 +147,7 @@ def main_map(dwi_file, bval_file, bvec_file, mask_file, little_delta, big_delta,
 
         img = nib.Nifti1Image(eigen_values, dwi.affine, dwi.header)
         nib.save(img, (out_path + 'dti_eigen_values.nii'))
+    ############################################################################
 
 def fit_map(data, qvectors, mask, diffusion_time, uvectors, eigen_vectors,
             order = 6, lam = 0.2):
@@ -250,18 +252,6 @@ def calc_b(order, num_coeffs):
                             index += 1
 
     return B
-
-def b_to_q(bvals, bvecs, diffusion_time):
-    # q = 1/(2*pi) * gyromagnetic_ratio * sqrt(bvals/diffuson_time)
-
-    qvals = 1 / (2 * np.pi) * np.sqrt(bvals / diffusion_time)
-
-    # Scale vectors by q-value
-    qvectors = np.zeros(bvecs.shape)
-    for i in range(bvals.shape[0]):
-        qvectors[i,:] = bvecs[i,:] * qvals[i]
-
-    return qvectors
 
 def create_regularization_matrix(order, num_coeffs, uvector, reg_matrix_coeffs):
     R = np.zeros((num_coeffs, num_coeffs))

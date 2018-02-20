@@ -29,6 +29,35 @@ def factn(number, n):
 
     return fact_n
 
+def read_direction_file(path_to_file):
+
+    file = open(path_to_file, 'r')
+    lines = file.readlines()
+
+    directions = []
+    for i in range(len(lines)):
+        directions.append(lines[i].split())
+
+    for line in range(len(directions)):
+        for number in range(len(directions[line])):
+            directions[line][number] = float(directions[line][number])
+
+    return directions
+
+def b_to_q(bvals, bvecs, big_delta, little_delta):
+    # q = 1/(2*pi) * gyromagnetic_ratio * sqrt(bvals/diffuson_time)
+
+    diffusion_time = big_delta - little_delta / 3.0
+
+    qvals = 1 / (2 * np.pi) * np.sqrt(bvals / diffusion_time)
+
+    # Scale vectors by q-value
+    qvectors = np.zeros(bvecs.shape)
+    for i in range(bvals.shape[0]):
+        qvectors[i,:] = bvecs[i,:] * qvals[i]
+
+    return qvectors
+
 def check_diffusion_input(dwi_path, bval_path, bvec_path, mask_path):
     try:
         dwi = nib.load(dwi_path)

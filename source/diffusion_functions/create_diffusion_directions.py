@@ -6,7 +6,8 @@ import Tkinter
 import tkFileDialog
 
 
-def sample_spheres(directions=[32,48,64], alpha=0.5, tolerance=10e-10, iterations=10000):
+def sample_spheres(directions=[32,48,64], alpha=0.5, tolerance=10e-10,
+				   iterations=10000, verbose=False):
 	"""
 	Create an evenly distributed sampling around a sphere based on
 	electrostatic repulsion. Attempts to create even sampling for
@@ -114,7 +115,8 @@ def sample_spheres(directions=[32,48,64], alpha=0.5, tolerance=10e-10, iteration
 				shells[i][j,:] /= np.linalg.norm(shells[i][j,:])
 				direction_index += 1
 
-		print "Iteration: " + str(iteration) + ", Cost Function: " + str(delta_cost_function)
+		if verbose:
+			print "Iteration: " + str(iteration) + ", Cost Function: " + str(delta_cost_function)
 		iteration += 1
 
 	return shells
