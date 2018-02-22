@@ -58,6 +58,28 @@ def b_to_q(bvals, bvecs, big_delta, little_delta):
 
     return qvectors
 
+def select_largest_shell(dwi,bval,bvec,tolerance=30):
+    largest_bval = np.amax(bval)
+
+    count = 0
+    for i in range(len(bval)):
+        if np.abs(bval[i]-largest_bval) <= tolerance:
+            count += 1
+
+    dwi_large = np.zeros((dwi.shape[0], dwi.shape[1], dwi.shape[2], count))
+    bval_large = np.zeros((count))
+    bvec_large = np.zeros((count,3))
+
+    index = 0
+    for i in range(dwi.shape[3]):
+        if np.abs(bval[i]-largest_bval) <= 30:
+            dwi_large[:,:,:,index] = dwi[:,:,:,i]
+            bval_large[index] = bval[i]
+            bvec_large[index,:] = bvec[i,:]
+            index += 1
+
+    return dwi_large, bval_large, bvec_large
+
 def check_diffusion_input(dwi_path, bval_path, bvec_path, mask_path):
     try:
         dwi = nib.load(dwi_path)

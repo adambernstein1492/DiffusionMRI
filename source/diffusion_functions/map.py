@@ -3,10 +3,12 @@ import nibabel as nib
 import scipy.special
 import util
 import dti
+import spherical_harmonics as SH
+import os
 
 def main_map(dwi_file, bval_file, bvec_file, mask_file, little_delta, big_delta,
              out_path, order=6, b_thresh_dti=2100, calc_rtps=True, calc_ng=True,
-             calc_pa=True, calc_dki=False, return_dti=False):
+             calc_pa=True, calc_dki=False, return_dti=False, return_glyphs=True):
 
     # Load in Data
     dwi, mask, bvals, bvecs = util.load_diffusion_data(dwi_file, bval_file, bvec_file, mask_file)
@@ -15,12 +17,12 @@ def main_map(dwi_file, bval_file, bvec_file, mask_file, little_delta, big_delta,
 
     # Fit DTI
     if return_dti:
-        eigen_values, eigen_vectors = dti.main_dti(dwi_file, bval_file, bvec_file,
-                            mask_file, (out_path + "DTI_"), b_thresh_dti, True, True, True, True, True, True)
+        eigen_values, eigen_vectors, tensor = dti.main_dti(dwi_file, bval_file, bvec_file,
+                            mask_file, (out_path + "DTI_"), b_thresh_dti, True, True, True, True, True, True, True, True)
         eigen_values[eigen_values <= 0] = 1e-5
     else:
-        eigen_values, eigen_vectors = dti.main_dti(dwi_file, bval_file, bvec_file,
-                            mask_file, "", b_thresh_dti, False, False, False, False, False, False)
+        eigen_values, eigen_vectors, tensor = dti.main_dti(dwi_file, bval_file, bvec_file,
+                            mask_file, "", b_thresh_dti, False, False, False, False, False, False, False, False)
         eigen_values[eigen_values <= 0] = 1e-5
 
     # Determine Diffusion Time
@@ -60,17 +62,17 @@ def main_map(dwi_file, bval_file, bvec_file, mask_file, little_delta, big_delta,
         img = nib.Nifti1Image(pa_dti, dwi.affine, dwi.header)
         nib.save(img, (out_path + 'PA_DTI.nii'))
 
-        img = nib.Nifti1Image(pa_dti_theta, dwi.affine, dwi.header)
-        nib.save(img, (out_path + 'PA_DTI_theta.nii'))
+        #img = nib.Nifti1Image(pa_dti_theta, dwi.affine, dwi.header)
+        #nib.save(img, (out_path + 'PA_DTI_theta.nii'))
 
         img = nib.Nifti1Image(pa, dwi.affine, dwi.header)
         nib.save(img, (out_path + 'PA.nii'))
 
-        img = nib.Nifti1Image(pa_theta, dwi.affine, dwi.header)
-        nib.save(img, (out_path + 'PA_theta.nii'))
+        #img = nib.Nifti1Image(pa_theta, dwi.affine, dwi.header)
+        #nib.save(img, (out_path + 'PA_theta.nii'))
 
-        img = nib.Nifti1Image(pa_jsd, dwi.affine, dwi.header)
-        nib.save(img, (out_path + 'PA_JSD.nii'))
+        #img = nib.Nifti1Image(pa_jsd, dwi.affine, dwi.header)
+        #nib.save(img, (out_path + 'PA_JSD.nii'))
 
     if calc_ng:
         print "Calculating Non-Gaussianity"
@@ -97,8 +99,8 @@ def main_map(dwi_file, bval_file, bvec_file, mask_file, little_delta, big_delta,
         img = nib.Nifti1Image(ng_perp[:,:,:,0], dwi.affine, dwi.header)
         nib.save(img, (out_path + 'RadialNG_3.nii'))
 
-        img = nib.Nifti1Image(ng_jsd, dwi.affine, dwi.header)
-        nib.save(img, (out_path + 'NG_JSD.nii'))
+        #img = nib.Nifti1Image(ng_jsd, dwi.affine, dwi.header)
+        #nib.save(img, (out_path + 'NG_JSD.nii'))
 
     if calc_rtps:
         print "Calculating Return origin, axis, and plane probabilities"
@@ -147,6 +149,15 @@ def main_map(dwi_file, bval_file, bvec_file, mask_file, little_delta, big_delta,
 
         img = nib.Nifti1Image(eigen_values, dwi.affine, dwi.header)
         nib.save(img, (out_path + 'dti_eigen_values.nii'))
+
+        img = nib.Nifti1Image(tensor, dwi.affine, dwi.header)
+        nib.save(img, (out_path + 'DiffusionTensor.nii'))
+
+    if return_glyphs:
+        MAP_Glyphs = fit_map_glyphs(coeffs, uvectors, eigen_vectors, order, mask, moment=2)
+
+        img = nib.Nifti1Image(MAP_Glyphs, dwi.affine, dwi.header)
+        nib.save(img, (outpath + 'MAP_ODFs.nii'))
     ############################################################################
 
 def fit_map(data, qvectors, mask, diffusion_time, uvectors, eigen_vectors,
@@ -971,3 +982,63 @@ def calc_dki_params(tensor, d, D):
     fa_k = np.sqrt(1.5 * ((k[:,:,:,0]-mk)**2 + (k[:,:,:,1]-mk)**2 + (k[:,:,:,2]-mk)**2) / (k[:,:,:,0]**2 + k[:,:,:,1]**2 + k[:,:,:,2]**2))
 
     return mk, k_par, k_perp, fa_k
+
+def fit_map_glyphs(coeffs, uvectors, eigen_vectors, order, mask, moment=2):
+    # Get Sample directions
+    file_location = os.path.dirname(__file__)
+    sample_dirs = np.array(util.read_direction_file(file_location + "../direction_files_qsi/642vertices.txt"))
+
+    # Used for Progress update
+    count = 0.0
+    percent_prev = 0.0
+    num_vox = np.sum(mask)
+
+    odf = np.zeros((coeffs.shape[0], coeffs.shape[1], coeffs.shape[2], sample_dirs.shape[0]))
+    for x in range(odf.shape[0]):
+        for y in range(odf.shape[1]):
+            for z in range(odf.shape[2]):
+                if mask[x,y,z] != 0:
+
+                    om_x = sample_dirs[:,0] / uvectors[x,y,z,0]
+                    om_y = sample_dirs[:,1] / uvectors[x,y,z,1]
+                    om_z = sample_dirs[:,2] / uvectors[x,y,z,2]
+
+                    mag_A = uvectors[x,y,z,0] ** 2 * uvectors[x,y,z,1] ** 2 * uvectors[x,y,z,2] ** 2
+
+                    rho = 1.0 / np.sqrt(om_x ** 2 + om_y ** 2 + om_z **2)
+
+                    alpha = 2 * rho * om_x
+                    beta =  2 * rho * om_y
+                    gamma = 2 * rho * om_z
+
+                    scale_factor = rho ** (moment + 3) / np.sqrt(2**(2-moment) * np.pi**3 * mag_A)
+
+                    index = 0
+                    for N in range(0,order+1,2):
+                        for n1 in range(0,order+1):
+                            for n2 in range(0,order+1):
+                                for n3 in range(0,order+1):
+                                    if (n1+n2+n3) == N:
+                                        C = np.zeros((sample_dirs.shape[0]))
+
+                                        for i in range(0,n1+1,2):
+                                            for j in range(0,n2+1,2):
+                                                for k in range(0,n3+1,2):
+                                                    C += (-1)**((i+j+k)/2.0) * scipy.special.gamma((3+moment+N-i-j-k) / 2.0) * (alpha**(n1-i) * beta**(n2-j) * gamma**(n3-k)) / (util.factn(n1-i,1) * util.factn(n2-j,1) * util.factn(n3-k,1) * util.factn(i,2) * util.factn(j,2) * util.factn(k,2))
+
+                                        odf[x,y,z,:] += coeffs[x,y,z,index] * np.sqrt(util.factn(n1,1) * util.factn(n2,1) * util.factn(n3,1)) * C
+                                        index += 1
+
+                    odf[x,y,z,:] *= scale_factor
+
+                    # Update Progress
+                    count += 1.0
+                    percent = np.around((count / num_vox * 100), decimals = 1)
+                    if(percent != percent_prev):
+                        util.progress_update("Calculating ODFs: ", percent)
+                        percent_prev = percent
+
+    # Fit ODF to SH for Display purposes
+    SH_coeffs = SH.fit_to_SH_MAP(odf, sample_dirs, eigen_vectors, mask, order)
+
+    return SH_coeffs

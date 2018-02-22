@@ -3,7 +3,7 @@ import nibabel as nib
 import util
 
 def main_dti(dwi_file, bval_file, bvec_file, mask_file, out_path, b_thresh=2100,
-             calc_FA=True, calc_MD=True, calc_AD=True, calc_RD=True,
+             calc_FA=True, calc_MD=True, calc_AD=True, calc_RD=True, output_tensor=True,
              output_dec_map=True, output_eig_vals=True, output_eig_vecs=True):
 
     # Load in data
@@ -15,7 +15,7 @@ def main_dti(dwi_file, bval_file, bvec_file, mask_file, out_path, b_thresh=2100,
     data, bvals, bvecs = filter_bvals(data, bvals, bvecs, b_thresh)
 
     # Fit the data
-    eigen_values, eigen_vectors = fit_dti(data, bvals, bvecs, mask)
+    eigen_values, eigen_vectors, tensor = fit_dti(data, bvals, bvecs, mask)
 
     # Calculate and Save Scalar Maps
     if calc_FA:
@@ -37,13 +37,6 @@ def main_dti(dwi_file, bval_file, bvec_file, mask_file, out_path, b_thresh=2100,
         if calc_RD:
             RD_img = nib.Nifti1Image(RD, dwi.affine, dwi.header)
             nib.save(RD_img, (out_path + 'RD.nii'))
-        if output_eig_vals:
-            eig_values = nib.Nifti1Image(eigen_values[:,:,:,2], dwi.affine, dwi.header)
-            nib.save(eig_values, (out_path + 'EigenValues_1.nii'))
-            eig_values = nib.Nifti1Image(eigen_values[:,:,:,1], dwi.affine, dwi.header)
-            nib.save(eig_values, (out_path + 'EigenValues_2.nii'))
-            eig_values = nib.Nifti1Image(eigen_values[:,:,:,0], dwi.affine, dwi.header)
-            nib.save(eig_values, (out_path + 'EigenValues_3.nii'))
 
     if output_dec_map:
         dec = np.zeros(eigen_values.shape)
@@ -54,6 +47,14 @@ def main_dti(dwi_file, bval_file, bvec_file, mask_file, out_path, b_thresh=2100,
         dec_map = nib.Nifti1Image(dec, dwi.affine, dwi.header)
         nib.save(dec_map, (out_path + 'DECmap.nii'))
 
+    if output_eig_vals:
+        eig_values = nib.Nifti1Image(eigen_values[:,:,:,2], dwi.affine, dwi.header)
+        nib.save(eig_values, (out_path + 'EigenValues_1.nii'))
+        eig_values = nib.Nifti1Image(eigen_values[:,:,:,1], dwi.affine, dwi.header)
+        nib.save(eig_values, (out_path + 'EigenValues_2.nii'))
+        eig_values = nib.Nifti1Image(eigen_values[:,:,:,0], dwi.affine, dwi.header)
+        nib.save(eig_values, (out_path + 'EigenValues_3.nii'))
+
     if output_eig_vecs:
         eigvec = nib.Nifti1Image(eigen_vectors[:,:,:,:,0], dwi.affine, dwi.header)
         nib.save(eigvec, (out_path + 'EigenVector_3.nii'))
@@ -62,7 +63,11 @@ def main_dti(dwi_file, bval_file, bvec_file, mask_file, out_path, b_thresh=2100,
         eigvec = nib.Nifti1Image(eigen_vectors[:,:,:,:,2], dwi.affine, dwi.header)
         nib.save(eigvec, (out_path + 'EigenVector_1.nii'))
 
-    return eigen_values, eigen_vectors
+    if output_tensor:
+        tensor_img = nib.Nifti1Image(tensor, dwi.affine, dwi.header)
+        nib.save(tensor_img, (out_path + 'DiffusionTensor.nii'))
+
+    return eigen_values, eigen_vectors, tensor
 
 def fit_dti(dwi, bvals, bvecs, mask):
     # Calculate the b-matrix
@@ -81,6 +86,7 @@ def fit_dti(dwi, bvals, bvecs, mask):
     percent_prev = 0.0
     num_vox = np.sum(mask)
 
+    tensor_img = np.zeros((dwi.shape[0], dwi.shape[1], dwi.shape[2], 6))
     for i in range(dwi.shape[0]):
         for j in range(dwi.shape[1]):
             for k in range(dwi.shape[2]):
@@ -96,6 +102,8 @@ def fit_dti(dwi, bvals, bvecs, mask):
                                        [x[4], x[2], x[6]],
                                        [x[5], x[6], x[3]]])
 
+                    tensor_img[i,j,k,:] = [x[1], x[2] , x[3], x[4], x[5], x[6]]
+
                     # Diagonalize the Tensor
                     eigen_values[i,j,k,:], eigen_vectors[i,j,k,:,:] = np.linalg.eig(tensor)
 
@@ -104,7 +112,7 @@ def fit_dti(dwi, bvals, bvecs, mask):
 
 
     # Return the Eigenvalues and Eigenvectors
-    return eigen_values, eigen_vectors
+    return eigen_values, eigen_vectors, tensor_img
 
 def calc_fa(eigen_values):
     numerator = (np.sqrt(1/2.0) * np.sqrt((eigen_values[:,:,:,0] - eigen_values[:,:,:,1]) ** 2 +

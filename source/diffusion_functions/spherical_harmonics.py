@@ -11,26 +11,16 @@ def eval_spherical_harmonics(directions, order):
 
     index = 0
     for L in range(0,order+1,2):
-        for m in range(-L, 0):
-            scale = np.sqrt((2*L + 1) / (4 * np.pi) * util.factn(L-m, 1) / util.factn(L+m, 1))
-            for i in range(directions.shape[0]):
-                P1, _ = scipy.special.lpmn(m, L, np.cos(dirs_sphere[i,0]))
-                B[i,index] = np.sqrt(2) * np.real(scale * P1[m,L] * np.exp(1j * m * dirs_sphere[i,1]))
-            index += 1
-
-        m = 0
-        scale = np.sqrt((2*L + 1) / (4 * np.pi) * util.factn(L-m, 1) / util.factn(L+m, 1))
-        for i in range(directions.shape[0]):
-            P1, _ = scipy.special.lpmn(m, L, np.cos(dirs_sphere[i,0]))
-            B[i,index] = np.real(scale * P1[m,L] * np.exp(1j * m * dirs_sphere[i,1]))
-        index += 1
-
-        for m in range(1, L+1):
-            scale = np.sqrt(2) * np.sqrt((2*L + 1) / (4 * np.pi) * util.factn(L-m, 1) / util.factn(L+m, 1))
-            for i in range(directions.shape[0]):
-                P1, _ = scipy.special.lpmn(m, L, np.cos(dirs_sphere[i,0]))
-                B[i,index] = np.sqrt(2) * np.imag(scale * P1[m,L] * np.exp(1j * m * dirs_sphere[i,1]))
-            index += 1
+        for m in range(-L,L+1):
+            if m < 0:
+                B[:,index] = np.sqrt(2) * np.real(scipy.special.sph_harm(m, L, dirs_sphere[:,1], dirs_sphere[:,0]))
+                index += 1
+            elif m == 0:
+                B[:,index] = np.real(scipy.special.sph_harm(m, L, dirs_sphere[:,1], dirs_sphere[:,0]))
+                index += 1
+            else:
+                B[:,index] = np.sqrt(2) * np.imag(scipy.special.sph_harm(m, L, dirs_sphere[:,1], dirs_sphere[:,0]))
+                index += 1
 
     return B
 
@@ -64,9 +54,63 @@ def fit_to_SH(signal, directions, mask, order, reg=0.006):
 
     return coeffs
 
+def fit_to_SH_MAP(signal, directions, eigen_vectors, mask, order, reg=0.006):
 
-def eval_SH_basis(coeffs, directions):
-    pass
+    L = calc_normalization_matrix(order)
+
+    # Used for Progress update
+    count = 0.0
+    percent_prev = 0.0
+    num_vox = np.sum(mask)
+
+    # Fit Coeffs for all signal values
+    coeffs = np.zeros((signal.shape[0], signal.shape[1], signal.shape[2], B.shape[1]))
+    for x in range(signal.shape[0]):
+        for y in range(signal.shape[1]):
+            for z in range(signal.shape[2]):
+                 if mask[x,y,z] != 0:
+
+                     directions = np.transpose(np.matmul(eigen_vectors, np.transpose(directions)))
+                     B = eval_spherical_harmonics(directions, order)
+
+                     first_term = np.matmul(np.transpose(B), B) + reg * L
+                     second_term = np.matmul(np.transpose(B), signal[x,y,z,:])
+
+                     coeffs[x,y,z,:] = np.matmul(np.linalg.inv(first_term), second_term)
+
+                     # Update Progress
+                     count += 1.0
+                     percent = np.around((count / num_vox * 100), decimals = 1)
+                     if(percent != percent_prev):
+                         util.progress_update("Fitting Spherical Harmonics: ", percent)
+                         percent_prev = percent
+
+    return coeffs
+
+
+def eval_SH_basis(coeffs, directions, mask, order):
+    B = eval_spherical_harmonics(directions,order)
+    num_harmonics = (order + 1) * (order + 2) / 2
+
+    # Used for Progress update
+    count = 0.0
+    percent_prev = 0.0
+    num_vox = np.sum(mask)
+    values = np.zeros((coeffs.shape[0], coeffs.shape[1], coeffs.shape[2], directions.shape[0]))
+    for x in range(coeffs.shape[0]):
+        for y in range(coeffs.shape[1]):
+            for z in range(coeffs.shape[2]):
+                if mask[x,y,z] != 0:
+                    values[x,y,z,:] = np.matmul(B, coeffs[x,y,z,:])
+
+                    # Update Progress
+                    count += 1.0
+                    percent = np.around((count / num_vox * 100), decimals = 1)
+                    if(percent != percent_prev):
+                        util.progress_update("Evaluating SH at Sample Points: ", percent)
+                        percent_prev = percent
+
+    return values
 
 def calc_normalization_matrix(order):
 

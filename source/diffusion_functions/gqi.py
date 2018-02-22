@@ -5,7 +5,7 @@ import util
 import os
 
 def main_gqi(dwi_file, bval_file, bvec_file, mask_file, out_path,
-             order=6, length_scale=1.25, calc_QA=True, calc_GFA=True,
+             order=8, length_scale=1.25, calc_QA=True, calc_GFA=True,
              save_glyphs=True):
 
     # Load in data
@@ -15,20 +15,20 @@ def main_gqi(dwi_file, bval_file, bvec_file, mask_file, out_path,
 
     # Find Directions to calculate SDF at
     file_location = os.path.dirname(__file__)
-    sample_dirs = np.array(util.read_direction_file(file_location + "../direction_files_qsi/300_dirs.txt"))
+    sample_dirs = np.array(util.read_direction_file(file_location + "../direction_files_qsi/642vertices.txt"))
 
     # Calculate SDF
     sdfs = calc_sdf(data, bvals, bvecs, mask, sample_dirs)
 
-    sdfs_img = nib.Nifti1Image(sdfs, dwi.affine, dwi.header)
-    nib.save(sdfs_img, 'SDFS.nii')
+    #sdfs_img = nib.Nifti1Image(sdfs, dwi.affine, dwi.header)
+    #nib.save(sdfs_img, out_path + 'SDFS.nii')
 
     # Fit SDF using Spherical Harmonics
     if save_glyphs:
         coeffs = SH.fit_to_SH(sdfs, sample_dirs, mask, order)
 
         coeffs_img = nib.Nifti1Image(coeffs, dwi.affine, dwi.header)
-        nib.save(coeffs_img, 'GQI_Glyphs.nii')
+        nib.save(coeffs_img, out_path + 'GQI_Glyphs.nii')
 
     # Calulate and Save Quantitative Anisotropy Image and GFA
     if calc_QA:
@@ -70,19 +70,19 @@ def calc_sdf(dwi, bvals, bvecs, mask, sample_dirs):
                         util.progress_update("Calculating SDFs: ", percent)
                         percent_prev = percent
 
-    sdfs /= np.amax(sdfs)
-
     for x in range(sdfs.shape[0]):
         for y in range(sdfs.shape[1]):
             for z in range(sdfs.shape[2]):
                 if mask[x,y,z] != 0:
                     sdfs[x,y,z,:] = sdfs[x,y,z,:] - np.amin(sdfs[x,y,z,:])
 
+    sdfs /= np.amax(sdfs)
+
     return sdfs
 
 
 def proj_sdf_bvec(sample_dirs, bvals, bvecs):
-    length_scale = np.sqrt(bvals * 0.018) #0.015 is ~6D for free water at 37 C
+    length_scale = np.sqrt(bvals * 0.01506) #0.015 is ~6D for free water at 37 C
 
     # Scale b-vectors by length scale and diffusion weighting
     b_vector = np.zeros(bvecs.shape)
