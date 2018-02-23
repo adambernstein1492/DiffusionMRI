@@ -15,7 +15,7 @@ def main_gqi(dwi_file, bval_file, bvec_file, mask_file, out_path,
 
     # Find Directions to calculate SDF at
     file_location = os.path.dirname(__file__)
-    sample_dirs = np.array(util.read_direction_file(file_location + "../direction_files_qsi/642vertices.txt"))
+    sample_dirs = np.array(util.read_direction_file(file_location + "/../direction_files_qsi/642vertices.txt"))
 
     # Calculate SDF
     sdfs = calc_sdf(data, bvals, bvecs, mask, sample_dirs)

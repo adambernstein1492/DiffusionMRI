@@ -40,8 +40,8 @@ def fit_to_SH(signal, directions, mask, order, reg=0.006):
         for y in range(signal.shape[1]):
             for z in range(signal.shape[2]):
                  if mask[x,y,z] != 0:
-                     first_term = np.matmul(np.transpose(B), B) + reg * L
-                     second_term = np.matmul(np.transpose(B), signal[x,y,z,:])
+                     first_term = np.matmul(B.T, B) + reg * L
+                     second_term = np.matmul(B.T, signal[x,y,z,:])
 
                      coeffs[x,y,z,:] = np.matmul(np.linalg.inv(first_term), second_term)
 
@@ -57,6 +57,8 @@ def fit_to_SH(signal, directions, mask, order, reg=0.006):
 def fit_to_SH_MAP(signal, directions, eigen_vectors, mask, order, reg=0.006):
 
     L = calc_normalization_matrix(order)
+    B = eval_spherical_harmonics(directions, order)
+    num_harmonics = (order + 1) * (order + 2) / 2
 
     # Used for Progress update
     count = 0.0
@@ -64,17 +66,19 @@ def fit_to_SH_MAP(signal, directions, eigen_vectors, mask, order, reg=0.006):
     num_vox = np.sum(mask)
 
     # Fit Coeffs for all signal values
-    coeffs = np.zeros((signal.shape[0], signal.shape[1], signal.shape[2], B.shape[1]))
+    coeffs = np.zeros((signal.shape[0], signal.shape[1], signal.shape[2], num_harmonics))
     for x in range(signal.shape[0]):
         for y in range(signal.shape[1]):
             for z in range(signal.shape[2]):
                  if mask[x,y,z] != 0:
 
-                     directions = np.transpose(np.matmul(eigen_vectors, np.transpose(directions)))
-                     B = eval_spherical_harmonics(directions, order)
+                     # Rotate ODFs back into Image Space
+                     #eig_vecs = eigen_vectors[x,y,z,:,:]
+                     #directions = np.matmul(eig_vecs, directions.T).T
 
-                     first_term = np.matmul(np.transpose(B), B) + reg * L
-                     second_term = np.matmul(np.transpose(B), signal[x,y,z,:])
+                     # Fit SH's to rotated signal
+                     first_term = np.matmul(B.T, B) + reg * L
+                     second_term = np.matmul(B.T, signal[x,y,z,:])
 
                      coeffs[x,y,z,:] = np.matmul(np.linalg.inv(first_term), second_term)
 

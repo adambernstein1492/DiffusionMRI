@@ -2,6 +2,7 @@ import numpy as np
 import nibabel as nib
 import util
 
+
 def main_dti(dwi_file, bval_file, bvec_file, mask_file, out_path, b_thresh=2100,
              calc_FA=True, calc_MD=True, calc_AD=True, calc_RD=True, output_tensor=True,
              output_dec_map=True, output_eig_vals=True, output_eig_vecs=True):
@@ -110,6 +111,12 @@ def fit_dti(dwi, bvals, bvecs, mask):
                     # Sort the Eigenvalues
                     eigen_values[i,j,k,:], eigen_vectors[i,j,k,:,:] = sort_eigvals(eigen_values[i,j,k,:], eigen_vectors[i,j,k,:])
 
+                    # Update Progress
+                    count += 1.0
+                    percent = np.around((count / num_vox * 100), decimals = 1)
+                    if(percent != percent_prev):
+                        util.progress_update("Fitting DTI: ", percent)
+                        percent_prev = percent
 
     # Return the Eigenvalues and Eigenvectors
     return eigen_values, eigen_vectors, tensor_img

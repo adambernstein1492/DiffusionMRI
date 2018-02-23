@@ -12,6 +12,8 @@ import diffusion_functions.map as map
 import diffusion_functions.amico as amico
 import diffusion_functions.util as util
 import diffusion_functions.dki as dki
+import diffusion_functions.qbi as qbi
+import diffusion_functions.gqi as gqi
 
 
 ### DEFINE INPUTS ##############################################################
@@ -21,6 +23,8 @@ parser.add_argument("-k", "--dki", type=int, help="Perform Diffusion Kurtosis Im
 parser.add_argument("-n", "--noddi", action="store_true", help="Perform NODDI", default=False)
 parser.add_argument("-a", "--afd", action="store_true", help="Estimate the Apparent Fiber Density", default=False)
 parser.add_argument("-m", "--map", type=float, help="Estimate the Mean Apparent Propagator", nargs=3, default=0, metavar=("d", "D", "b_value_cutoff"))
+parser.add_argument("-g", "--gqi", action="store_true", help="Perform Generalized q-sampling Analysis", default=False)
+parser.add_argument("-q", "--qbi", action="store_true", help="Perform Q-Ball Imaging", default=False)
 parser.add_argument("-b", "--mask", type=str, help="Filepath to a mask image to be used. Default=None)", default="None", metavar=('mask'))
 parser.add_argument("Image", type=str, help="Diffusion Weighted MRI filepath")
 parser.add_argument("bval", type=str, help="b-value filepath")
@@ -120,7 +124,7 @@ if args.dki != 0:
 
 
 ### MAP ########################################################################
-if(args.map != 0):
+if args.map != 0 :
     print "Performing MAP Analysis:"
     map_outpath = outpath + "MAP/"
     os.mkdir(map_outpath)
@@ -133,9 +137,31 @@ if(args.map != 0):
 
 
 
+### GQI ########################################################################
+if args.gqi:
+    print "Performing Generalized Q-Sampling Analysis:"
+    gqi_outpath = outpath + "GQI/"
+    os.mkdir(gqi_outpath)
+
+    gqi.main_gqi(args.Image, args.bval, args.bvec, args.mask, gqi_outpath, order=6)
+################################################################################
+
+
+
+### QBI ########################################################################
+if args.qbi:
+    print "Performing Q-Ball Imaing Analysis:"
+    qbi_outpath = outpath + "QBI/"
+    os.mkdir(qbi_outpath)
+
+    qbi.main_qbi(args.Image, args.bval, args.bvec, args.mask, qbi_outpath, order=6)
+################################################################################
+
+
+
 ### AFD ########################################################################
 if args.afd:
-    print "Performing AFD Analysis"
+    print "Performing AFD Analysis:"
 
     afd_outpath = outpath + "AFD/"
     os.mkdir(afd_outpath)
@@ -158,7 +184,7 @@ if args.afd:
 
 ### NODDI ######################################################################
 if args.noddi:
-    print "Performing NODDI Analysis"
+    print "Performing NODDI Analysis:"
     os.makedirs(outpath + "NODDI/Study01/Subject01")
 
     shutil.copyfile(args.Image, (outpath + "NODDI/Study01/Subject01/dwi.nii"))

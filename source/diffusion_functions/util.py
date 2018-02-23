@@ -9,6 +9,7 @@ def load_diffusion_data(dwi_file, bvals_file, bvecs_file, mask_file):
     dwi = nib.Nifti1Image(data, dwi.affine, dwi.header)
     mask = nib.load(mask_file)
     bvals,bvecs = dipy.io.read_bvals_bvecs(bvals_file, bvecs_file)
+    bvecs[:,1] *= -1
 
     return dwi,mask,bvals,bvecs
 

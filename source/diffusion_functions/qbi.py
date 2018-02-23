@@ -80,7 +80,7 @@ def FRT(sig_coeffs, P, mask):
 def min_max_normalize(coeffs, mask, order):
     # Sample ODF at given points
     file_location = os.path.dirname(__file__)
-    sample_dirs = np.array(util.read_direction_file(file_location + "../direction_files_qsi/642vertices.txt"))
+    sample_dirs = np.array(util.read_direction_file(file_location + "/../direction_files_qsi/642vertices.txt"))
 
     odf = SH.eval_SH_basis(coeffs, sample_dirs, mask, order)
 
@@ -100,7 +100,7 @@ def min_max_normalize(coeffs, mask, order):
 def calc_gfa(QB_coeffs, mask, order):
     # Sample ODF at given points
     file_location = os.path.dirname(__file__)
-    sample_dirs = np.array(util.read_direction_file(file_location + "../direction_files_qsi/642vertices.txt"))
+    sample_dirs = np.array(util.read_direction_file(file_location + "/../direction_files_qsi/642vertices.txt"))
 
     ODF = SH.eval_SH_basis(QB_coeffs, sample_dirs, mask, order)
 
