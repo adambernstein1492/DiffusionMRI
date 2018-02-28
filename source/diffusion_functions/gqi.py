@@ -27,23 +27,23 @@ def main_gqi(dwi_file, bval_file, bvec_file, mask_file, out_path,
     if save_glyphs:
         coeffs = SH.fit_to_SH(sdfs, sample_dirs, mask, order)
 
-        coeffs_img = nib.Nifti1Image(coeffs, dwi.affine, dwi.header)
-        nib.save(coeffs_img, out_path + 'GQI_Glyphs.nii')
+        img = nib.Nifti1Image(coeffs, dwi.affine, dwi.header)
+        nib.save(img, out_path + 'GQI_Glyphs.nii')
 
     # Calulate and Save Quantitative Anisotropy Image and GFA
     if calc_QA:
         print "Calculating QA"
         qa = calc_qa(sdfs)
 
-        qa_img = nib.Nifti1Image(qa, dwi.affine, dwi.header)
-        nib.save(qa_img, (out_path + 'QA.nii'))
+        img = nib.Nifti1Image(qa, dwi.affine, dwi.header)
+        nib.save(img, (out_path + 'QA.nii'))
 
     if calc_GFA:
         print "Calculating GFA"
         gfa = calc_gfa(sdfs)
 
         gfa_img = nib.Nifti1Image(gfa, dwi.affine, dwi.header)
-        nib.save(gfa_img, (out_path + 'GFA_GQI.nii'))
+        nib.save(img, (out_path + 'GFA_GQI.nii'))
 
 
 def calc_sdf(dwi, bvals, bvecs, mask, sample_dirs):

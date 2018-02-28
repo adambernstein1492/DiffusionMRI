@@ -157,7 +157,7 @@ def main_map(dwi_file, bval_file, bvec_file, mask_file, little_delta, big_delta,
         MAP_Glyphs = fit_map_glyphs(coeffs, uvectors, eigen_vectors, order, mask, moment=2)
 
         img = nib.Nifti1Image(MAP_Glyphs, dwi.affine, dwi.header)
-        nib.save(img, (outpath + 'MAP_ODFs.nii'))
+        nib.save(img, (out_path + 'MAP_ODFs.nii'))
     ############################################################################
 
 def fit_map(data, qvectors, mask, diffusion_time, uvectors, eigen_vectors,
@@ -986,7 +986,7 @@ def calc_dki_params(tensor, d, D):
 def fit_map_glyphs(coeffs, uvectors, eigen_vectors, order, mask, moment=2):
     # Get Sample directions
     file_location = os.path.dirname(__file__)
-    sample_dirs = np.array(util.read_direction_file(file_location + "../direction_files_qsi/642vertices.txt"))
+    sample_dirs = np.array(util.read_direction_file(file_location + "/../direction_files_qsi/642vertices.txt"))
 
     # Used for Progress update
     count = 0.0

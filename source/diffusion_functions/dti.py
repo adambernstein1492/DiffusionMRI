@@ -23,21 +23,21 @@ def main_dti(dwi_file, bval_file, bvec_file, mask_file, out_path, b_thresh=2100,
         FA = calc_fa(eigen_values)
 
         # Save
-        FA_img = nib.Nifti1Image(FA, dwi.affine, dwi.header)
-        nib.save(FA_img, (out_path + 'FA.nii'))
+        img = nib.Nifti1Image(FA, dwi.affine, dwi.header)
+        nib.save(img, (out_path + 'FA.nii'))
 
     if calc_MD or calc_AD or calc_RD:
         MD, AD, RD = calc_diffusivities(eigen_values)
         # Save
         if calc_MD:
-            MD_img = nib.Nifti1Image(MD, dwi.affine, dwi.header)
-            nib.save(MD_img, (out_path + 'MD.nii'))
+            img = nib.Nifti1Image(MD, dwi.affine, dwi.header)
+            nib.save(img, (out_path + 'MD.nii'))
         if calc_AD:
-            AD_img = nib.Nifti1Image(AD, dwi.affine, dwi.header)
-            nib.save(AD_img, (out_path + 'AD.nii'))
+            img = nib.Nifti1Image(AD, dwi.affine, dwi.header)
+            nib.save(img, (out_path + 'AD.nii'))
         if calc_RD:
-            RD_img = nib.Nifti1Image(RD, dwi.affine, dwi.header)
-            nib.save(RD_img, (out_path + 'RD.nii'))
+            img = nib.Nifti1Image(RD, dwi.affine, dwi.header)
+            nib.save(img, (out_path + 'RD.nii'))
 
     if output_dec_map:
         dec = np.zeros(eigen_values.shape)
@@ -45,28 +45,28 @@ def main_dti(dwi_file, bval_file, bvec_file, mask_file, out_path, b_thresh=2100,
         dec[:,:,:,1] = eigen_vectors[:,:,:,1,2] * FA
         dec[:,:,:,2] = eigen_vectors[:,:,:,2,2] * FA
 
-        dec_map = nib.Nifti1Image(dec, dwi.affine, dwi.header)
-        nib.save(dec_map, (out_path + 'DECmap.nii'))
+        img = nib.Nifti1Image(dec, dwi.affine, dwi.header)
+        nib.save(img, (out_path + 'DECmap.nii'))
 
     if output_eig_vals:
-        eig_values = nib.Nifti1Image(eigen_values[:,:,:,2], dwi.affine, dwi.header)
-        nib.save(eig_values, (out_path + 'EigenValues_1.nii'))
-        eig_values = nib.Nifti1Image(eigen_values[:,:,:,1], dwi.affine, dwi.header)
-        nib.save(eig_values, (out_path + 'EigenValues_2.nii'))
-        eig_values = nib.Nifti1Image(eigen_values[:,:,:,0], dwi.affine, dwi.header)
-        nib.save(eig_values, (out_path + 'EigenValues_3.nii'))
+        img = nib.Nifti1Image(eigen_values[:,:,:,2], dwi.affine, dwi.header)
+        nib.save(img, (out_path + 'EigenValues_1.nii'))
+        img = nib.Nifti1Image(eigen_values[:,:,:,1], dwi.affine, dwi.header)
+        nib.save(img, (out_path + 'EigenValues_2.nii'))
+        img = nib.Nifti1Image(eigen_values[:,:,:,0], dwi.affine, dwi.header)
+        nib.save(img, (out_path + 'EigenValues_3.nii'))
 
     if output_eig_vecs:
-        eigvec = nib.Nifti1Image(eigen_vectors[:,:,:,:,0], dwi.affine, dwi.header)
-        nib.save(eigvec, (out_path + 'EigenVector_3.nii'))
-        eigvec = nib.Nifti1Image(eigen_vectors[:,:,:,:,1], dwi.affine, dwi.header)
-        nib.save(eigvec, (out_path + 'EigenVector_2.nii'))
-        eigvec = nib.Nifti1Image(eigen_vectors[:,:,:,:,2], dwi.affine, dwi.header)
-        nib.save(eigvec, (out_path + 'EigenVector_1.nii'))
+        img = nib.Nifti1Image(eigen_vectors[:,:,:,:,0], dwi.affine, dwi.header)
+        nib.save(img, (out_path + 'EigenVector_3.nii'))
+        img = nib.Nifti1Image(eigen_vectors[:,:,:,:,1], dwi.affine, dwi.header)
+        nib.save(img, (out_path + 'EigenVector_2.nii'))
+        img = nib.Nifti1Image(eigen_vectors[:,:,:,:,2], dwi.affine, dwi.header)
+        nib.save(img, (out_path + 'EigenVector_1.nii'))
 
     if output_tensor:
-        tensor_img = nib.Nifti1Image(tensor, dwi.affine, dwi.header)
-        nib.save(tensor_img, (out_path + 'DiffusionTensor.nii'))
+        img = nib.Nifti1Image(tensor, dwi.affine, dwi.header)
+        nib.save(img, (out_path + 'DiffusionTensor.nii'))
 
     return eigen_values, eigen_vectors, tensor
 
@@ -95,15 +95,15 @@ def fit_dti(dwi, bvals, bvecs, mask):
                     W = np.diag(dwi[i,j,k,:]) ** 2
 
                     # Fit Ax = B  (b_matrix' * W * b_matrix * x = b_matrix' * W * signal)
-                    x = (np.linalg.lstsq(np.dot(np.dot(b_matrix.T, W), b_matrix),
-                                         np.dot(np.dot(b_matrix.T, W), dwi_log[i,j,k,:]))[0])
+                    x = (np.linalg.lstsq(np.matmul(np.matmul(b_matrix.T, W), b_matrix),
+                                         np.matmul(np.matmul(b_matrix.T, W), dwi_log[i,j,k,:]))[0])
 
                     # Organize the Tensor
                     tensor = np.array([[x[1], x[4], x[5]],
                                        [x[4], x[2], x[6]],
                                        [x[5], x[6], x[3]]])
 
-                    tensor_img[i,j,k,:] = [x[1], x[2] , x[3], x[4], x[5], x[6]]
+                    tensor_img[i,j,k,:] = [x[1], x[2], x[3], x[4], x[5], x[6]]
 
                     # Diagonalize the Tensor
                     eigen_values[i,j,k,:], eigen_vectors[i,j,k,:,:] = np.linalg.eig(tensor)

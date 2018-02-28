@@ -123,20 +123,6 @@ if args.dki != 0:
 
 
 
-### MAP ########################################################################
-if args.map != 0 :
-    print "Performing MAP Analysis:"
-    map_outpath = outpath + "MAP/"
-    os.mkdir(map_outpath)
-
-    d = args.map[0]
-    D = args.map[1]
-
-    map.main_map(args.Image, args.bval, args.bvec, args.mask, d, D, map_outpath, order=6, b_thresh_dti=int(args.map[2]))
-################################################################################
-
-
-
 ### GQI ########################################################################
 if args.gqi:
     print "Performing Generalized Q-Sampling Analysis:"
@@ -155,6 +141,20 @@ if args.qbi:
     os.mkdir(qbi_outpath)
 
     qbi.main_qbi(args.Image, args.bval, args.bvec, args.mask, qbi_outpath, order=6)
+################################################################################
+
+
+
+### MAP ########################################################################
+if args.map != 0 :
+    print "Performing MAP Analysis:"
+    map_outpath = outpath + "MAP/"
+    os.mkdir(map_outpath)
+
+    d = args.map[0]
+    D = args.map[1]
+
+    map.main_map(args.Image, args.bval, args.bvec, args.mask, d, D, map_outpath, order=6, b_thresh_dti=int(args.map[2]))
 ################################################################################
 
 

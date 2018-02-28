@@ -29,15 +29,15 @@ def main_qbi(dwi_file, bval_file, bvec_file, mask_file, out_path,
 
     # Save Outputs
     if save_glyphs:
-        coeffs_img = nib.Nifti1Image(QB_coeffs, dwi.affine, dwi.header)
-        nib.save(coeffs_img, out_path + 'QBI_Glyphs.nii')
+        img = nib.Nifti1Image(QB_coeffs, dwi.affine, dwi.header)
+        nib.save(img, out_path + 'QBI_Glyphs.nii')
 
     if calc_GFA:
         print "Calculating GFA"
         gfa = calc_gfa(QB_coeffs, mask, order)
 
-        gfa_img = nib.Nifti1Image(gfa, dwi.affine, dwi.header)
-        nib.save(coeffs_img, out_path + 'QBI_GFA.nii')
+        img = nib.Nifti1Image(gfa, dwi.affine, dwi.header)
+        nib.save(img, out_path + 'QBI_GFA.nii')
 
 def calc_P_matrix(order):
     num_harmonics = (order + 1) * (order + 2) / 2

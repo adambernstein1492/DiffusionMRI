@@ -26,32 +26,32 @@ def main_dki(dwi_file, bval_file, bvec_file, mask_file, out_path, b_thresh=2100,
         MD, AD, RD = dti.calc_diffusivities(eigen_values)
 
         # Save
-        FA_img = nib.Nifti1Image(FA, dwi.affine, dwi.header)
-        nib.save(FA_img, (out_path + 'FA_DKI.nii'))
+        img = nib.Nifti1Image(FA, dwi.affine, dwi.header)
+        nib.save(img, (out_path + 'FA_DKI.nii'))
 
-        MD_img = nib.Nifti1Image(MD, dwi.affine, dwi.header)
-        nib.save(MD_img, (out_path + 'MD_DKI.nii'))
+        img = nib.Nifti1Image(MD, dwi.affine, dwi.header)
+        nib.save(img, (out_path + 'MD_DKI.nii'))
 
-        AD_img = nib.Nifti1Image(AD, dwi.affine, dwi.header)
-        nib.save(AD_img, (out_path + 'AD_DKI.nii'))
+        img = nib.Nifti1Image(AD, dwi.affine, dwi.header)
+        nib.save(img, (out_path + 'AD_DKI.nii'))
 
-        RD_img = nib.Nifti1Image(RD, dwi.affine, dwi.header)
-        nib.save(RD_img, (out_path + 'RD_DKI.nii'))
+        img = nib.Nifti1Image(RD, dwi.affine, dwi.header)
+        nib.save(img, (out_path + 'RD_DKI.nii'))
 
     if calc_DKI_params:
         FAK, MK, AK, RK = calc_dki_parameters(dki_tensor)
 
-        FAK_img = nib.Nifti1Image(FAK, dwi.affine, dwi.header)
-        nib.save(FAK_img, (out_path + 'KA.nii'))
+        img = nib.Nifti1Image(FAK, dwi.affine, dwi.header)
+        nib.save(img, (out_path + 'KA.nii'))
 
-        MK_img = nib.Nifti1Image(MK, dwi.affine, dwi.header)
-        nib.save(MK_img, (out_path + 'MK.nii'))
+        img = nib.Nifti1Image(MK, dwi.affine, dwi.header)
+        nib.save(img, (out_path + 'MK.nii'))
 
-        AK_img = nib.Nifti1Image(AK, dwi.affine, dwi.header)
-        nib.save(AK_img, (out_path + 'AK.nii'))
+        img = nib.Nifti1Image(AK, dwi.affine, dwi.header)
+        nib.save(img, (out_path + 'AK.nii'))
 
-        RK_img = nib.Nifti1Image(RK, dwi.affine, dwi.header)
-        nib.save(RK_img, (out_path + 'RK.nii'))
+        img = nib.Nifti1Image(RK, dwi.affine, dwi.header)
+        nib.save(img, (out_path + 'RK.nii'))
 
     return dki_tensor, eigen_values, eigen_vectors
 

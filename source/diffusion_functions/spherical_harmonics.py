@@ -12,14 +12,15 @@ def eval_spherical_harmonics(directions, order):
     index = 0
     for L in range(0,order+1,2):
         for m in range(-L,L+1):
+            M = np.absolute(m)
             if m < 0:
-                B[:,index] = np.sqrt(2) * np.real(scipy.special.sph_harm(m, L, dirs_sphere[:,1], dirs_sphere[:,0]))
+                B[:,index] = np.imag(scipy.special.sph_harm(M, L, dirs_sphere[:,1], dirs_sphere[:,0]))
                 index += 1
             elif m == 0:
-                B[:,index] = np.real(scipy.special.sph_harm(m, L, dirs_sphere[:,1], dirs_sphere[:,0]))
+                B[:,index] = np.real(scipy.special.sph_harm(M, L, dirs_sphere[:,1], dirs_sphere[:,0]))
                 index += 1
             else:
-                B[:,index] = np.sqrt(2) * np.imag(scipy.special.sph_harm(m, L, dirs_sphere[:,1], dirs_sphere[:,0]))
+                B[:,index] = np.real(scipy.special.sph_harm(M, L, dirs_sphere[:,1], dirs_sphere[:,0]))
                 index += 1
 
     return B
@@ -57,7 +58,6 @@ def fit_to_SH(signal, directions, mask, order, reg=0.006):
 def fit_to_SH_MAP(signal, directions, eigen_vectors, mask, order, reg=0.006):
 
     L = calc_normalization_matrix(order)
-    B = eval_spherical_harmonics(directions, order)
     num_harmonics = (order + 1) * (order + 2) / 2
 
     # Used for Progress update
@@ -73,8 +73,9 @@ def fit_to_SH_MAP(signal, directions, eigen_vectors, mask, order, reg=0.006):
                  if mask[x,y,z] != 0:
 
                      # Rotate ODFs back into Image Space
-                     #eig_vecs = eigen_vectors[x,y,z,:,:]
-                     #directions = np.matmul(eig_vecs, directions.T).T
+                     eig_vecs = eigen_vectors[x,y,z,:,:]
+                     directions = np.matmul(eig_vecs, directions.T).T
+                     B = eval_spherical_harmonics(directions, order)
 
                      # Fit SH's to rotated signal
                      first_term = np.matmul(B.T, B) + reg * L
