@@ -74,7 +74,7 @@ def fit_to_SH_MAP(signal, directions, eigen_vectors, mask, order, reg=0.006):
 
                      # Rotate ODFs back into Image Space
                      eig_vecs = eigen_vectors[x,y,z,:,:]
-                     directions = np.matmul(eig_vecs, directions.T).T
+                     directions = np.matmul(eig_vecs.T, directions.T).T
                      B = eval_spherical_harmonics(directions, order)
 
                      # Fit SH's to rotated signal

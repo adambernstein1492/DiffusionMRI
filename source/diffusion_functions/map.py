@@ -1041,4 +1041,4 @@ def fit_map_glyphs(coeffs, uvectors, eigen_vectors, order, mask, moment=2):
     # Fit ODF to SH for Display purposes
     SH_coeffs = SH.fit_to_SH_MAP(odf, sample_dirs, eigen_vectors, mask, order)
 
-    return odf
+    return SH_coeffs
