@@ -55,40 +55,18 @@ def fit_to_SH(signal, directions, mask, order, reg=0.006):
 
     return coeffs
 
-def fit_to_SH_MAP(signal, directions, eigen_vectors, mask, order, reg=0.006):
-
+def fit_to_SH_MAP(signal, directions, order, reg=0.006):
+    # Create Normalization Matrix
     L = calc_normalization_matrix(order)
-    num_harmonics = (order + 1) * (order + 2) / 2
 
-    # Used for Progress update
-    count = 0.0
-    percent_prev = 0.0
-    num_vox = np.sum(mask)
+    # Evaluate Spherical Harmonics at each measured point
+    B = eval_spherical_harmonics(directions, order)
 
-    # Fit Coeffs for all signal values
-    coeffs = np.zeros((signal.shape[0], signal.shape[1], signal.shape[2], num_harmonics))
-    for x in range(signal.shape[0]):
-        for y in range(signal.shape[1]):
-            for z in range(signal.shape[2]):
-                 if mask[x,y,z] != 0:
+    # Fit Coeffs
+    first_term = np.matmul(B.T, B) + reg * L
+    second_term = np.matmul(B.T, signal)
 
-                     # Rotate ODFs back into Image Space
-                     eig_vecs = eigen_vectors[x,y,z,:,:]
-                     directions = np.matmul(eig_vecs.T, directions.T).T
-                     B = eval_spherical_harmonics(directions, order)
-
-                     # Fit SH's to rotated signal
-                     first_term = np.matmul(B.T, B) + reg * L
-                     second_term = np.matmul(B.T, signal[x,y,z,:])
-
-                     coeffs[x,y,z,:] = np.matmul(np.linalg.inv(first_term), second_term)
-
-                     # Update Progress
-                     count += 1.0
-                     percent = np.around((count / num_vox * 100), decimals = 1)
-                     if(percent != percent_prev):
-                         util.progress_update("Fitting Spherical Harmonics: ", percent)
-                         percent_prev = percent
+    coeffs = np.matmul(np.linalg.inv(first_term), second_term)
 
     return coeffs
 

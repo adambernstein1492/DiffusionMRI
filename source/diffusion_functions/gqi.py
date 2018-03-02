@@ -74,7 +74,7 @@ def calc_sdf(dwi, bvals, bvecs, mask, sample_dirs):
         for y in range(sdfs.shape[1]):
             for z in range(sdfs.shape[2]):
                 if mask[x,y,z] != 0:
-                    sdfs[x,y,z,:] = sdfs[x,y,z,:] - np.amin(sdfs[x,y,z,:])
+                    sdfs[x,y,z,:] -= np.amin(sdfs[x,y,z,:])
 
     sdfs /= np.amax(sdfs)
 
@@ -98,10 +98,8 @@ def proj_sdf_bvec(sample_dirs, bvals, bvecs):
     return sinc_proj
 
 def calc_qa(sdfs):
-    max_vals = np.amax(sdfs,axis=3)
-    min_vals = np.amin(sdfs,axis=3)
 
-    qfa = (max_vals - min_vals)
+    qfa = np.amax(sdfs,axis=3)
 
     return qfa
 

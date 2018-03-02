@@ -159,6 +159,7 @@ def main_map(dwi_file, bval_file, bvec_file, mask_file, little_delta, big_delta,
         img = nib.Nifti1Image(MAP_Glyphs, dwi.affine, dwi.header)
         nib.save(img, (out_path + 'MAP_ODFs.nii'))
     ############################################################################
+    return coeffs
 
 def fit_map(data, qvectors, mask, diffusion_time, uvectors, eigen_vectors,
             order = 6, lam = 0.2):
@@ -984,6 +985,10 @@ def calc_dki_params(tensor, d, D):
     return mk, k_par, k_perp, fa_k
 
 def fit_map_glyphs(coeffs, uvectors, eigen_vectors, order, mask, moment=2):
+    # Allocate for Output
+    num_harmonics = (order + 1) * (order + 2) / 2
+    SH_coeffs = np.zeros((coeffs.shape[0], coeffs.shape[1], coeffs.shape[2], num_harmonics))
+
     # Get Sample directions
     file_location = os.path.dirname(__file__)
     sample_dirs = np.array(util.read_direction_file(file_location + "/../direction_files_qsi/642vertices.txt"))
@@ -1030,6 +1035,13 @@ def fit_map_glyphs(coeffs, uvectors, eigen_vectors, order, mask, moment=2):
                                         index += 1
 
                     odf[x,y,z,:] *= scale_factor
+                    odf[x,y,z,:] /= np.amax(odf[x,y,z,:])
+
+                    eig_vecs = eigen_vectors[x,y,z,:,:].T
+                    dirs = np.matmul(eig_vecs, sample_dirs.T).T
+
+                    # Fit ODF to SH for display
+                    SH_coeffs[x,y,z,:] = SH.fit_to_SH_MAP(odf[x,y,z,:], dirs, order)
 
                     # Update Progress
                     count += 1.0
@@ -1037,8 +1049,5 @@ def fit_map_glyphs(coeffs, uvectors, eigen_vectors, order, mask, moment=2):
                     if(percent != percent_prev):
                         util.progress_update("Calculating ODFs: ", percent)
                         percent_prev = percent
-
-    # Fit ODF to SH for Display purposes
-    SH_coeffs = SH.fit_to_SH_MAP(odf, sample_dirs, eigen_vectors, mask, order)
 
     return SH_coeffs

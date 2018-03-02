@@ -89,8 +89,7 @@ def min_max_normalize(coeffs, mask, order):
             for z in range(coeffs.shape[2]):
                 if mask[x,y,z] != 0:
                     odf[x,y,z,:] -= np.amin(odf[x,y,z,:])
-
-    odf = odf / np.amax(odf)
+                    odf[x,y,z,:] /= np.amax(odf[x,y,z,:])
 
     # Refit ODF using SH
     QB_coeffs = SH.fit_to_SH(odf, sample_dirs, mask, order)

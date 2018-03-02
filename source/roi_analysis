@@ -4,6 +4,7 @@ import os
 import subprocess
 import argparse
 import shutil
+import nibabel as nib
 import csv
 import scipy.io as sio
 import diffusion_functions.roi_functions as roi_functions
@@ -83,11 +84,15 @@ for subject in subject_dir:
     param_map_copy = []
     parameter_maps = file_finder.scan_for_nifti((subject + 'MicroStructure'), [])
     for param_map in parameter_maps:
-        shutil.copyfile(param_map, (outpath + os.path.split(param_map)[1]))
-        param_map_copy.append(os.path.split(param_map)[1])
-        subprocess.call(["fslreorient2std", (outpath + param_map_copy[-1]), (outpath + "temp_std.nii")])
-        os.remove(outpath + param_map_copy[-1])
-        shutil.move(outpath + "temp_std.nii", outpath + param_map_copy[-1])
+        # Only take 3D Images, not 4D or greater
+        param = nib.load(param_map)
+        
+        if len(param.shape) == 3:
+            shutil.copyfile(param_map, (outpath + os.path.split(param_map)[1]))
+            param_map_copy.append(os.path.split(param_map)[1])
+            subprocess.call(["fslreorient2std", (outpath + param_map_copy[-1]), (outpath + "temp_std.nii")])
+            os.remove(outpath + param_map_copy[-1])
+            shutil.move(outpath + "temp_std.nii", outpath + param_map_copy[-1])
 
     os.chdir(outpath)
     ################################################################################
