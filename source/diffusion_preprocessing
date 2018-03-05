@@ -382,6 +382,7 @@ if args.software == "TORTOISE_DRBUDDI":
 		subprocess.call(["mrconvert", "dwi_proc_DRBUDDI_proc/deformation_FINV.nii.gz", "dwi_proc_DRBUDDI_proc/deformation_FINV.nii"])
 		fm = diffusion_preprocessing_functions.field_map("dwi_proc_DRBUDDI_proc/deformation_FINV.nii", "fm.nii", float(args.field_map))
 
+    diffusion_preprocessing_functions.flip_bvecs_y_TORTOISE("bvec")
     # Clean up extra files
     if args.cleanup:
 
