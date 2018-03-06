@@ -184,9 +184,9 @@ def organize_by_bval(dwi_file, bval_file, bvec_file):
 
     # Save new data
     dwi = nib.Nifti1Image(dwi_data, dwi.affine, dwi.header)
-    nib.save(dwi, 'dwi.nii')
-    np.savetxt('bval', bvals, delimiter=' ', fmt='%d')
-    np.savetxt('bvec', bvecs.T, delimiter=' ', fmt='%f')
+    nib.save(dwi, dwi_file)
+    np.savetxt(bval_file, bvals, delimiter=' ', fmt='%d')
+    np.savetxt(bvec_file, bvecs.T, delimiter=' ', fmt='%f')
 
 def tSNR(dwi_file, bval_file, bvec_file, out_file):
     # Load Corrected DWI

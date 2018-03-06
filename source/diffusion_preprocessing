@@ -168,7 +168,15 @@ if args.structural != "None":
 os.chdir(outpath)
 
 # Reorganize DWI
+if args.software == "TORTOISE_DRBUDDI":
+    if args.epidistortion[1] == "All":
+        shutil.copyfile("bval", "rpe_bval")
+        shutil.copyfile("bvec", "rpe_bvec")
+        diffusion_preprocessing_functions.organize_by_bval("rpe.nii", "rpe_bval", "rpe_bvec")
+        
 diffusion_preprocessing_functions.organize_by_bval("dwi.nii", "bval", "bvec")
+
+    
 
 # Set Voxel sizes
 if args.voxel_size == "None":
@@ -277,7 +285,6 @@ if args.software == "FSL":
 
 ### TORTOISE DISTORTION CORRECTION WITH DR_BUDDI ###############################
 if args.software == "TORTOISE_DRBUDDI":
-
     if args.is_non_human:
         is_human_brain = "0"
         distortion_level = "very_large"
@@ -302,11 +309,11 @@ if args.software == "TORTOISE_DRBUDDI":
         # Import NIFTI
         if(args.diffusion_times == "None"):
             subprocess.call(["ImportNIFTI", "-i", "dwi.nii", "-p", "vertical", "-b", "bval", "-v", "bvec"])
-            subprocess.call(["ImportNIFTI", "-i", "rpe.nii", "-p", "vertical", "-b", "bval", "-v", "bvec"])
+            subprocess.call(["ImportNIFTI", "-i", "rpe.nii", "-p", "vertical", "-b", "rpe_bval", "-v", "rpe_bvec"])
         else:
             subprocess.call(["ImportNIFTI", "-i", "dwi.nii", "-p", "vertical", "-b", "bval", "-v", "bvec",
                              "-d", args.diffusion_times[0], "-D", args.diffusion_times[1]])
-            subprocess.call(["ImportNIFTI", "-i", "rpe.nii", "-p", "vertical", "-b", "bval", "-v", "bvec",
+            subprocess.call(["ImportNIFTI", "-i", "rpe.nii", "-p", "vertical", "-b", "rpe_bval", "-v", "rpe_bvec",
                              "-d", args.diffusion_times[0], "-D", args.diffusion_times[1]])
 
     # Run DIFFPREP
