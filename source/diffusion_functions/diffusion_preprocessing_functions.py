@@ -236,10 +236,5 @@ def filter_bvals(dwi, bvals, bvecs, bval_threshold=10000):
             index += 1
 
     return dwi_thresh, bval_thresh, bvec_thresh	
- 
-def flip_bvecs_y_TORTOISE(bvec_path):
-    bvecs = np.loadtxt(bvec_path)
-    bvecs[1,:] *= -1
-    np.savetxt(bvec_path, bvecs, fmt='%.10f')
     
 	

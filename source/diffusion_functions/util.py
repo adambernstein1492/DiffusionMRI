@@ -10,7 +10,9 @@ def load_diffusion_data(dwi_file, bvals_file, bvecs_file, mask_file):
     mask = nib.load(mask_file)
     bvals,bvecs = dipy.io.read_bvals_bvecs(bvals_file, bvecs_file)
 
-    bvecs[:,1] *= -1
+    signs = get_bvec_signs(dwi)
+    for i in range(3):
+        bvecs[:,i] *= signs[i]
 
     return dwi,mask,bvals,bvecs
 
@@ -115,3 +117,22 @@ def check_diffusion_input(dwi_path, bval_path, bvec_path, mask_path):
         if mask.shape != dwi.shape[0:3]:
             print "Error: Mask must have same dimensions as the dwi"
             quit()
+            
+def get_bvec_signs(dwi):
+    signs = np.zeros(3)
+    affine = dwi.affine
+    
+    for i in range(3):
+        index = 0
+        max_val = 0
+        for j in range(3):
+            if np.abs(affine[i,j]) > np.abs(max_val):
+                max_val = affine[i,j]
+                index = j
+                
+        if max_val < 0:
+            signs[index] = -1
+        else:
+            signs[index] = 1
+            
+    return signs    
