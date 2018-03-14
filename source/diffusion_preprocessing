@@ -168,27 +168,15 @@ if args.structural != "None":
 os.chdir(outpath)
 
 # Reorganize DWI
-if args.software == "TORTOISE_DRBUDDI" or args.software == "TORTOISE_STANDARD":
-    subprocess.call(["fslreorient2std", "dwi.nii", "dwi_std.nii"])
-    os.remove("dwi.nii")
-    os.rename("dwi_std.nii", "dwi.nii")
-    subprocess.call(["fslreorient2std", "struct.nii", "struct_std.nii"])
-    os.remove("struct.nii")
-    os.rename("struct_std.nii", "struct.nii")
-    
-    if args.software == "TORTOISE_DRBUDDI":
-        subprocess.call(["fslreorient2std", "rpe.nii", "rpe_std.nii"])
-        os.remove("rpe.nii")
-        os.rename("rpe_std.nii", "rpe.nii")
-        
-        if args.epidistortion[1] == "All":
-            shutil.copyfile("bval", "rpe_bval")
-            shutil.copyfile("bvec", "rpe_bvec")
-            diffusion_preprocessing_functions.organize_by_bval("rpe.nii", "rpe_bval", "rpe_bvec")
-        
+if args.software == "TORTOISE_DRBUDDI":
+    if args.epidistortion[1] == "All":
+        shutil.copyfile("bval", "rpe_bval")
+        shutil.copyfile("bvec", "rpe_bvec")
+        diffusion_preprocessing_functions.organize_by_bval("rpe.nii", "rpe_bval", "rpe_bvec")
+
 diffusion_preprocessing_functions.organize_by_bval("dwi.nii", "bval", "bvec")
 
-    
+
 
 # Set Voxel sizes
 if args.voxel_size == "None":
@@ -484,6 +472,8 @@ if args.biasfieldcorrection:
         os.remove("mean_b0.nii")
         os.remove("mean_b0_bias.nii")
 ################################################################################
+
+
 
 ### INTERPOLATE DWI IF INDICATED ###############################################
 if (args.software == 'FSL'):
