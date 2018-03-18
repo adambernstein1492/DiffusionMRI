@@ -395,6 +395,8 @@ if args.software == "TORTOISE_DRBUDDI":
         shutil.rmtree("dwi_proc_DRBUDDI_proc")
         shutil.rmtree("dwi_proc")
         shutil.rmtree("rpe_proc")
+        os.remove("rpe_bvec")
+        os.remove("rpe_bval")
 
     if(args.mask == "None"):
         subprocess.call(["dwi2mask", "-fslgrad", "bvec", "bval", "dwi.nii", "mask.nii"])
@@ -431,7 +433,7 @@ if args.software == "TORTOISE_STANDARD":
 
     # Clean up Extra Files
     if args.cleanup:
-        pass
+        shutil.rmtree("dwi_proc")
 
     if(args.mask == "None"):
         subprocess.call(["dwi2mask", "-fslgrad", "bvec", "bval", "dwi.nii", "mask.nii"])
