@@ -15,6 +15,7 @@ import time
 parser = argparse.ArgumentParser(description="Run a conventional diffusion MRI through the entire preprocessing pipeline")
 parser.add_argument("-l", "--denoising", action="store_true", help="Perform LPCA denoising. Default=False", default=False)
 parser.add_argument("-b", "--biasfieldcorrection", action="store_true", help="Perform N4 correction. Default=False", default=False)
+parser.add_argument("-g", "--gibbs_ringing_correction", action="store_true", help="Perform Gibbs Ringing Correctoin. Default=False", default=False)
 parser.add_argument("-e", "--eddycurrentcorrection", action="store_true", help="Perform eddy current correction. Default=False", default=False)
 parser.add_argument("-r", "--epidistortion", type=str, help="Reverse phase encode image. Specify 'All' or 'b0'. Default=None", nargs=2, default="None", metavar=('RPE_image', 'Number_DWIs'))
 parser.add_argument("-f", "--field_map", type=str, help="echo spacing for field map computation in ms", default="None", metavar=('esp'))
@@ -39,6 +40,13 @@ file_location = os.path.dirname(__file__)
 ### ERROR CHECKING #############################################################
 # Check Required Inputs
 util.check_diffusion_input(args.Image, args.bval, args.bvec, args.mask)
+
+if args.gibbs_ringing_correction:
+    try:
+        subprocess.call(["which", "GibbsRingingCorrection"])
+    except:
+        print "Error: Gibbs Ringing Correction Software not on path"
+        quit()
 
 if args.biasfieldcorrection:
     try:
@@ -188,6 +196,18 @@ if args.voxel_size == "None":
 
 else:
      voxel_size = args.voxel_size
+################################################################################
+
+
+
+### Gibbs Ringing Correction ###################################################
+if args.software is "FSL":
+    print "Running Gibbs Ringing Correction"
+    subprocess.call(["GibbsRingingCorrection", "dwi.nii", "dwi_unring.nii.gz"])
+
+    os.remove("dwi.nii")
+    subprocess.call(["mrconvert", "dwi_unring.nii.gz", "dwi.nii"])
+    os.remove("dwi_unring.nii.gz")
 ################################################################################
 
 
