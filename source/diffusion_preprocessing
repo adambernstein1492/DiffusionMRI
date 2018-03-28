@@ -201,7 +201,7 @@ else:
 
 
 ### Gibbs Ringing Correction ###################################################
-if args.software is "FSL":
+if args.software is "FSL" and args.gibbs_ringing_correction:
     print "Running Gibbs Ringing Correction"
     subprocess.call(["GibbsRingingCorrection", "dwi.nii", "dwi_unring.nii.gz"])
 
