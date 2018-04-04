@@ -1,6 +1,8 @@
 import numpy as np
 import dipy.io
 import nibabel as nib
+import os
+import shutil
 
 def load_diffusion_data(dwi_file, bvals_file, bvecs_file, mask_file):
     dwi = nib.load(dwi_file)
@@ -15,6 +17,16 @@ def load_diffusion_data(dwi_file, bvals_file, bvecs_file, mask_file):
         bvecs[:,i] *= signs[i]
 
     return dwi,mask,bvals,bvecs
+    
+def remove_nan(image_file):
+    img = nib.load(image_file)
+    data = img.get_data()
+    data[np.isnan(data)] = 0.0
+    img = nib.Nifti1Image(data, img.affine, img.header)
+    
+    nib.save(img, os.path.split(image_file)[0] + "tmp.nii")
+    os.remove(image_file)
+    shutil.move(os.path.split(image_file)[0] + "tmp.nii", image_file)
 
 def progress_update(message, percent):
     print "\r" + message + "%10.1f %%" % percent,
