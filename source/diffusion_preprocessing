@@ -4,7 +4,6 @@ import os
 import subprocess
 import argparse
 import shutil
-import util
 import diffusion_functions.lpca_denoising as lpca_denoising
 import nibabel as nib
 import dipy.io
@@ -418,7 +417,7 @@ if args.software == "TORTOISE_DRBUDDI":
         shutil.rmtree("rpe_proc")
         os.remove("rpe_bvec")
         os.remove("rpe_bval")
-        
+
     # Remove NaNs from DWI
     util.remove_nan("dwi.nii")
 
