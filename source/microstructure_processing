@@ -154,7 +154,7 @@ if args.map != 0 :
     d = args.map[0]
     D = args.map[1]
 
-    map.main_map(args.Image, args.bval, args.bvec, args.mask, d, D, map_outpath, order=4, b_thresh_dti=int(args.map[2]))
+    map.main_map(args.Image, args.bval, args.bvec, args.mask, d, D, map_outpath, order=6, b_thresh_dti=int(args.map[2]))
 ################################################################################
 
 
