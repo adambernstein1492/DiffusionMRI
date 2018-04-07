@@ -130,7 +130,7 @@ if args.gqi:
     os.mkdir(gqi_outpath)
 
     SH_order = util.determine_SH_order(args.bval,args.bvec)
-    print "Using Order " + SH_order + " for Spherical Harmonics"
+    print "Using Order " + str(SH_order) + " for Spherical Harmonics"
 
     gqi.main_gqi(args.Image, args.bval, args.bvec, args.mask, gqi_outpath, order=6)
 ################################################################################
@@ -144,7 +144,7 @@ if args.qbi:
     os.mkdir(qbi_outpath)
 
     SH_order = util.determine_SH_order(args.bval,args.bvec)
-    print "Using Order " + SH_order + " for Spherical Harmonics"
+    print "Using Order " + str(SH_order) + " for Spherical Harmonics"
 
     qbi.main_qbi(args.Image, args.bval, args.bvec, args.mask, qbi_outpath, order=6)
 ################################################################################
@@ -163,8 +163,8 @@ if args.map != 0 :
     order = util.determine_map_order(args.bval,args.bvec)
     SH_order = util.determine_SH_order(args.bval,args.bvec)
 
-    print "Using Order " + order + " for MAP fit."
-    print "Using Order " + SH_order + " for Spherical Harmonics"
+    print "Using Order " + str(order) + " for MAP fit."
+    print "Using Order " + str(SH_order) + " for Spherical Harmonics"
 
     map.main_map(args.Image, args.bval, args.bvec, args.mask, d, D, map_outpath, order, SH_order, b_thresh_dti=int(args.map[2]))
 ################################################################################
