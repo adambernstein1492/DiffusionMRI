@@ -7,8 +7,9 @@ import spherical_harmonics as SH
 import os
 
 def main_map(dwi_file, bval_file, bvec_file, mask_file, little_delta, big_delta,
-             out_path, order=6, b_thresh_dti=2100, calc_rtps=True, calc_ng=True,
-             calc_pa=True, calc_dki=False, return_dti=False, return_glyphs=True):
+             out_path, order=6, SH_order=8, b_thresh_dti=2100, calc_rtps=True,
+             calc_ng=True, calc_pa=True, calc_dki=False, return_dti=False,
+             return_glyphs=True):
 
     # Load in Data
     dwi, mask, bvals, bvecs = util.load_diffusion_data(dwi_file, bval_file, bvec_file, mask_file)
@@ -1041,6 +1042,7 @@ def fit_map_glyphs(coeffs, uvectors, eigen_vectors, order, mask, moment=2):
                     dirs = np.matmul(eig_vecs, sample_dirs.T).T
 
                     # Fit ODF to SH for display
+                    SH_order = util
                     SH_coeffs[x,y,z,:] = SH.fit_to_SH_MAP(odf[x,y,z,:], dirs, order)
 
                     # Update Progress

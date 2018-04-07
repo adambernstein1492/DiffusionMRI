@@ -17,13 +17,13 @@ def load_diffusion_data(dwi_file, bvals_file, bvecs_file, mask_file):
         bvecs[:,i] *= signs[i]
 
     return dwi,mask,bvals,bvecs
-    
+
 def remove_nan(image_file):
     img = nib.load(image_file)
     data = img.get_data()
     data[np.isnan(data)] = 0.0
     img = nib.Nifti1Image(data, img.affine, img.header)
-    
+
     nib.save(img, os.path.split(image_file)[0] + "tmp.nii")
     os.remove(image_file)
     shutil.move(os.path.split(image_file)[0] + "tmp.nii", image_file)
@@ -129,11 +129,78 @@ def check_diffusion_input(dwi_path, bval_path, bvec_path, mask_path):
         if mask.shape != dwi.shape[0:3]:
             print "Error: Mask must have same dimensions as the dwi"
             quit()
-            
+
+def determine_map_order(bval_path, bvec_path):
+    order = 0
+
+    for i in range(0,9,2):
+        num_coeffs = int(round(1.0/6 * (i/2.0 + 1) * (i/2 + 2) * (2*i + 3)))
+
+        threshold = 2 * num_coeffs
+
+        num_high_bval = count_high_bval(bval_path)
+        num_unique_bvec = count_unique_bvec(bvec_path)
+
+        if num_high_bval > threshold and num_unique_bvec > threshold:
+            order = i
+
+    return order
+
+
+def determine_SH_order(bval_path, bvec_path):
+    order = 0
+
+    for i in range(0,11,2):
+        num_coeffs = (order + 1) * (order + 2) / 2
+
+        threshold = 2 * num_coeffs
+
+        num_high_bval = count_high_bval(bval_path)
+        num_unique_bvec = count_unique_bvec(bvec_path)
+
+        if num_high_bval > threshold and num_unique_bvec > threshold:
+            order = i
+
+    return order
+
+def count_high_bval(bval_path):
+    bval = np.loadtxt(bval_path)
+
+    num_high_bval = 0
+    for i in bval:
+        if i > 50:
+            num_high_bval += 1
+
+    return num_high_bval
+
+def count_unique_bvec(bvec_path):
+    bvec = np.loadtxt(bvec_path).T
+    num_unique_bvec = 0
+
+    for i in range(bvec.shape[0]):
+        unique = True
+        vec1 = bvec[i]
+        for j in bvec[i+1:-1,:]:
+
+            if np.linalg.norm(vec1) == 0 or np.linalg.norm(j) == 0:
+                angle = 0
+            else:
+                angle = 180.0 / np.pi * np.arccos(np.inner(vec1,j))
+
+            if angle < 0.5:
+                unique = False
+                break
+
+        if unique:
+            num_unique_bvec += 1
+
+    return num_unique_bvec
+
+
 def get_bvec_signs(dwi):
     signs = np.zeros(3)
     affine = dwi.affine
-    
+
     for i in range(3):
         index = 0
         max_val = 0
@@ -141,10 +208,10 @@ def get_bvec_signs(dwi):
             if np.abs(affine[i,j]) > np.abs(max_val):
                 max_val = affine[i,j]
                 index = j
-                
+
         if max_val < 0:
             signs[index] = -1
         else:
             signs[index] = 1
-            
-    return signs    
+
+    return signs
