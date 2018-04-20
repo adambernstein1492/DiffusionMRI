@@ -203,11 +203,10 @@ else:
 ### Gibbs Ringing Correction ###################################################
 if args.software is "FSL" and args.gibbs_ringing_correction:
     print "Running Gibbs Ringing Correction"
-    subprocess.call(["GibbsRingingCorrection", "dwi.nii", "dwi_unring.nii.gz"])
+    subprocess.call(["mrdegibbs", "dwi.nii", "dwi_unring.nii"])
 
     os.remove("dwi.nii")
-    subprocess.call(["mrconvert", "dwi_unring.nii.gz", "dwi.nii"])
-    os.remove("dwi_unring.nii.gz")
+    os.move("dwi_unring.nii", "dwi.nii")
 ################################################################################
 
 
