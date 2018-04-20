@@ -206,7 +206,7 @@ if args.software is "FSL" and args.gibbs_ringing_correction:
     subprocess.call(["mrdegibbs", "dwi.nii", "dwi_unring.nii"])
 
     os.remove("dwi.nii")
-    os.move("dwi_unring.nii", "dwi.nii")
+    shutil.move("dwi_unring.nii", "dwi.nii")
 ################################################################################
 
 
