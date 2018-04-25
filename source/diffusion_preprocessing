@@ -41,13 +41,6 @@ file_location = os.path.dirname(__file__)
 # Check Required Inputs
 util.check_diffusion_input(args.Image, args.bval, args.bvec, args.mask)
 
-if args.gibbs_ringing_correction:
-    try:
-        subprocess.call(["which", "GibbsRingingCorrection"])
-    except:
-        print "Error: Gibbs Ringing Correction Software not on path"
-        quit()
-
 if args.biasfieldcorrection:
     try:
         subprocess.call(["which", "N4BiasFieldCorrection"])
