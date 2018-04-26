@@ -33,6 +33,8 @@ def create_nifti(path_2dseq, path_visu_pars, path_method, flip_rpe, save_path):
 				bvec[i,0] = bvec[i,0] / np.linalg.norm(bvec[i,:])
 				bvec[i,1] = bvec[i,1] / np.linalg.norm(bvec[i,:])
 				bvec[i,2] = bvec[i,2] / np.linalg.norm(bvec[i,:])
+
+				print np.linalg.norm(bvec[i,:])
 		bvecs = bvec.T
 
 	# Read in and shape the image filename
