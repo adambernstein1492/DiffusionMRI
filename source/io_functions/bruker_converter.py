@@ -20,7 +20,7 @@ def create_nifti(path_2dseq, path_visu_pars, path_method, flip_rpe, save_path):
 	# Create bvals and bvecs if applicable
 	if 'PVM_DwEffBval' in method:
 		bval = np.asfarray(method['PVM_DwEffBval'], dtype='float')
-		bval = np.around(bval/200) * 200
+		bval = np.around(bval/500) * 500
 		bvals = np.zeros((1,len(bval)))
 		bvals[0,:] = bval
 
