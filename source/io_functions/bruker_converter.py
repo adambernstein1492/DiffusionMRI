@@ -30,9 +30,9 @@ def create_nifti(path_2dseq, path_visu_pars, path_method, flip_rpe, save_path):
 			if np.linalg.norm(bvec[i,:]) == 0:
 				bvec[i,:] = 0
 			else:
-				bvec[i,0] /= np.linalg.norm(bvec[i,:])
-				bvec[i,1] /= np.linalg.norm(bvec[i,:])
-				bvec[i,2] /= np.linalg.norm(bvec[i,:])
+				bvec[i,0] /= np.sqrt(np.sum(bvec[i,:] ** 2))
+				bvec[i,1] /= np.sqrt(np.sum(bvec[i,:] ** 2))
+				bvec[i,2] /= np.sqrt(np.sum(bvec[i,:] ** 2))
 
 				print np.linalg.norm(bvec[i,:])
 		bvecs = bvec.T
