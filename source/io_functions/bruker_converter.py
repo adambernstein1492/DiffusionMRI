@@ -288,7 +288,7 @@ def get_matrix(visu_pars):
 			matrix = np.zeros(4)
 
 		matrix[0] = int(visu_pars['VisuCoreSize'][0])
-		matrix[1] = int(visu_pars['VisuCoreSize'][0])
+		matrix[1] = int(visu_pars['VisuCoreSize'][1])
 
 		for i in range(len(visu_pars['VisuFGOrderDesc'])):
 			if visu_pars['VisuFGOrderDesc'][i][1] == 'FG_SLICE':
