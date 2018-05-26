@@ -164,7 +164,7 @@ for roi_name in end_roi:
 subprocess.call(["mrconvert", "dwi.nii", "-fslgrad", "bvec", "bval", "dwi.mif"])
 
 # Estimate Response Function
-subprocess.call(["dwi2response", "tournier", "dwi.mif", "response.txt"])
+#subprocess.call(["dwi2response", "tournier", "dwi.mif", "response.txt"])
 
 # Upsample
 subprocess.call(["mrresize", "-voxel", "1,1,1", "dwi.mif", "dwi_up.mif"])
@@ -183,7 +183,7 @@ os.rename("mask_up.nii", "mask.nii")
 os.rename("dwi_up.mif", "dwi.mif")
 
 # Estimate FODs
-subprocess.call(["dwi2fod", "csd", "dwi.mif", "response.txt", "fod.mif", "-mask", "mask.nii"])
+#subprocess.call(["dwi2fod", "csd", "dwi.mif", "response.txt", "fod.mif", "-mask", "mask.nii"])
 ###############################################################################
 
 
@@ -193,7 +193,8 @@ os.chdir("Tracts")
 
 # Create Each Specified Track
 for i in range(len(tract_names)):
-    subprocess.call(["tckgen", "-seed_image", "../" + start_roi[i] + "_reg.mif", "-include", "../" + end_roi[i] + "_reg.mif", "-maxlength", "250", "-select", "5000", "../fod.mif", tract_names[i]])
+    #subprocess.call(["tckgen", "-seed_image", "../" + start_roi[i] + "_reg.mif", "-include", "../" + end_roi[i] + "_reg.mif", "-maxlength", "250", "-select", "5000", "../fod.mif", tract_names[i]])
+    subprocess.call(["tckgen", "-algorithm", "-seed_image", "../" + start_roi[i] + "_reg.mif", "-include", "../" + end_roi[i] + "_reg.mif", "-maxlength", "250", "-select", "5000", "../dwi_up.mif", tract_names[i]]])
 
 # Generate Track-wise Parameter Data
 
