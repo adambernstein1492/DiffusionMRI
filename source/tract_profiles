@@ -194,7 +194,7 @@ os.chdir("Tracts")
 # Create Each Specified Track
 for i in range(len(tract_names)):
     #subprocess.call(["tckgen", "-seed_image", "../" + start_roi[i] + "_reg.mif", "-include", "../" + end_roi[i] + "_reg.mif", "-maxlength", "250", "-select", "5000", "../fod.mif", tract_names[i]])
-    subprocess.call(["tckgen", "-algorithm", "Tensor_Det", "-seed_image", "../" + start_roi[i] + "_reg.mif", "-include", "../" + end_roi[i] + "_reg.mif", "-maxlength", "250", "-select", "5000", "../dwi_up.mif", tract_names[i]])
+    subprocess.call(["tckgen", "-algorithm", "Tensor_Det", "-seed_image", "../" + start_roi[i] + "_reg.mif", "-include", "../" + end_roi[i] + "_reg.mif", "-maxlength", "250", "-select", "5000", "../dwi.mif", tract_names[i]])
 
 # Generate Track-wise Parameter Data
 
