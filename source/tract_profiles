@@ -43,14 +43,14 @@ else:
 os.environ["FSLOUTPUTTYPE"] = "NIFTI"
 
 # Copy T1
-#shutil.copyfile(file_location + "/Atlases/MNI152_T1_1mm.nii.gz", (outpath + "MNI_T1.nii.gz"))
-#shutil.copyfile(args.t1, (outpath + "T1.nii.gz"))
+shutil.copyfile(file_location + "/Atlases/MNI152_T1_1mm.nii.gz", (outpath + "MNI_T1.nii.gz"))
+shutil.copyfile(args.t1, (outpath + "T1.nii.gz"))
 
 # Copy DWI files
-#shutil.copyfile(args.dwi, (outpath + "dwi.nii"))
-#shutil.copyfile(args.bval, (outpath + "bval"))
-#shutil.copyfile(args.bvec, (outpath + "bvec"))
-#shutil.copyfile(args.mask, (outpath + "mask.nii"))
+shutil.copyfile(args.dwi, (outpath + "dwi.nii"))
+shutil.copyfile(args.bval, (outpath + "bval"))
+shutil.copyfile(args.bvec, (outpath + "bvec"))
+shutil.copyfile(args.mask, (outpath + "mask.nii"))
 
 #os.mkdir(outpath + "Tracts")
 os.chdir(outpath)
@@ -124,36 +124,36 @@ end_roi =   ["FMaj_2",
 
 ### REGISTER MNI to DWI #######################################################
 # Run FLIRT on MNI T1 to subject T1 Space
-#subprocess.call(["flirt", "-in", "MNI_T1.nii.gz", "-ref", "T1.nii.gz", "-omat", "MNI_2_T1.mat", "-v"])
+subprocess.call(["flirt", "-in", "MNI_T1.nii.gz", "-ref", "T1.nii.gz", "-omat", "MNI_2_T1.mat", "-v"])
 
 # Run FNIRT on MNI T1 to subject T1 Space
-#subprocess.call(["fnirt", "--ref=T1.nii.gz", "--in=MNI_T1.nii.gz", "--aff=MNI_2_T1.mat", "-v"])
+subprocess.call(["fnirt", "--ref=T1.nii.gz", "--in=MNI_T1.nii.gz", "--aff=MNI_2_T1.mat", "-v"])
 
 # Run BET on T1
-#subprocess.call(["bet", "T1.nii.gz", "brain.nii", "-f", "0.5", "-R"])
+subprocess.call(["bet", "T1.nii.gz", "brain.nii", "-f", "0.5", "-R"])
 
 # Register dwi to T1
-#subprocess.call(["epi_reg", "--epi=dwi.nii", "--t1=T1.nii.gz", "--t1brain=brain.nii", "--out=dwi2t1"])
+subprocess.call(["epi_reg", "--epi=dwi.nii", "--t1=T1.nii.gz", "--t1brain=brain.nii", "--out=dwi2t1"])
 
 # Convert Registration Matrix to MRTrix Format
-#subprocess.call(["transformconvert", "dwi2t1.mat", "dwi.nii", "T1.nii.gz", "flirt_import", "dwi2t1_mrtrix.txt"])
+subprocess.call(["transformconvert", "dwi2t1.mat", "dwi.nii", "T1.nii.gz", "flirt_import", "dwi2t1_mrtrix.txt"])
 
 # Apply Inverse Transform to T1
-#subprocess.call(["transformcalc", "dwi2t1_mrtrix.txt", "invert", "t12dwi_mrtrix.txt"])
+subprocess.call(["transformcalc", "dwi2t1_mrtrix.txt", "invert", "t12dwi_mrtrix.txt"])
 
-#subprocess.call(["mrtransform", "-linear", "t12dwi_mrtrix.txt", "T1.nii.gz", "T1_reg.nii"])
+subprocess.call(["mrtransform", "-linear", "t12dwi_mrtrix.txt", "T1.nii.gz", "T1_reg.nii"])
 
-#for roi_name in start_roi:
-#    current_roi_file = file_location + "/Tractography_ROIs/" + roi_name + ".nii"
+for roi_name in start_roi:
+    current_roi_file = file_location + "/Tractography_ROIs/" + roi_name + ".nii"
 
-#    subprocess.call(["applywarp", "-i", current_roi_file, "-r", "T1.nii.gz", "-o", roi_name + ".nii", "-w", "MNI_T1_warpcoef.nii"])
-#    subprocess.call(["mrtransform", "-linear", "t12dwi_mrtrix.txt", roi_name + ".nii", roi_name + "_reg.mif"])
+    subprocess.call(["applywarp", "-i", current_roi_file, "-r", "T1.nii.gz", "-o", roi_name + ".nii", "-w", "MNI_T1_warpcoef.nii"])
+    subprocess.call(["mrtransform", "-linear", "t12dwi_mrtrix.txt", roi_name + ".nii", roi_name + "_reg.mif"])
 
-#for roi_name in end_roi:
-#    current_roi_file = file_location + "/Tractography_ROIs/" + roi_name + ".nii"
+for roi_name in end_roi:
+    current_roi_file = file_location + "/Tractography_ROIs/" + roi_name + ".nii"
 
-#    subprocess.call(["applywarp", "-i", current_roi_file, "-r", "T1.nii.gz", "-o", roi_name + ".nii", "-w", "MNI_T1_warpcoef.nii"])
-#    subprocess.call(["mrtransform", "-linear", "t12dwi_mrtrix.txt", roi_name + ".nii", roi_name + "_reg.mif"])
+    subprocess.call(["applywarp", "-i", current_roi_file, "-r", "T1.nii.gz", "-o", roi_name + ".nii", "-w", "MNI_T1_warpcoef.nii"])
+    subprocess.call(["mrtransform", "-linear", "t12dwi_mrtrix.txt", roi_name + ".nii", roi_name + "_reg.mif"])
 
 ###############################################################################
 
@@ -161,29 +161,23 @@ end_roi =   ["FMaj_2",
 
 ### DWI PROCESSING ############################################################
 # Convert to mif
-#subprocess.call(["mrconvert", "dwi.nii", "-fslgrad", "bvec", "bval", "dwi.mif"])
-
-# Estimate Response Function
-#subprocess.call(["dwi2response", "tournier", "dwi.mif", "response.txt"])
+subprocess.call(["mrconvert", "dwi.nii", "-fslgrad", "bvec", "bval", "dwi.mif"])
 
 # Upsample
-#subprocess.call(["mrresize", "-voxel", "1,1,1", "dwi.mif", "dwi_up.mif"])
-#subprocess.call(["mrresize", "-interp", "nearest", "-voxel", "1,1,1", "mask.nii", "mask_up.nii"])
+subprocess.call(["mrresize", "-voxel", "1,1,1", "dwi.mif", "dwi_up.mif"])
+subprocess.call(["mrresize", "-interp", "nearest", "-voxel", "1,1,1", "mask.nii", "mask_up.nii"])
 
-#while True:
-#    try:
-#        os.remove('dwi.nii')
-#        os.remove('mask.nii')
-#    except:
-#        continue
-#    else:
-#        break
+while True:
+    try:
+        os.remove('dwi.nii')
+        os.remove('mask.nii')
+    except:
+        continue
+    else:
+        break
 
-#os.rename("mask_up.nii", "mask.nii")
-#os.rename("dwi_up.mif", "dwi.mif")
-
-# Estimate FODs
-#subprocess.call(["dwi2fod", "csd", "dwi.mif", "response.txt", "fod.mif", "-mask", "mask.nii"])
+os.rename("mask_up.nii", "mask.nii")
+os.rename("dwi_up.mif", "dwi.mif")
 ###############################################################################
 
 
@@ -193,7 +187,6 @@ os.chdir("Tracts")
 
 # Create Each Specified Track
 for i in range(len(tract_names)):
-    #subprocess.call(["tckgen", "-seed_image", "../" + start_roi[i] + "_reg.mif", "-include", "../" + end_roi[i] + "_reg.mif", "-maxlength", "250", "-select", "5000", "../fod.mif", tract_names[i]])
     subprocess.call(["tckgen", "-algorithm", "Tensor_Det", "-seed_image", "../" + start_roi[i] + "_reg.mif", "-include", "../" + end_roi[i] + "_reg.mif", "-maxlength", "250", "-select", "5000", "../dwi.mif", tract_names[i]])
 
 # Generate Track-wise Parameter Data
