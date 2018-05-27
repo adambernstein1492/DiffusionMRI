@@ -39,7 +39,7 @@ if args.output[-1] != '/':
 else:
     outpath = args.output
 
-#os.makedirs(outpath)
+os.makedirs(outpath)
 os.environ["FSLOUTPUTTYPE"] = "NIFTI"
 
 # Copy T1
@@ -52,7 +52,7 @@ shutil.copyfile(args.bval, (outpath + "bval"))
 shutil.copyfile(args.bvec, (outpath + "bvec"))
 shutil.copyfile(args.mask, (outpath + "mask.nii"))
 
-#os.mkdir(outpath + "Tracts")
+os.mkdir(outpath + "Tracts")
 os.chdir(outpath)
 ###############################################################################
 
@@ -190,7 +190,6 @@ for i in range(len(tract_names)):
     subprocess.call(["tckgen", "-algorithm", "Tensor_Det", "-seed_image", "../" + start_roi[i] + "_reg.mif", "-include", "../" + end_roi[i] + "_reg.mif", "-maxlength", "250", "-select", "5000", "../dwi.mif", tract_names[i]])
 
 # Generate Track-wise Parameter Data
-
 track_values = {}
 for parameter in parameter_maps:
     track_means = []
