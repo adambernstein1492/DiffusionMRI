@@ -332,8 +332,8 @@ if args.software == "TORTOISE_DRBUDDI":
     subprocess.call(["DIFFPREP", "-i", "dwi_proc/dwi.list", "-s", "struct.nii", "-c", "quadratic",
                      "-e", "off", "--denoising", "for_reg", "--gibbs_ringing_correction", "on",
                      "--will_be_drbuddied", "--is_human_brain", is_human_brain, "--upsampling", "all",
-                     "--dti_bval", "1000", "--MAPMRI_bval", "3000", "--keep_intermediate", "0",
-                     "--res", voxel_size[0], voxel_size[1], voxel_size[2]])
+                     "--dti_bval", "1000", "--MAPMRI_bval", "3000", "--high_b", "1", "--keep_intermediate",
+                     "0", "--res", voxel_size[0], voxel_size[1], voxel_size[2]])
 
     rpe = nib.load("rpe.nii")
     if(len(rpe.shape) == 3):
@@ -348,8 +348,8 @@ if args.software == "TORTOISE_DRBUDDI":
         subprocess.call(["DIFFPREP", "-i", "rpe_proc/rpe.list", "-s", "struct.nii", "-c", "quadratic",
                          "-e", "off", "--denoising", "for_reg", "--gibbs_ringing_correction", "on",
                          "--will_be_drbuddied", "--is_human_brain", is_human_brain, "--upsampling", "all",
-                         "--dti_bval", "1000", "--MAPMRI_bval", "3000", "--keep_intermediate", "0",
-                         "--res", voxel_size[0], voxel_size[1], voxel_size[2]])
+                         "--dti_bval", "1000", "--MAPMRI_bval", "3000", "--high_b", "1", "--keep_intermediate",
+                         "0", "--res", voxel_size[0], voxel_size[1], voxel_size[2]])
 
         # Run DR. BUDDI
         if(args.epidistortion[1] == "b0"):
