@@ -434,15 +434,17 @@ if args.software == "TORTOISE_STANDARD":
         # Run DIFFPREP with T2
         subprocess.call(["DIFFPREP", "-i", "dwi_proc/dwi.list", "-s", "struct.nii", "-c",
                          "quadratic", "-e", "ANTSSyN", "--upsampling", "all", "--dti_bval", "1000",
-                         "--MAPMRI_bval", "3000", "--is_human_brain", is_human_brain, "--keep_intermediate", "0",
-                         "--res", voxel_size[0], voxel_size[1], voxel_size[2], "--will_be_drbuddied", "0"])
+                         "--MAPMRI_bval", "3000", "high_b", "1", "--is_human_brain", is_human_brain,
+                         "--keep_intermediate", "0", "--res", voxel_size[0], voxel_size[1],
+                         voxel_size[2], "--will_be_drbuddied", "0"])
 
     if args.structural == "None":
         # Run DIFFPREP without T2
         subprocess.call(["DIFFPREP", "-i", "dwi_proc/dwi.list", "-c", "quadratic",
                          "-e", "off", "--upsampling", "all", "--dti_bval", "1000",
-                         "MAPMRI_bval", "3000", "--is_human_brain", is_human_brain, "--keep_intermediate", "0",
-                         "--res", voxel_size[0], voxel_size[1], voxel_size[2], "--will_be_drbuddied", "0"])
+                         "MAPMRI_bval", "3000", "high_b", "1", "--is_human_brain",
+                         is_human_brain, "--keep_intermediate", "0", "--res", voxel_size[0],
+                         voxel_size[1], voxel_size[2], "--will_be_drbuddied", "0"])
 
     # Move Output to Upper Level
 
