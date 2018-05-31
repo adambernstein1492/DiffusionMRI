@@ -1,6 +1,7 @@
 import numpy as np
 import nibabel as nib
 import os
+import file_finder
 
 def create_nifti(path_2dseq, path_visu_pars, path_method, flip_rpe, save_path):
 	# Read in relevant header info
@@ -325,3 +326,75 @@ def convert_to_nifti(recon_data, visu_pars, out_path):
 	# Convert to Nifti and Save
 	img = nib.Nifti2Image(img_data, affine)
 	nib.save(img, out_path)
+
+def merge_dwis(out_path):
+	bvals = file_finder.scan_for_diffusion_imgs(out_path, [])
+
+	groups = [[]]
+
+	start_index = 0
+	all_files = True
+	group = 0
+	total_files = 0
+	while all_files:
+		bval_path = os.path.split(os.path.split(os.path.abspath(bvals[start_index]))[0])[1]
+		groups[group].append(os.path.abspath(bvals[start_index]))
+		total_files += 1
+
+		start_index += 1
+		for i in range(start_index,len(bvals)):
+			bval_path_1 = os.path.split(os.path.split(os.path.abspath(bvals[i]))[0])[1]
+
+			if bval_path == bval_path_1:
+				groups[group].append(os.path.abspath(bvals[i]))
+
+				start_index += 1
+				total_files += 1
+
+		group += 1
+
+		if total_files == len(bvals):
+			all_files = False
+		else:
+			groups.append([])
+
+	for i in range(len(groups)):
+		bval = []
+		bvec = []
+		img = []
+
+		if len(groups[i]) >= 2:
+			for j in range(len(groups[i])):
+				bval.append(np.loadtxt(groups[i][j]))
+				bvec.append(np.loadtxt(groups[i][j][:-4] + 'bvec'))
+
+				dwi = nib.load(groups[i][j][:-4] + 'nii')
+				img.append(dwi.get_data())
+
+			save_base_name = groups[i][0][:-5] + '_' + groups[i][1][-6:-5]
+			merged_bval = np.concatenate((bval[0], bval[1]), axis=0)
+			merged_bvec = np.concatenate((bvec[0], bvec[1]), axis=1)
+			merged_img = np.concatenate((img[0], img[1]), axis=3)
+
+			for j in range(2,len(groups[i])):
+				save_base_name = save_base_name + '_' + groups[i][j][-6:-5]
+				merged_bval = np.concatenate((merged_bval, bval[j]), axis=0)
+				merged_bvec = np.concatenate((merged_bvec, bvec[j]), axis=1)
+				merged_img = np.concatenate((merged_img, img[j]), axis=3)
+
+			bval_save = np.zeros((1, len(merged_bval)))
+			bval_save[0,:] = merged_bval
+			np.savetxt(save_base_name + '.bval', bval_save, fmt='%f')
+			np.savetxt(save_base_name + '.bvec', merged_bvec, fmt='%f')
+			img = nib.Nifti1Image(merged_img, dwi.affine)
+			nib.save(img, save_base_name + '.nii')
+
+	return groups
+
+def remove_files(groups):
+	for i in range(len(groups)):
+		if len(groups[i]) >= 2:
+			for j in range(len(groups[i])):
+				os.remove(groups[i][j])
+				os.remove(groups[i][j][:-4] + 'bvec')
+				os.remove(groups[i][j][:-4] + 'nii')

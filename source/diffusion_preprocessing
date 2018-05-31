@@ -433,7 +433,7 @@ if args.software == "TORTOISE_STANDARD":
     if args.structural != "None":
         # Run DIFFPREP with T2
         subprocess.call(["DIFFPREP", "-i", "dwi_proc/dwi.list", "-s", "struct.nii", "-c",
-                         "quadratic", "-e", "ITKBSPv4", "--upsampling", "all", "--dti_bval", "1000",
+                         "quadratic", "-e", "ANTSSyN", "--upsampling", "all", "--dti_bval", "1000",
                          "--MAPMRI_bval", "3000", "--is_human_brain", is_human_brain, "--keep_intermediate", "0",
                          "--res", voxel_size[0], voxel_size[1], voxel_size[2], "--will_be_drbuddied", "0"])
 

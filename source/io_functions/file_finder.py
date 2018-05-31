@@ -34,23 +34,21 @@ def scan_for_nifti(start_directory, files):
 
     return files
 
-def scan_for_diffusion_imgs(start_directory, bvals, bvecs, niftis):
+def scan_for_diffusion_imgs(start_directory, bvals):
     file_and_dir_names = os.listdir(start_directory)
 
     if (start_directory[-1] != '/'):
         start_directory += '/'
 
     for i in file_and_dir_names:
-        # Look for bval file_and_dir_names
+        # Look for bval file
         if ((i[-5:] == '.bval') and os.path.isfile(start_directory + i)):
             bvals.append(os.path.abspath(start_directory + i))
-            bvecs.append(os.path.abspath(start_directory + i[:-5] + '.bvec'))
-            niftis.append(os.path.abspath(start_directory + i[:-5] + '.nii'))
 
         if os.path.isdir(start_directory + i):
-            bvals,bvecs,niftis = scan_for_diffusion_imgs((start_directory + i), files)
+            bvals = scan_for_diffusion_imgs((start_directory + i), bvals)
 
-    return bvals,bvecs,niftis
+    return bvals
 
 def scan_for_tracts(start_directory, files):
     file_and_dir_names = os.listdir(start_directory)
