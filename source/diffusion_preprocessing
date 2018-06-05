@@ -194,11 +194,17 @@ else:
 
 ### Gibbs Ringing Correction ###################################################
 if args.software is "FSL" and args.gibbs_ringing_correction:
-    print "Running Gibbs Ringing Correction"
-    subprocess.call(["mrdegibbs", "dwi.nii", "dwi_unring.nii"])
+    os.makedirs("GibbsRingingCorrection")
+    os.chdir("GibbsRingingCorrection")
 
-    os.remove("dwi.nii")
-    shutil.move("dwi_unring.nii", "dwi.nii")
+    print "Running Gibbs Ringing Correction"
+    subprocess.call(["mrdegibbs", outpath + "dwi.nii", "dwi_unring.nii"])
+
+    os.remove(outpath + "dwi.nii")
+    shutil.copyfile("dwi_unring.nii", outpath + "dwi.nii")
+
+    if args.no_cleanup is False:
+        shutil.rmtree("GibbsRingingCorrection")
 ################################################################################
 
 
