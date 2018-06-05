@@ -516,6 +516,8 @@ if args.biasfieldcorrection:
     # Clean up Extra Files
     if args.no_cleanup is False:
         shutil.rmtree("N4BiasCorrection")
+
+    os.chdir(outpath)
 ################################################################################
 
 
