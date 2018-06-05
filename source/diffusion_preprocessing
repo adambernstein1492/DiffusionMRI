@@ -205,6 +205,8 @@ if args.software is "FSL" and args.gibbs_ringing_correction:
 
     if args.no_cleanup is False:
         shutil.rmtree("GibbsRingingCorrection")
+
+    os.chdir(outpath)
 ################################################################################
 
 
