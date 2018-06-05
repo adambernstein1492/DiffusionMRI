@@ -244,8 +244,8 @@ if args.software == "FSL":
                              "--mask=" + outpath + "mask.nii",
                              "--index=" + outpath + "TOPUP/index.txt",
                              "--acqp=" + outpath + "TOPUP/acqp.txt",
-                             "--bvecs=" + outpath "bvec",
-                             "--bvals=" + outpath "bval",
+                             "--bvecs=" + outpath + "bvec",
+                             "--bvals=" + outpath + "bval",
                              "--out=dwi_eddy",
                              "--topup=" + outpath + "TOPUP/topup_results",
                              "--data_is_shelled",
@@ -278,12 +278,12 @@ if args.software == "FSL":
     		    shutil.move("brain_mask.nii", outpath + "mask.nii")
 
         print "Running EDDY"
-        subprocess.call(["eddy_openmp", "--imain=" outpath + "dwi.nii",
-                         "--mask=" outpath + "mask.nii",
+        subprocess.call(["eddy_openmp", "--imain=" + outpath + "dwi.nii",
+                         "--mask=" + outpath + "mask.nii",
                          "--index=index.txt",
                          "--acqp=acqp.txt",
-                         "--bvecs=" outpath + "bvec",
-                         "--bvals=" outpath + "bval",
+                         "--bvecs=" + outpath + "bvec",
+                         "--bvals=" + outpath + "bval",
                          "--out=dwi_eddy",
                          "--data_is_shelled",
                          "-v"])
