@@ -18,14 +18,13 @@ parser.add_argument("-b", "--biasfieldcorrection", action="store_true", help="Pe
 parser.add_argument("-g", "--gibbs_ringing_correction", action="store_true", help="Perform Gibbs Ringing Correctoin. Default=False", default=False)
 parser.add_argument("-e", "--eddycurrentcorrection", action="store_true", help="Perform eddy current correction. Default=False", default=False)
 parser.add_argument("-r", "--epidistortion", type=str, help="Reverse phase encode image. Specify 'All' or 'b0'. Default=None", nargs=2, default="None", metavar=('RPE_image', 'Number_DWIs'))
-parser.add_argument("-f", "--field_map", type=str, help="echo spacing for field map computation in ms", default="None", metavar=('esp'))
 parser.add_argument("-m", "--mask", type=str, help="Filepath to a mask image to be used. Default=None)", default="None", metavar=('mask'))
 parser.add_argument("-a", "--structural", help="TORTOISE: Anatomical NIFTI image", default="None", metavar=('structural_image'))
 parser.add_argument("-k", "--is_non_human", action="store_true", help="TORTOISE: is human brain? Default=False", default=False)
 parser.add_argument("-v", "--voxel_size", type=str, help="Final Voxel size for corrected image", nargs=3, default="None", metavar=('vx', 'vy', 'vz'))
 parser.add_argument("-d", "--diffusion_times", type=str, help="Gradient timing parameters d and D", nargs=2, default="None", metavar=('d', 'D'))
 parser.add_argument("-s", "--software", type=str, help="Software to use for distortion correction. Default=FSL", choices=["FSL","TORTOISE_DRBUDDI", "TORTOISE_STANDARD"], default="FSL")
-parser.add_argument("-c", "--cleanup", action="store_true", help="Tells script to remove all intermediate files", default=False)
+parser.add_argument("-c", "--no_cleanup", action="store_true", help="Keeps all intermediate files", default=False)
 parser.add_argument("Image", type=str, help="Diffusion Weighted MRI filepath")
 parser.add_argument("bval", type=str, help="b-value filepath")
 parser.add_argument("bvec", type=str, help="b-vector filepath")
@@ -212,85 +211,92 @@ if args.software == "FSL":
 
     # Run TOPUP if specified
     if args.epidistortion != "None":
+        os.makedirs("TOPUP")
+        os.chdir("TOPUP")
+
         # Create ACQP and INDEX text files
-        if args.field_map != "None":
-            diffusion_preprocessing_functions.write_index_acqp('dwi.nii', 'bval', 'bvec', 'rpe.nii', float(args.field_map))
-        else:
-            diffusion_preprocessing_functions.write_index_acqp('dwi.nii', 'bval', 'bvec', 'rpe.nii')
+        diffusion_preprocessing_functions.write_index_acqp(outpath + 'dwi.nii', outpath + 'bval', outpath + 'bvec', outpath + 'rpe.nii')
         topup_config = file_location + "/config/b02b0.cnf"
 
         print "Running TOPUP"
-        if args.field_map != "None":
-            subprocess.call(["topup", "--imain=B0s.nii", "--datain=acqp.txt", ("--config=" + topup_config), "--out=topup_results", "--iout=b0_corrected", "--fout=fm", "-v"])
-        else:
-            subprocess.call(["topup", "--imain=B0s.nii", "--datain=acqp.txt", ("--config=" + topup_config), "--out=topup_results", "--iout=b0_corrected", "-v"])
+        subprocess.call(["topup", "--imain=B0s.nii",
+                         "--datain=acqp.txt",
+                         "--config=" + topup_config,
+                         "--out=topup_results",
+                         "--iout=b0_corrected",
+                         "-v"])
 
         if args.mask == "None":
             subprocess.call(["fslmaths", "b0_corrected", "-Tmean", "b0_corrected"])
             subprocess.call(["bet", "b0_corrected", "brain", "-m", "-f", "0.3", "-R"])
             os.remove("brain.nii")
-            shutil.move("brain_mask.nii", "mask.nii")
+            shutil.move("brain_mask.nii", outpath + "mask.nii")
+
+        os.chdir(outpath)
 
         # Run EDDY if specified
         if args.eddycurrentcorrection:
+            os.makedirs("EDDY")
+            os.chdir("EDDY")
+
             print "Running EDDY"
-            subprocess.call(["eddy_openmp", "--imain=dwi.nii", "--mask=mask.nii", "--index=index.txt", "--acqp=acqp.txt", "--bvecs=bvec", "--bvals=bval", "--out=dwi_eddy", "--topup=topup_results", "--data_is_shelled", "-v"])
-            os.remove("dwi.nii")
-            shutil.move("dwi_eddy.nii", "dwi.nii")
+            subprocess.call(["eddy_openmp", "--imain=" + outpath + "dwi.nii",
+                             "--mask=" + outpath + "mask.nii",
+                             "--index=" + outpath + "TOPUP/index.txt",
+                             "--acqp=" + outpath + "TOPUP/acqp.txt",
+                             "--bvecs=" + outpath "bvec",
+                             "--bvals=" + outpath "bval",
+                             "--out=dwi_eddy",
+                             "--topup=" + outpath + "TOPUP/topup_results",
+                             "--data_is_shelled",
+                             "-v"])
+
+            os.remove(outpath + "dwi.nii")
+            shutil.copyfile("dwi_eddy.nii", outpath + "dwi.nii")
 
             # Replace old bvec file with rotated_bvec file
-            os.remove("bvec")
-            shutil.move("dwi_eddy.eddy_rotated_bvecs", "bvec")
+            os.remove(outpath + "bvec")
+            shutil.move("dwi_eddy.eddy_rotated_bvecs", outpath + "bvec")
+
+            os.chdir(outpath)
 
         # Clean up extra files
-        if args.cleanup:
-            os.remove("acqp.txt")
-            os.remove("b0_corrected.nii")
-            os.remove("B0s.nii")
-            os.remove("B0s.topup_log")
-            os.remove("dwi_eddy.eddy_movement_rms")
-            os.remove("dwi_eddy.eddy_outlier_map")
-            os.remove("dwi_eddy.eddy_outlier_n_stdev_map")
-            os.remove("dwi_eddy.eddy_outlier_report")
-            os.remove("dwi_eddy.eddy_parameters")
-            os.remove("dwi_eddy.eddy_post_eddy_shell_alignment_parameters")
-            os.remove("dwi_eddy.eddy_outlier_n_sqr_stdev_map")
-            os.remove("dwi_eddy.eddy_restricted_movement_rms")
-            os.remove("index.txt")
-            os.remove("rpe.nii")
-            os.remove("topup_results_fieldcoef.nii")
-            os.remove("topup_results_movpar.txt")
+        if args.no_cleanup is False:
+            shutil.rmtree("TOPUP")
+            shutil.rmtree("EDDY")
 
     if ((args.eddycurrentcorrection is True) and (args.epidistortion == "None")):
+        os.makedirs("EDDY")
+        os.chdir("EDDY")
+
         # Create ACQP and INDEX text files
         diffusion_preprocessing_functions.no_topup_index_acqp('bval', 'bvec')
 
     	if args.mask == "None":
     		    subprocess.call(["bet", "dwi", "brain", "-m", "-f", "0.3", "-R"])
     		    os.remove("brain.nii")
-    		    shutil.move("brain_mask.nii", "mask.nii")
+    		    shutil.move("brain_mask.nii", outpath + "mask.nii")
 
         print "Running EDDY"
-        subprocess.call(["eddy_openmp", "--imain=dwi.nii", "--mask=mask.nii", "--index=index.txt",
-                         "--acqp=acqp.txt", "--bvecs=bvec", "--bvals=bval", "--out=dwi",
-                         "--data_is_shelled", "-v"])
+        subprocess.call(["eddy_openmp", "--imain=" outpath + "dwi.nii",
+                         "--mask=" outpath + "mask.nii",
+                         "--index=index.txt",
+                         "--acqp=acqp.txt",
+                         "--bvecs=" outpath + "bvec",
+                         "--bvals=" outpath + "bval",
+                         "--out=dwi_eddy",
+                         "--data_is_shelled",
+                         "-v"])
 
         # Replace old bvec file with rotated_bvec file
-        os.remove("bvec")
-        shutil.move("dwi.eddy_rotated_bvecs", "bvec")
+        os.remove(outpath + "bvec")
+        shutil.copyfile("dwi.eddy_rotated_bvecs", outpath + "bvec")
+
+        os.chdir(outpath)
 
         # Clean up extra files
-        if args.cleanup:
-            os.remove("acqp.txt")
-            os.remove("index.txt")
-            os.remove("dwi.eddy_restricted_movement_rms")
-            os.remove("dwi.eddy_movement_rms")
-            os.remove("dwi.eddy_outlier_map")
-            os.remove("dwi.eddy_outlier_n_sqr_stdev_map")
-            os.remove("dwi.eddy_outlier_n_stdev_map")
-            os.remove("dwi.eddy_outlier_report")
-            os.remove("dwi.eddy_parameters")
-            os.remove("dwi.eddy_post_eddy_shell_alignment_parameters")
+        if args.no_cleanup is False:
+            shutil.rmtree("EDDY")
 ################################################################################
 
 
@@ -460,36 +466,47 @@ if args.software == "TORTOISE_STANDARD":
 
 ### DENOISING ##################################################################
 if args.denoising:
+    os.makedirs("LPCADenoising")
+
     print "Running Denoising"
-    lpca_denoising.lpca_denoising("dwi.nii", "bval", "bvec", "dwi_denoised.nii")
+    lpca_denoising.lpca_denoising("dwi.nii", "bval", "bvec", "LPCADenoising/dwi_denoised.nii")
 
     os.remove("dwi.nii")
-    shutil.move("dwi_denoised.nii", "dwi.nii")
+    shutil.copyfile("LPCADenoising/dwi_denoised.nii", "dwi.nii")
+
+    if args.no_cleanup is False:
+        shutil.rmtree("LPCADenoising")
 ################################################################################
 
 
 
 ### BIAS FIELD CORRECTION ######################################################
 if args.biasfieldcorrection:
-    diffusion_preprocessing_functions.create_avg_b0("dwi.nii", "bval", "bvec")
+    os.makedirs("N4BiasCorrection")
+    os.chdir("N4BiasCorrection")
+
+    diffusion_preprocessing_functions.create_avg_b0(outpath + "dwi.nii", outpath + "bval", outpath + "bvec")
 
     print "Matching Mask and DWI header info"
     diffusion_preprocessing_functions.remove_header('mean_b0.nii', 'mean_b0_bias.nii')
-    diffusion_preprocessing_functions.remove_header('mask.nii', 'mask_bias.nii')
+    diffusion_preprocessing_functions.remove_header(outpath + 'mask.nii', 'mask_bias.nii')
 
     print "Calculating Bias Field"
-    subprocess.call(["N4BiasFieldCorrection", "-d", "3", "-i", "mean_b0_bias.nii", "-x", "mask_bias.nii", "-v", "-o", "[bias_correct.nii,field.nii]"])
+    subprocess.call(["N4BiasFieldCorrection", "-d", "3",
+                     "-i", "mean_b0_bias.nii",
+                     "-x", "mask_bias.nii",
+                     "-v",
+                     "-o", "[bias_correct.nii,field.nii]"])
 
     print "Applying Bias Field"
-    diffusion_preprocessing_functions.apply_bias_field("dwi.nii", "field.nii")
+    diffusion_preprocessing_functions.apply_bias_field(outpath + "dwi.nii", "field.nii")
+
+    os.remove(outpath + "dwi.nii")
+    shutil.copyfile("N4CorrectedDWI.nii", outpath + "dwi.nii")
 
     # Clean up Extra Files
-    if args.cleanup:
-        os.remove("field.nii")
-        os.remove("mask_bias.nii")
-        os.remove("bias_correct.nii")
-        os.remove("mean_b0.nii")
-        os.remove("mean_b0_bias.nii")
+    if args.no_cleanup is False:
+        shutil.rmtree("N4BiasCorrection")
 ################################################################################
 
 
@@ -500,7 +517,9 @@ if (args.software == 'FSL'):
     while True:
         try:
             os.remove('dwi.nii')
-            os.remove('mask.nii')
+
+            if os.path.exist(outpath + "mask.nii"):
+                os.remove('mask.nii')
         except:
             continue
         else:

@@ -23,14 +23,14 @@ def write_index_acqp(dwi_file, bval_file, bvec_file, rpe_file, echo_spacing=0.05
 
     if len(rpe.shape) == 3:
         PA = 1
-        
+
         # Same number of AP and PA images used for TOPUP
         if AP > 1:
             AP = 1
-            
+
     elif len(rpe.shape) == 4:
         PA = rpe.shape[3]
-        
+
         # Same number of AP and PA images used for TOPUP
         if AP > PA:
             AP = PA
@@ -131,7 +131,7 @@ def apply_bias_field(dwi_file, bias_field_file):
         dwi_data[:,:,:,i] = dwi_data[:,:,:,i] / bias_data
 
     dwi = nib.Nifti1Image(dwi_data, dwi.affine, dwi.header)
-    nib.save(dwi, 'dwi.nii')
+    nib.save(dwi, 'N4CorrectedDWI.nii')
 
 def remove_header(img_path, save_path):
     img = nib.load(img_path)
@@ -188,34 +188,7 @@ def organize_by_bval(dwi_file, bval_file, bvec_file):
     np.savetxt(bval_file, bvals, delimiter=' ', fmt='%d')
     np.savetxt(bvec_file, bvecs.T, delimiter=' ', fmt='%f')
 
-def tSNR(dwi_file, bval_file, bvec_file, out_file):
-    # Load Corrected DWI
-    dwi = nib.load(dwi_file)
-    dwi_data = dwi.get_data()
-    dwi_data[np.isnan(dwi_data)] = 0.0
-    
-    # Load in bvals and bvecs
-    bvals, bvecs = dipy.io.read_bvals_bvecs(bval_file, bvec_file)
-    b0s,_,_ = filter_bvals(dwi_data, bvals, bvecs, 50)
-    
-    # Calculate SNR
-    snr = np.mean(b0s, axis=3) / np.std(b0s, axis=3)
-    # Remove nan
-    snr[np.isnan(snr)] = 0.0
-    
-    # Save SNR Map
-    snr_img = nib.Nifti1Image(snr, dwi.affine, dwi.header)
-    nib.save(snr_img, out_file)
-    
 
-def field_map(xfm_file, out_file, echo_spacing = 1):
-    xfm = nib.load(xfm_file)
-    xfm_data = xfm.get_data()[:,:,:,0,1] / echo_spacing
-    xfm_data[np.isnan(xfm_data)] = 0.0
-    xfm_img = nib.Nifti1Image(xfm_data, xfm.affine, xfm.header)
-    nib.save(xfm_img, out_file)
-    
-	
 def filter_bvals(dwi, bvals, bvecs, bval_threshold=10000):
 
     count = 0
@@ -235,6 +208,4 @@ def filter_bvals(dwi, bvals, bvecs, bval_threshold=10000):
             dwi_thresh[:,:,:,index] = dwi[:,:,:,i]
             index += 1
 
-    return dwi_thresh, bval_thresh, bvec_thresh	
-    
-	
+    return dwi_thresh, bval_thresh, bvec_thresh

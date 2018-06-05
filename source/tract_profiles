@@ -59,68 +59,63 @@ os.chdir(outpath)
 
 
 ### Specify Tracts to be Isolated #############################################
-tract_names = ["ForcepsMajor.tck",
-               "ForcepsMinor.tck",
-               "LeftAnteriorThalamicRadiation.tck",
-               "LeftCinculumCingulateGyrus.tck",
+tract_names = ["LeftCingulumCingulateGyrus.tck",
+               "RightCingulumCingulateGyrus.tck",
                "LeftCingulumHippocampalPart.tck",
-               "LeftCorticoSpinalTract.tck",
-               "LeftInferiorFrontoOccipitalFasciculus.tck",
-               "LeftInferiorLongitudinalFasciculus.tck",
-               "LeftSuperiorLongitudinalFasciculus.tck",
-               "LeftSuperiorLongitudinalFasciculusTemporal.tck",
-               "LeftUncinateFasciculus.tck"
-               "RightAnteriorThalamicRadiation.tck",
-               "RightCinculumCingulateGyrus.tck",
                "RightCingulumHippocampalPart.tck",
+               "LeftCorticoSpinalTract.tck",
                "RightCorticoSpinalTract.tck",
-               "RightInferiorFrontoOccipitalFasciculus.tck",
+               "LeftAnteriorThalamicRadiation.tck",
+               "RightAnteriorThalamicRadiation.tck",
+               "LeftSuperiorLongitudinalFasciculus.tck",
+               "RightSuperiorLongitudinalFasiculus.tck",
+               "LeftInferiorLongitudinalFasciculus.tck",
                "RightInferiorLongitudinalFasciculus.tck",
-               "RightSuperiorLongitudinalFasciculus.tck",
-               "RightSuperiorLongitudinalFasciculusTemporal.tck",
-               "RightUncinateFasciculus.tck"]
+               "LeftInferiorFrontoOccipitalFasciculus.tck",
+               "RightInferiorFrontoOccipitalFasciculus.tck",
+               "LeftUncinateFasciculus.tck",
+               "RightUncinateFasciculus.tck",
+               "ForcepsMajor.tck",
+               "ForcepsMinor.tck"]
 
-start_roi = ["FMaj_1",
-             "FMin_1",
-             "L_ATR_1",
-             "L_CCG_1",
-             "L_CH_1",
-             "L_CST_1",
-             "L_IFOF_1",
-             "L_ILF_1",
-             "L_SLF_1",
-             "L_SLFt_1",
-             "L_UF_1",
-             "R_ATR_1",
+start_roi = ["L_CCG_1",
              "R_CCG_1",
+             "L_CH_1",
              "R_CH_1",
+             "L_CST_1",
              "R_CST_1",
-             "R_IFOF_1",
-             "R_ILF_1",
+             "L_ATR_1",
+             "R_ATR_1",
+             "L_SLF_1",
              "R_SLF_1",
-             "R_SLFt_1",
-             "R_UF_1"]
+             "L_ILF_1",
+             "R_ILF_1",
+             "L_IFO_1",
+             "R_IFO_1",
+             "L_UF_1",
+             "R_UF_1",
+             "FMaj_1",
+             "FMin_1"]
 
-end_roi =   ["FMaj_2",
-             "FMin_2",
-             "L_ATR_2",
-             "L_CCG_2",
-             "L_CH_2",
-             "L_CST_2",
-             "L_IFOF_2",
-             "L_ILF_2",
-             "L_SLF_2",
-             "L_SLFt_2",
-             "L_UF_2",
-             "R_ATR_2",
+end_roi =   ["L_CCG_2",
              "R_CCG_2",
+             "L_CH_2",
              "R_CH_2",
+             "L_CST_2",
              "R_CST_2",
-             "R_IFOF_2",
-             "R_ILF_2",
+             "L_ATR_2",
+             "R_ATR_2",
+             "L_SLF_2",
              "R_SLF_2",
-             "R_SLFt_2",
-             "R_UF_2"]
+             "L_ILF_2",
+             "R_ILF_2",
+             "L_IFO_2",
+             "R_IFO_2",
+             "L_UF_2",
+             "R_UF_2",
+             "FMaj_2",
+             "FMin_2"]
+
 
 ### REGISTER MNI to DWI #######################################################
 # Run FLIRT on MNI T1 to subject T1 Space
@@ -143,17 +138,20 @@ subprocess.call(["transformcalc", "dwi2t1_mrtrix.txt", "invert", "t12dwi_mrtrix.
 
 subprocess.call(["mrtransform", "-linear", "t12dwi_mrtrix.txt", "T1.nii.gz", "T1_reg.nii"])
 
-for roi_name in start_roi:
-    current_roi_file = file_location + "/Tractography_ROIs/" + roi_name + ".nii"
+subprocess.call(["applywarp", "-i", file_location + "/Tractography_ROIs/MidLine.nii", "-r", "T1.nii.gz", "-o", "MidLine.nii", "-w", "MNI_T1_warpcoef.nii", "--interp=nn"])
+subprocess.call(["mrtransform", "-interp", "nearest", "-linear", "t12dwi_mrtrix.txt", "MidLine.nii", "MidLine_reg.mif"])
 
-    subprocess.call(["applywarp", "-i", current_roi_file, "-r", "T1.nii.gz", "-o", roi_name + ".nii", "-w", "MNI_T1_warpcoef.nii"])
-    subprocess.call(["mrtransform", "-linear", "t12dwi_mrtrix.txt", roi_name + ".nii", roi_name + "_reg.mif"])
+for roi_name in start_roi:
+    current_roi_file = file_location + "/Tractography_ROIs/" + roi_name
+
+    subprocess.call(["applywarp", "-i", current_roi_file, "-r", "T1.nii.gz", "-o", roi_name + ".nii", "-w", "MNI_T1_warpcoef.nii", "--interp=nn"])
+    subprocess.call(["mrtransform", "-interp", "nearest", "-linear", "t12dwi_mrtrix.txt", roi_name + ".nii", roi_name + "_reg.mif"])
 
 for roi_name in end_roi:
-    current_roi_file = file_location + "/Tractography_ROIs/" + roi_name + ".nii"
+    current_roi_file = file_location + "/Tractography_ROIs/" + roi_name
 
-    subprocess.call(["applywarp", "-i", current_roi_file, "-r", "T1.nii.gz", "-o", roi_name + ".nii", "-w", "MNI_T1_warpcoef.nii"])
-    subprocess.call(["mrtransform", "-linear", "t12dwi_mrtrix.txt", roi_name + ".nii", roi_name + "_reg.mif"])
+    subprocess.call(["applywarp", "-i", current_roi_file, "-r", "T1.nii.gz", "-o", roi_name + ".nii", "-w", "MNI_T1_warpcoef.nii", "--interp=nn"])
+    subprocess.call(["mrtransform","-interp", "nearest", "-linear", "t12dwi_mrtrix.txt", roi_name + ".nii", roi_name + "_reg.mif"])
 
 ###############################################################################
 
@@ -187,7 +185,10 @@ os.chdir("Tracts")
 
 # Create Each Specified Track
 for i in range(len(tract_names)):
-    subprocess.call(["tckgen", "-algorithm", "Tensor_Det", "-seed_image", "../" + start_roi[i] + "_reg.mif", "-include", "../" + end_roi[i] + "_reg.mif", "-maxlength", "250", "-select", "5000", "../dwi.mif", tract_names[i]])
+    subprocess.call(["tckgen", "-algorithm", "Tensor_Det", "-seed_image", "../" + start_roi[i] + "_reg.mif",
+                     "-include", "../" + end_roi[i] + "_reg.mif", "-exclude", "../MidLine_reg.mif",
+                     "-maxlength", "250", "-rk4", "-stop", "-seeds", "500k", "-select", "5000",
+                     "-seed_unidirectional", "../dwi.mif", tract_names[i]])
 
 # Generate Track-wise Parameter Data
 track_values = {}
@@ -242,6 +243,8 @@ os.remove("MNI_T1_warpcoef.nii")
 os.remove("T1.nii.gz")
 os.remove("t12dwi_mrtrix.txt")
 os.remove("Tracts/values.txt")
+os.remove("MidLine.nii")
+os.remove("MidLine_reg.nii")
 
 for i in start_roi:
     while True:
@@ -257,7 +260,7 @@ for i in end_roi:
     while True:
         try:
             os.remove(i + '.nii')
-            os.remove(i + '_reg.mif')
+            #os.remove(i + '_reg.mif')
         except:
             continue
         else:
