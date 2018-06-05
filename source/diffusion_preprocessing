@@ -531,7 +531,7 @@ if args.software == "TORTOISE_STANDARD":
     shutil.copyfile(outpath + "dwi_proc/dwi_DMC.bval", outpath + "bval")
     shutil.copyfile(outpath + "dwi_proc/dwi_DMC.bvec", outpath + "bvec")
 
-    if args.structural != "None:"
+    if args.structural != "None":
         os.remove(outpath + "struct.nii")
         os.copyfile(outpath + "dwi_proc/dwi_DMC_structural.nii")
 
