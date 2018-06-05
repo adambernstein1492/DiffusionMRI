@@ -321,99 +321,146 @@ if args.software == "TORTOISE_DRBUDDI":
 
         # Import NIFTI
         if(args.diffusion_times == "None"):
-            subprocess.call(["ImportNIFTI", "-i", "dwi.nii", "-p", "vertical", "-b", "bval", "-v", "bvec"])
+            subprocess.call(["ImportNIFTI", "-i", "dwi.nii",
+                             "-p", "vertical",
+                             "-b", "bval",
+                             "-v", "bvec"])
         else:
-            subprocess.call(["ImportNIFTI", "-i", "dwi.nii", "-p", "vertical", "-b", "bval", "-v", "bvec",
-                             "-d", args.diffusion_times[0], "-D", args.diffusion_times[1]])
+            subprocess.call(["ImportNIFTI", "-i", "dwi.nii",
+                             "-p", "vertical",
+                             "-b", "bval",
+                             "-v", "bvec",
+                             "-d", args.diffusion_times[0],
+                             "-D", args.diffusion_times[1]])
 
-        subprocess.call(["ImportNIFTI", "-i", "rpe.nii", "-p", "vertical", "-b", "rpe_bval", "-v", "rpe_bvec"])
+        subprocess.call(["ImportNIFTI", "-i", "rpe.nii",
+                         "-p", "vertical",
+                         "-b", "rpe_bval",
+                         "-v", "rpe_bvec"])
 
     elif(args.epidistortion[1] == "All"):
         # Import NIFTI
         if(args.diffusion_times == "None"):
-            subprocess.call(["ImportNIFTI", "-i", "dwi.nii", "-p", "vertical", "-b", "bval", "-v", "bvec"])
-            subprocess.call(["ImportNIFTI", "-i", "rpe.nii", "-p", "vertical", "-b", "rpe_bval", "-v", "rpe_bvec"])
+            subprocess.call(["ImportNIFTI", "-i", "dwi.nii",
+                             "-p", "vertical",
+                            "-b", "bval",
+                            "-v", "bvec"])
+
+            subprocess.call(["ImportNIFTI", "-i", "rpe.nii",
+                             "-p", "vertical",
+                             "-b", "rpe_bval",
+                             "-v", "rpe_bvec"])
         else:
-            subprocess.call(["ImportNIFTI", "-i", "dwi.nii", "-p", "vertical", "-b", "bval", "-v", "bvec",
-                             "-d", args.diffusion_times[0], "-D", args.diffusion_times[1]])
-            subprocess.call(["ImportNIFTI", "-i", "rpe.nii", "-p", "vertical", "-b", "rpe_bval", "-v", "rpe_bvec",
-                             "-d", args.diffusion_times[0], "-D", args.diffusion_times[1]])
+            subprocess.call(["ImportNIFTI", "-i", "dwi.nii",
+                             "-p", "vertical",
+                             "-b", "bval",
+                             "-v", "bvec",
+                             "-d", args.diffusion_times[0],
+                             "-D", args.diffusion_times[1]])
+            subprocess.call(["ImportNIFTI", "-i", "rpe.nii",
+                             "-p", "vertical", "-b", "rpe_bval",
+                             "-v", "rpe_bvec",
+                             "-d", args.diffusion_times[0],
+                             "-D", args.diffusion_times[1]])
 
     # Run DIFFPREP
-    subprocess.call(["DIFFPREP", "-i", "dwi_proc/dwi.list", "-s", "struct.nii", "-c", "quadratic",
-                     "-e", "off", "--denoising", "for_reg", "--gibbs_ringing_correction", "on",
-                     "--will_be_drbuddied", "--is_human_brain", is_human_brain, "--upsampling", "all",
-                     "--dti_bval", "1000", "--MAPMRI_bval", "3000", "--high_b", "1", "--keep_intermediate",
-                     "0", "--res", voxel_size[0], voxel_size[1], voxel_size[2]])
+    subprocess.call(["DIFFPREP", "-i", "dwi_proc/dwi.list",
+                     "-s", "struct.nii",
+                     "-c", "quadratic",
+                     "-e", "off",
+                     "--denoising", "for_reg",
+                     "--gibbs_ringing_correction", "on",
+                     "--will_be_drbuddied",
+                     "--is_human_brain", is_human_brain,
+                     "--upsampling", "all",
+                     "--dti_bval", "1000",
+                     "--MAPMRI_bval", "3000",
+                     "--high_b", "1",
+                     "--keep_intermediate", "0",
+                     "--res", voxel_size[0], voxel_size[1], voxel_size[2]])
 
     rpe = nib.load("rpe.nii")
     if(len(rpe.shape) == 3):
         # Run DR. BUDDI
         subprocess.call(["DR_BUDDI_withoutGUI", "--up_data", "dwi_proc/dwi_proc.list",
-                         "--down_data", "rpe_proc/rpe.list", "--structural", "struct.nii",
-                         "--enforce_deformation_antisymmetry", "1", "distortion_level", distortion_level,
-                         "--n_DWIs", "0", "--res", voxel_size[0], voxel_size[1], voxel_size[2]])
+                         "--down_data", "rpe_proc/rpe.list",
+                         "--structural", "struct.nii",
+                         "--enforce_deformation_antisymmetry", "1",
+                         "distortion_level", distortion_level,
+                         "--n_DWIs", "0",
+                         "--res", voxel_size[0], voxel_size[1], voxel_size[2]])
 
     elif(len(rpe.shape) == 4):
         # Run DIFFPREP on rpe data
-        subprocess.call(["DIFFPREP", "-i", "rpe_proc/rpe.list", "-s", "struct.nii", "-c", "quadratic",
-                         "-e", "off", "--denoising", "for_reg", "--gibbs_ringing_correction", "on",
-                         "--will_be_drbuddied", "--is_human_brain", is_human_brain, "--upsampling", "all",
-                         "--dti_bval", "1000", "--MAPMRI_bval", "3000", "--high_b", "1", "--keep_intermediate",
-                         "0", "--res", voxel_size[0], voxel_size[1], voxel_size[2]])
+        subprocess.call(["DIFFPREP", "-i", "rpe_proc/rpe.list",
+                         "-s", "struct.nii",
+                         "-c", "quadratic",
+                         "-e", "off",
+                         "--denoising", "for_reg",
+                         "--gibbs_ringing_correction", "on",
+                         "--will_be_drbuddied",
+                         "--is_human_brain", is_human_brain,
+                         "--upsampling", "all",
+                         "--dti_bval", "1000",
+                         "--MAPMRI_bval", "3000",
+                         "--high_b", "1",
+                         "--keep_intermediate", "0",
+                         "--res", voxel_size[0], voxel_size[1], voxel_size[2]])
 
         # Run DR. BUDDI
         if(args.epidistortion[1] == "b0"):
             subprocess.call(["DR_BUDDI_withoutGUI", "--up_data", "dwi_proc/dwi_proc.list",
-                             "--down_data", "rpe_proc/rpe_proc.list", "--structural", "struct.nii",
-                             "--n_DWIs", "0", "--enforce_deformation_antisymmetry", "1", "--distortion_level", distortion_level,
+                             "--down_data", "rpe_proc/rpe_proc.list",
+                             "--structural", "struct.nii",
+                             "--n_DWIs", "0",
+                             "--enforce_deformation_antisymmetry", "1",
+                             "--distortion_level", distortion_level,
                              "--res", voxel_size[0], voxel_size[1], voxel_size[2]])
 
             subprocess.call(["TORTOISEBmatrixToFSLBVecs", "dwi_proc_DRBUDDI_proc/dwi_proc_DRBUDDI_up_final.bmtxt"])
 
-            os.remove("bval")
-            os.remove("bvec")
-            os.remove("dwi.nii")
-            os.remove("rpe.nii")
-            os.remove("struct.nii")
+            os.remove(outpath + "bval")
+            os.remove(outpath + "bvec")
+            os.remove(outpath + "dwi.nii")
+            os.remove(outpath + "rpe.nii")
+            os.remove(outpath + "struct.nii")
 
-            shutil.move("dwi_proc_DRBUDDI_proc/dwi_proc_DRBUDDI_up_final.nii", "dwi.nii")
-            shutil.move("dwi_proc_DRBUDDI_proc/dwi_proc_DRBUDDI_up_final.bvals", "bval")
-            shutil.move("dwi_proc_DRBUDDI_proc/dwi_proc_DRBUDDI_up_final.bvecs", "bvec")
-            shutil.move("dwi_proc_DRBUDDI_proc/structural_used.nii", "struct.nii")
+            shutil.copyfile(outpath + "dwi_proc_DRBUDDI_proc/dwi_proc_DRBUDDI_up_final.nii",
+                            outpath + "dwi.nii")
+            shutil.copyfile(outpath + "dwi_proc_DRBUDDI_proc/dwi_proc_DRBUDDI_up_final.bvals",
+                            outpath + "bval")
+            shutil.copyfile(outpath + "dwi_proc_DRBUDDI_proc/dwi_proc_DRBUDDI_up_final.bvecs",
+                            outpath + "bvec")
+            shutil.copyfile(outpath + "dwi_proc_DRBUDDI_proc/structural.nii",
+                            outpath + "struct.nii")
 
         if(args.epidistortion[1] == "All"):
             subprocess.call(["DR_BUDDI_withoutGUI", "--up_data", "dwi_proc/dwi_proc.list",
-                             "--down_data", "rpe_proc/rpe_proc.list", "--structural", "struct.nii",
-                             "--enforce_deformation_antisymmetry", "1", "--distortion_level", distortion_level,
+                             "--down_data", "rpe_proc/rpe_proc.list",
+                             "--structural", "struct.nii",
+                             "--enforce_deformation_antisymmetry", "1",
+                             "--distortion_level", distortion_level,
                              "--res", voxel_size[0], voxel_size[1], voxel_size[2]])
 
             subprocess.call(["TORTOISEBmatrixToFSLBVecs", "dwi_proc_DRBUDDI_proc/dwi_proc_DRBUDDI_final.bmtxt"])
 
-            os.remove("bval")
-            os.remove("bvec")
-            os.remove("dwi.nii")
-            os.remove("rpe.nii")
-            os.remove("struct.nii")
+            os.remove(outpath + "bval")
+            os.remove(outpath + "bvec")
+            os.remove(outpath + "dwi.nii")
+            os.remove(outpath + "rpe.nii")
+            os.remove(outpath + "struct.nii")
 
-            shutil.move("dwi_proc_DRBUDDI_proc/dwi_proc_DRBUDDI_final.nii", "dwi.nii")
-            shutil.move("dwi_proc_DRBUDDI_proc/dwi_proc_DRBUDDI_final.bvals", "bval")
-            shutil.move("dwi_proc_DRBUDDI_proc/dwi_proc_DRBUDDI_final.bvecs", "bvec")
-            shutil.move("dwi_proc_DRBUDDI_proc/structural_used.nii", "struct.nii")
-
-    # Compute SNR and FM
-    #if(len(rpe.shape) == 4):
-        #snr = diffusion_preprocessing_functions.tSNR("dwi_proc_DRBUDDI_proc/rpe_proc_DRBUDDI_down_final.nii",
-        #           "dwi_proc_DRBUDDI_proc/rpe_proc_DRBUDDI_down_final.bvals",
-        #           "dwi_proc_DRBUDDI_proc/rpe_proc_DRBUDDI_down_final.bvecs",
-        #           "snr.nii")
-
-    if(args.field_map != "None"):
-		subprocess.call(["mrconvert", "dwi_proc_DRBUDDI_proc/deformation_FINV.nii.gz", "dwi_proc_DRBUDDI_proc/deformation_FINV.nii"])
-		fm = diffusion_preprocessing_functions.field_map("dwi_proc_DRBUDDI_proc/deformation_FINV.nii", "fm.nii", float(args.field_map))
+            shutil.copyfile(outpath + "dwi_proc_DRBUDDI_proc/dwi_proc_DRBUDDI_final.nii",
+                        outpath + "dwi.nii")
+            shutil.copyfile(outpath + "dwi_proc_DRBUDDI_proc/dwi_proc_DRBUDDI_final.bvals",
+                        outpath + "bval")
+            shutil.copyfile(outpath + "dwi_proc_DRBUDDI_proc/dwi_proc_DRBUDDI_final.bvecs",
+                        outpath + "bvec")
+            shutil.copyfile(outpath + "dwi_proc_DRBUDDI_proc/structural_used.nii",
+                        outpath + "struct.nii")
 
     # Clean up extra files
-    if args.cleanup:
+    if args.no_cleanup is False:
 
         shutil.rmtree("dwi_proc_DRBUDDI_proc")
         shutil.rmtree("dwi_proc")
@@ -439,28 +486,57 @@ if args.software == "TORTOISE_STANDARD":
         is_human_brain = "1"
 
     # Import NIFTI
-    subprocess.call(["ImportNIFTI", "-i", "dwi.nii", "-p", "vertical", "-b", "bval", "-v", "bvec"])
+    subprocess.call(["ImportNIFTI", "-i", "dwi.nii",
+                     "-p", "vertical",
+                     "-b", "bval",
+                     "-v", "bvec"])
 
     if args.structural != "None":
         # Run DIFFPREP with T2
-        subprocess.call(["DIFFPREP", "-i", "dwi_proc/dwi.list", "-s", "struct.nii", "-c",
-                         "quadratic", "-e", "ANTSSyN", "--upsampling", "all", "--dti_bval", "1000",
-                         "--MAPMRI_bval", "3000", "high_b", "1", "--is_human_brain", is_human_brain,
-                         "--keep_intermediate", "0", "--res", voxel_size[0], voxel_size[1],
-                         voxel_size[2], "--will_be_drbuddied", "0"])
+        subprocess.call(["DIFFPREP", "-i", "dwi_proc/dwi.list",
+                         "-s", "struct.nii",
+                         "-c", "quadratic",
+                         "-e", "ANTSSyN",
+                         "--upsampling", "all",
+                         "--dti_bval", "1000",
+                         "--MAPMRI_bval", "3000",
+                         "high_b", "1",
+                         "--is_human_brain", is_human_brain,
+                         "--keep_intermediate", "0",
+                         "--res", voxel_size[0], voxel_size[1], voxel_size[2],
+                         "--will_be_drbuddied", "0"])
 
     if args.structural == "None":
         # Run DIFFPREP without T2
-        subprocess.call(["DIFFPREP", "-i", "dwi_proc/dwi.list", "-c", "quadratic",
-                         "-e", "off", "--upsampling", "all", "--dti_bval", "1000",
-                         "MAPMRI_bval", "3000", "high_b", "1", "--is_human_brain",
-                         is_human_brain, "--keep_intermediate", "0", "--res", voxel_size[0],
-                         voxel_size[1], voxel_size[2], "--will_be_drbuddied", "0"])
+        subprocess.call(["DIFFPREP", "-i", "dwi_proc/dwi.list",
+                         "-c", "quadratic",
+                         "-e", "off",
+                         "--upsampling", "all",
+                         "--dti_bval", "1000",
+                         "MAPMRI_bval", "3000",
+                         "high_b", "1",
+                         "--is_human_brain", is_human_brain,
+                         "--keep_intermediate", "0",
+                         "--res", voxel_size[0], voxel_size[1], voxel_size[2],
+                         "--will_be_drbuddied", "0"])
+
+    subprocess.call(["TORTOISEBmatrixToFSLBVecs", "dwi_proc/dwi_DMC.bmtxt"])
 
     # Move Output to Upper Level
+    os.remove(outpath + "dwi.nii")
+    os.remove(outpath + "bval")
+    os.remove(outpath + "bvec")
+
+    shutil.copyfile(outpath + "dwi_proc/dwi_DMC.nii", outpath + "dwi.nii")
+    shutil.copyfile(outpath + "dwi_proc/dwi_DMC.bval", outpath + "bval")
+    shutil.copyfile(outpath + "dwi_proc/dwi_DMC.bvec", outpath + "bvec")
+
+    if args.structural != "None:"
+        os.remove(outpath + "struct.nii")
+        os.copyfile(outpath + "dwi_proc/dwi_DMC_structural.nii")
 
     # Clean up Extra Files
-    if args.cleanup:
+    if args.no_cleanup is False:
         shutil.rmtree("dwi_proc")
 
     if(args.mask == "None"):
