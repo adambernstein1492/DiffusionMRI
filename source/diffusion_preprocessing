@@ -494,7 +494,7 @@ if args.biasfieldcorrection:
 
     print "Matching Mask and DWI header info"
     diffusion_preprocessing_functions.remove_header('mean_b0.nii', 'mean_b0_bias.nii')
-    if os.path.exist(outpath + "mask.nii") is False:
+    if os.path.exists(outpath + "mask.nii") is False:
         subprocess.call(["dwi2mask", "-fslgrad", outpath + "bval", outpath + "bvec", outpath + "dwi.nii", outpath + "mask.nii"])
     diffusion_preprocessing_functions.remove_header(outpath + 'mask.nii', 'mask_bias.nii')
 
@@ -527,7 +527,7 @@ if (args.software == 'FSL'):
         try:
             os.remove('dwi.nii')
 
-            if os.path.exist(outpath + "mask.nii"):
+            if os.path.exists(outpath + "mask.nii"):
                 os.remove('mask.nii')
         except:
             continue
