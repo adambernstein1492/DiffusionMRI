@@ -200,10 +200,10 @@ if args.software is "FSL" and args.gibbs_ringing_correction:
     os.remove(outpath + "dwi.nii")
     shutil.copyfile("dwi_unring.nii", outpath + "dwi.nii")
 
+    os.chdir(outpath)
+
     if args.no_cleanup is False:
         shutil.rmtree("GibbsRingingCorrection")
-
-    os.chdir(outpath)
 ################################################################################
 
 
