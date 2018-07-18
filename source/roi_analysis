@@ -12,24 +12,24 @@ import io_functions.file_finder as file_finder
 
 
 
-### DEFINE INPUTS ##############################################################
+### DEFINE INPUTS #############################################################
 parser = argparse.ArgumentParser(description="Estimate Statistics on Parameter Values with FreeSurfer ROIs")
 parser.add_argument("-i", "--subject_dir", nargs='+', type=str, help="Subject Directory containing dwi, microstructure, and structural data", default="None")
-parser.add_argument("-p", "--parcellation_name", type=str, help="Choose a predefined parcellation from [FS_default, FS_a2009, AAL, SD_Rat]", choices=["FS_default", "FS_a2009", "AAL", "SD_Rat"], default="FS_default")
 parser.add_argument("-o", "--output", type=str, help="Output Filename", default="None")
 
 args = parser.parse_args()
 file_location = os.path.dirname(__file__)
-################################################################################
+###############################################################################
 
 
 
-### ERROR CHECKING #############################################################
-################################################################################
+### ERROR CHECKING ############################################################
+
+###############################################################################
 
 
 
-### SET UP OUTPUT DIRECTORY ####################################################
+### SET UP OUTPUT DIRECTORY ###################################################
 present_dir = os.getcwd()
 outpath = args.output[:-4] + '_temp/'
 os.makedirs(outpath)
@@ -43,50 +43,28 @@ os.environ["FSLOUTPUTTYPE"] = "NIFTI"
 Subject_ROIs = {}
 for subject in subject_dir:
     # Copy parcellated images depending on parcellation used
-    if args.parcellation_name == 'FS_default':
-        subprocess.call(["mri_convert", (subject + "FreeSurfer/mri/wmparc.mgz"), (outpath + "parc.nii")])
-        subprocess.call(["fslreorient2std", (outpath + "parc.nii"), (outpath + "parc_std.nii")])
-        os.remove(outpath + "parc.nii")
-        shutil.move(outpath + "parc_std.nii", outpath + "parc.nii")
-        subprocess.call(["mri_convert", (subject + "FreeSurfer/mri/orig.mgz"), (outpath + "t1.nii")])
-        subprocess.call(["fslreorient2std", (outpath + "t1.nii"), (outpath + "t1_std.nii")])
-        os.remove(outpath + "t1.nii")
-        shutil.move(outpath + "t1_std.nii", outpath + "t1.nii")
-        #shutil.copyfile((subject_dir + "FreeSurfer/stats/lh.aparc.stats"), (outpath + "lh.aparc.stats"))
-        #shutil.copyfile((subject_dir + "FreeSurfer/stats/rh.aparc.stats"), (outpath + "rh.aparc.stats"))
-        #shutil.copyfile((subject_dir + "FreeSurfer/stats/wmparc.stats"), (outpath + "wmparc.stats"))
-
-    if args.parcellation_name == 'FS_a2009':
-        subprocess.call(["mri_convert", (subject + "FreeSurfer/mri/aparc.a2009s+aseg.mgz"), (outpath + "parc.nii")])
-        subprocess.call(["fslreorient2std", (outpath + "parc.nii"), (outpath + "parc_std.nii")])
-        os.remove(outpath + "parc.nii")
-        shutil.move(outpath + "parc_std.nii", outpath + "parc.nii")
-        subprocess.call(["mri_convert", (subject + "FreeSurfer/mri/orig.mgz"), (outpath + "t1.nii")])
-        subprocess.call(["fslreorient2std", (outpath + "t1.nii"), (outpath + "t1_std.nii")])
-        os.remove(outpath + "t1.nii")
-        shutil.move(outpath + "t1_std.nii", outpath + "t1.nii")
-        #shutil.copyfile((t1_path + "FreeSurfer/stats/lh.aparc.a2009s.stats"), (outpath + "lh.aparc.a2009s.stats"))
-        #shutil.copyfile((t1_path + "FreeSurfer/stats/rh.aparc.a2009s.stats"), (outpath + "rh.aparc.a2009s.stats"))
-
-    ### TODO ###
-    # Add more atlases (will require different registration procedure)
-    if args.parcellation_name == 'AAL':
-        pass
-    if args.parcellation_name == 'SD_Rat':
-        pass
-    ### TODO ###
+    subprocess.call(["mri_convert", (subject + "FreeSurfer/mri/aparc+aseg.mgz"), (outpath + "parc.nii")])
+    subprocess.call(["fslreorient2std", (outpath + "parc.nii"), (outpath + "parc_std.nii")])
+    os.remove(outpath + "parc.nii")
+    shutil.move(outpath + "parc_std.nii", outpath + "parc.nii")
+    subprocess.call(["mri_convert", (subject + "FreeSurfer/mri/orig.mgz"), (outpath + "t1.nii")])
+    subprocess.call(["fslreorient2std", (outpath + "t1.nii"), (outpath + "t1_std.nii")])
+    os.remove(outpath + "t1.nii")
+    shutil.move(outpath + "t1_std.nii", outpath + "t1.nii")
 
     shutil.copyfile((subject + "DiffPreproc/dwi.nii"), (outpath + "dwi.nii"))
     subprocess.call(["fslreorient2std", (outpath + "dwi.nii"), (outpath + "dwi_std.nii")])
     os.remove(outpath + "dwi.nii")
-    shutil.move(outpath + "dwi_std.nii", outpath + "dwi.nii")
+    shutil.move(outpath + "dwi_std.nii", outpath + "dwi.nii")  
+    shutil.copyfile(file_location + "/Atlases/ICBM_81_FA.nii", outpath + "FA_temp.nii")
+    shutil.copyfile(file_location + "/Atlases/ICBM_81_Parc.nii", outpath + "WM_parc.nii")
 
     param_map_copy = []
     parameter_maps = file_finder.scan_for_nifti((subject + 'MicroStructure'), [])
     for param_map in parameter_maps:
         # Only take 3D Images, not 4D or greater
-        param = nib.load(param_map)
-        
+        param = nib.load(param_map)      
+
         if len(param.shape) == 3:
             shutil.copyfile(param_map, (outpath + os.path.split(param_map)[1]))
             param_map_copy.append(os.path.split(param_map)[1])
@@ -95,10 +73,11 @@ for subject in subject_dir:
             shutil.move(outpath + "temp_std.nii", outpath + param_map_copy[-1])
 
     os.chdir(outpath)
-    ################################################################################
+    ###########################################################################
 
 
-    ### REGISTER DWI TO T1 #########################################################
+
+    ### REGISTER DWI TO T1 ####################################################
     # Run BET on T1
     subprocess.call(["bet", "t1.nii", "brain.nii", "-f", "0.5", "-R"])
 
@@ -114,29 +93,32 @@ for subject in subject_dir:
 
     # Can now remove T1 and DWI to save more room
     os.remove('dwi.nii')
-    ################################################################################
+    ###########################################################################
+    
+    
+    
+    ### REGISTER ICBM TO SUBJECT ##############################################
+    print("Running FLIRT")
+    subprocess.call(["flirt", "-in", "FA_temp.nii", "-ref", "FA.nii", "-omat", "FA2FA.mat"])
+    
+    print("Running FNIRT")
+    subprocess.call(["fnirt", "--ref=FA.nii", "--in=FA_temp.nii", "--aff=FA2FA.mat", "--cout=warp_coeffs.nii"])
+    
+    print("Applying Warp to WM ROIs")
+    subprocess.call(["applywarp", "-i", "WM_parc.nii", "-o", "WM_parc_reg.nii", "-r", "FA.nii", "-w", "warp_coeffs.nii"])
+    ###########################################################################
 
 
 
-    ### PERFORM ROI ANALYSIS FOR ALL PARAMETER MAPS #################################
-    # Select specified LUT
-    if args.parcellation_name == 'FS_default':
-        LUT_location = file_location + "/config/fs_default_wm.txt"
-
-    if args.parcellation_name == 'FS_a2009':
-        LUT_location = file_location + "/config/fs_a2009_roi.txt"
-
-    if args.parcellation_name == 'AAL':
-        LUT_location = file_location + "/config/aal.txt"
-
-    if args.parcellation_name == 'SD_Rat':
-        LUT_location = file_location + "/config/sd_rat.txt"
+    ### PERFORM ROI ANALYSIS FOR ALL PARAMETER MAPS ###########################
+    GM_LUT_location = file_location + "/config/fs_default_gm.txt"
+    WM_LUT_location = file_location + "/config/ICBM_82_LUT.txt"
 
     param_stats = {}
     for param_map in param_map_copy:
         # Transform Current Parameter Map
         subprocess.call(["flirt", "-interp", "spline", "-in", param_map, "-ref", "t1.nii", "-applyxfm", "-init", "dwi2t1.mat", "-out", param_map[:-4] + "_reg"])
-        param_stats[param_map[:-4]] = roi_functions.calc_roi_stats(param_map[:-4] + "_reg.nii", LUT_location)
+        param_stats[param_map[:-4]] = roi_functions.calc_roi_stats(param_map[:-4] + "_reg.nii", GM_LUT_location, WM_LUT_location)
 
         # Remove parameter maps as they are large
         os.remove(param_map)
@@ -145,11 +127,11 @@ for subject in subject_dir:
     subject_path,subject_name = os.path.split(subject[:-1])
     Subject_ROIs["subj" + subject_name] = param_stats
 
-    ### CLEAN UP EXTRA FILES #######################################################
+    ### CLEAN UP EXTRA FILES ##################################################
     os.remove('dwi2t1.mat')
     os.remove('parc.nii')
     os.remove('t1.nii')
-    ################################################################################
+    ###########################################################################
 
     os.chdir(present_dir)
 
