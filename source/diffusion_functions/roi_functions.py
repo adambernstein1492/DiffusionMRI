@@ -9,11 +9,11 @@ def calc_roi_stats(param_map_path, gm_lut, wm_lut):
     params[np.isnan(params)] = 0.0
 
     # Load in aparc+aseg ROIs and save voxel size
-    gm_rois = nib.load("parc.nii")
+    gm_rois = nib.load("GM_parc_reg.nii")
     voxel_size = gm_rois.header.get_zooms()
     voxel_volume = voxel_size[0] * voxel_size[1] * voxel_size[2]
     gm_rois = gm_rois.get_data()
-    
+
     wm_rois = nib.load("WM_parc_reg.nii")
     wm_rois = wm_rois.get_data()
 
@@ -24,10 +24,10 @@ def calc_roi_stats(param_map_path, gm_lut, wm_lut):
     gm_regions = []
     for line in lines:
         gm_regions.append(line.split())
-        
+
     with open(wm_lut) as f:
         lines = f.readlines()
-        
+
     wm_regions = []
     for line in lines:
         wm_regions.append(line.split())
@@ -54,14 +54,14 @@ def calc_roi_stats(param_map_path, gm_lut, wm_lut):
                 region_stats['region_max'][i] = np.amax(param_values)
                 region_stats['region_std'][i] = np.std(param_values)
                 region_stats['region_volume'][i] = len(param_values) * voxel_volume
-            
+
         if i >= len(gm_regions):
             j = i - len(gm_regions)
-                
+
             param_values = params[wm_rois == int(wm_regions[j][0])]
-            
+
             region_stats['region_name'].append(wm_regions[j][1])
-            
+
             if len(param_values) != 0:
                 region_stats['region_mean'][i] = np.mean(param_values)
                 region_stats['region_median'][i] = np.median(param_values)

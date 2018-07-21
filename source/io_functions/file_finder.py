@@ -34,6 +34,24 @@ def scan_for_nifti(start_directory, files):
 
     return files
 
+def scan_for_FA(start_directory, files):
+    file_and_dir_names = os.listdir(start_directory)
+
+    if (start_directory[-1] != '/'):
+        start_directory += '/'
+
+    for i in file_and_dir_names:
+        # Look for matching files in current directory
+
+        if ((i == 'FA.nii') and os.path.isfile(start_directory + i)):
+            files.append(os.path.abspath(start_directory + i))
+
+        # Look in sub-directories
+        if os.path.isdir(start_directory + i):
+            files = scan_for_FA(os.path.abspath(start_directory + i), files)
+
+    return files
+
 def scan_for_diffusion_imgs(start_directory, bvals):
     file_and_dir_names = os.listdir(start_directory)
 

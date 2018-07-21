@@ -42,47 +42,48 @@ os.environ["FSLOUTPUTTYPE"] = "NIFTI"
 
 Subject_ROIs = {}
 for subject in subject_dir:
-    # Copy parcellated images depending on parcellation used
+    # Copy parcellated images and ensure they are in standard space
+    ## FreeSurefer Parcellation
     subprocess.call(["mri_convert", (subject + "FreeSurfer/mri/aparc+aseg.mgz"), (outpath + "parc.nii")])
     subprocess.call(["fslreorient2std", (outpath + "parc.nii"), (outpath + "parc_std.nii")])
     os.remove(outpath + "parc.nii")
-    shutil.move(outpath + "parc_std.nii", outpath + "parc.nii")
+    shutil.move(outpath + "parc_std.nii", outpath + "GM_parc.nii")
+
+    ## T1 Image (for reg)
     subprocess.call(["mri_convert", (subject + "FreeSurfer/mri/orig.mgz"), (outpath + "t1.nii")])
     subprocess.call(["fslreorient2std", (outpath + "t1.nii"), (outpath + "t1_std.nii")])
     os.remove(outpath + "t1.nii")
     shutil.move(outpath + "t1_std.nii", outpath + "t1.nii")
 
+    ## DWI (for reg)
     shutil.copyfile((subject + "DiffPreproc/dwi.nii"), (outpath + "dwi.nii"))
     subprocess.call(["fslreorient2std", (outpath + "dwi.nii"), (outpath + "dwi_std.nii")])
     os.remove(outpath + "dwi.nii")
-    shutil.move(outpath + "dwi_std.nii", outpath + "dwi.nii")  
+    shutil.move(outpath + "dwi_std.nii", outpath + "dwi.nii")
+
+    ## WM Templates
     shutil.copyfile(file_location + "/Atlases/ICBM_81_FA.nii", outpath + "FA_temp.nii")
     shutil.copyfile(file_location + "/Atlases/ICBM_81_Parc.nii", outpath + "WM_parc.nii")
 
-    param_map_copy = []
-    parameter_maps = file_finder.scan_for_nifti((subject + 'MicroStructure'), [])
-    for param_map in parameter_maps:
-        # Only take 3D Images, not 4D or greater
-        param = nib.load(param_map)      
-
-        if len(param.shape) == 3:
-            shutil.copyfile(param_map, (outpath + os.path.split(param_map)[1]))
-            param_map_copy.append(os.path.split(param_map)[1])
-            subprocess.call(["fslreorient2std", (outpath + param_map_copy[-1]), (outpath + "temp_std.nii")])
-            os.remove(outpath + param_map_copy[-1])
-            shutil.move(outpath + "temp_std.nii", outpath + param_map_copy[-1])
-
+    outpath = os.path.abspath(outpath) + '/'
     os.chdir(outpath)
     ###########################################################################
 
 
 
-    ### REGISTER DWI TO T1 ####################################################
+    ### REGISTER T1 TO DWI ####################################################
     # Run BET on T1
     subprocess.call(["bet", "t1.nii", "brain.nii", "-f", "0.5", "-R"])
 
     # Register dwi to T1
     subprocess.call(["epi_reg", "--epi=dwi.nii", "--t1=t1.nii", "--t1brain=brain.nii", "--out=dwi2t1"])
+
+    # Convert Registration Matrix to MRTrix Format
+    subprocess.call(["transformconvert", "dwi2t1.mat", "dwi.nii", "t1.nii", "flirt_import", "dwi2t1_mrtrix.txt"])
+
+    # Apply Inverse Transform to Parcellation
+    subprocess.call(["transformcalc", "dwi2t1_mrtrix.txt", "invert", "t12dwi_mrtrix.txt"])
+    subprocess.call(["mrtransform", "-template", "dwi.nii", "-interp", "nearest", "-linear", "t12dwi_mrtrix.txt", "GM_parc.nii", "GM_parc_reg.nii"])
 
     # Remove large, unnecessary files
     os.remove('dwi2t1.nii')
@@ -94,18 +95,20 @@ for subject in subject_dir:
     # Can now remove T1 and DWI to save more room
     os.remove('dwi.nii')
     ###########################################################################
-    
-    
-    
+
+
+
     ### REGISTER ICBM TO SUBJECT ##############################################
+    # Find FA file
+    fa_location = file_finder.scan_for_FA(subject + 'MicroStructure', [])
     print("Running FLIRT")
-    subprocess.call(["flirt", "-in", "FA_temp.nii", "-ref", "FA.nii", "-omat", "FA2FA.mat"])
-    
+    subprocess.call(["flirt", "-in", "FA_temp.nii", "-ref", fa_location[0], "-omat", "FA2FA.mat"])
+
     print("Running FNIRT")
-    subprocess.call(["fnirt", "--ref=FA.nii", "--in=FA_temp.nii", "--aff=FA2FA.mat", "--cout=warp_coeffs.nii"])
-    
+    subprocess.call(["fnirt", "--ref=" + fa_location[0], "--in=FA_temp.nii", "--aff=FA2FA.mat", "--cout=warp_coeffs.nii"])
+
     print("Applying Warp to WM ROIs")
-    subprocess.call(["applywarp", "-i", "WM_parc.nii", "-o", "WM_parc_reg.nii", "-r", "FA.nii", "-w", "warp_coeffs.nii"])
+    subprocess.call(["applywarp", "-i", "WM_parc.nii", "-o", "WM_parc_reg.nii", "-r", fa_location[0], "-w", "warp_coeffs.nii"])
     ###########################################################################
 
 
@@ -115,25 +118,30 @@ for subject in subject_dir:
     WM_LUT_location = file_location + "/config/ICBM_82_LUT.txt"
 
     param_stats = {}
-    for param_map in param_map_copy:
-        # Transform Current Parameter Map
-        subprocess.call(["flirt", "-interp", "spline", "-in", param_map, "-ref", "t1.nii", "-applyxfm", "-init", "dwi2t1.mat", "-out", param_map[:-4] + "_reg"])
-        param_stats[param_map[:-4]] = roi_functions.calc_roi_stats(param_map[:-4] + "_reg.nii", GM_LUT_location, WM_LUT_location)
+    # Find All Parameter maps for given subject (Assumes 'MicroStructure' Folder)
+    parameter_maps = file_finder.scan_for_nifti((subject+'MicroStructure'), [])
 
-        # Remove parameter maps as they are large
-        os.remove(param_map)
-        os.remove(param_map[:-4] + "_reg.nii")
+    for param_map in parameter_maps:
+        # Load in Parameter maps
+        param = nib.load(param_map)
+
+        # Only take 3D Images, not 4D or greater (avoiding DEC maps ect...)
+        if len(param.shape) == 3:
+            # Copy parameter map
+            shutil.copyfile(param_map, (outpath + os.path.split(param_map)[1]))
+
+            # Reorient to std
+            subprocess.call(["fslreorient2std", param_map, (outpath + os.path.split(param_map)[1])])
+
+            # Transform Current Parameter Map
+            param_stats[os.path.split(param_map)[1][:-4]] = roi_functions.calc_roi_stats(outpath + os.path.split(param_map)[1], GM_LUT_location, WM_LUT_location)
 
     subject_path,subject_name = os.path.split(subject[:-1])
     Subject_ROIs["subj" + subject_name] = param_stats
 
-    ### CLEAN UP EXTRA FILES ##################################################
-    os.remove('dwi2t1.mat')
-    os.remove('parc.nii')
-    os.remove('t1.nii')
-    ###########################################################################
-
     os.chdir(present_dir)
 
-shutil.rmtree(outpath)
-sio.savemat(args.output, Subject_ROIs)
+    shutil.rmtree(outpath)
+
+#shutil.rmtree(outpath)
+sio.savemat(args.output, Subject_ROIs,long_field_names=True)
