@@ -273,7 +273,6 @@ if args.software == "FSL":
     if ((args.eddycurrentcorrection is True) and (args.epidistortion == "None")):
         os.makedirs("EDDY")
         os.chdir("EDDY")
-        print outpath
 
         # Create ACQP and INDEX text files
         diffusion_preprocessing_functions.no_topup_index_acqp(outpath + 'bval', outpath + 'bvec')
@@ -534,7 +533,7 @@ if args.software == "TORTOISE_STANDARD":
 
     if args.structural != "None":
         os.remove(outpath + "struct.nii")
-        shutil.copyfile(outpath + "dwi_proc/dwi_DMC_structural.nii")
+        shutil.copyfile(outpath + "dwi_proc/dwi_DMC_structural.nii", outpath + "struct.nii")
 
     # Clean up Extra Files
     if args.no_cleanup is False:
