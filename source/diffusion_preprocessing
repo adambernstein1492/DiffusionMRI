@@ -185,6 +185,9 @@ if args.voxel_size == "None":
 
 else:
      voxel_size = args.voxel_size
+
+# Create Log File
+log_file = open("log.txt", "w+")
 ################################################################################
 
 
@@ -204,6 +207,8 @@ if args.software is "FSL" and args.gibbs_ringing_correction:
 
     if args.no_cleanup is False:
         shutil.rmtree("GibbsRingingCorrection")
+
+    log_file.write("Completed Gibbs Ringing Correction\n")
 ################################################################################
 
 
@@ -238,6 +243,7 @@ if args.software == "FSL":
             shutil.move("brain_mask.nii", outpath + "mask.nii")
 
         os.chdir(outpath)
+        log_file.write("Completed TOPUP\n")
 
         # Run EDDY if specified
         if args.eddycurrentcorrection:
@@ -264,6 +270,7 @@ if args.software == "FSL":
             shutil.move("dwi_eddy.eddy_rotated_bvecs", outpath + "bvec")
 
             os.chdir(outpath)
+            log_file.write("Completed EDDY\n")
 
         # Clean up extra files
         if args.no_cleanup is False:
@@ -298,6 +305,7 @@ if args.software == "FSL":
         shutil.copyfile("dwi_eddy.eddy_rotated_bvecs", outpath + "bvec")
 
         os.chdir(outpath)
+        log_file.write("Completed Eddy\n")
 
         # Clean up extra files
         if args.no_cleanup is False:
@@ -379,6 +387,8 @@ if args.software == "TORTOISE_DRBUDDI":
                      "--keep_intermediate", "0",
                      "--res", voxel_size[0], voxel_size[1], voxel_size[2]])
 
+    log_file.write("Completed DiffPrep\n")
+
     rpe = nib.load("rpe.nii")
     if(len(rpe.shape) == 3):
         # Run DR. BUDDI
@@ -417,6 +427,8 @@ if args.software == "TORTOISE_DRBUDDI":
                              "--distortion_level", distortion_level,
                              "--res", voxel_size[0], voxel_size[1], voxel_size[2]])
 
+            log_file.write("Completed DRBUDDI\n")
+
             subprocess.call(["TORTOISEBmatrixToFSLBVecs", "dwi_proc_DRBUDDI_proc/dwi_proc_DRBUDDI_up_final.bmtxt"])
 
             os.remove(outpath + "bval")
@@ -441,6 +453,8 @@ if args.software == "TORTOISE_DRBUDDI":
                              "--enforce_deformation_antisymmetry", "1",
                              "--distortion_level", distortion_level,
                              "--res", voxel_size[0], voxel_size[1], voxel_size[2]])
+
+            log_file.write("Completed DRBUDDI\n")
 
             subprocess.call(["TORTOISEBmatrixToFSLBVecs", "dwi_proc_DRBUDDI_proc/dwi_proc_DRBUDDI_final.bmtxt"])
 
@@ -506,6 +520,8 @@ if args.software == "TORTOISE_STANDARD":
                          "--res", voxel_size[0], voxel_size[1], voxel_size[2],
                          "--will_be_drbuddied", "0"])
 
+        log_file.write("Completed DiffPrep\n")
+
     if args.structural == "None":
         # Run DIFFPREP without T2
         subprocess.call(["DIFFPREP", "-i", "dwi_proc/dwi.list",
@@ -519,6 +535,8 @@ if args.software == "TORTOISE_STANDARD":
                          "--keep_intermediate", "0",
                          "--res", voxel_size[0], voxel_size[1], voxel_size[2],
                          "--will_be_drbuddied", "0"])
+
+        log_file.write("Completed DiffPrep\n")
 
     subprocess.call(["TORTOISEBmatrixToFSLBVecs", "dwi_proc/dwi_DMC.bmtxt"])
 
@@ -557,6 +575,8 @@ if args.denoising:
 
     if args.no_cleanup is False:
         shutil.rmtree("LPCADenoising")
+
+    log_file.write("Completed Denoising\n")
 ################################################################################
 
 
@@ -570,6 +590,16 @@ if args.biasfieldcorrection:
 
     print "Matching Mask and DWI header info"
     diffusion_preprocessing_functions.remove_header('mean_b0.nii', 'mean_b0_bias.nii')
+
+    if os.path.exists(outpath + "mask.nii") is True and args.software != 'FSL':
+        subprocess.call(["mrresize", "-interp", "nearest", "-voxel",
+                         (voxel_size[0]+","+voxel_size[1]+","+voxel_size[2]),
+                         "mask.nii", "mask_up.nii"])
+
+        os.remove("mask.nii")
+        shutil.move("mask_up.nii", "mask.nii")
+
+
     if os.path.exists(outpath + "mask.nii") is False:
         subprocess.call(["dwi2mask", "-fslgrad", outpath + "bvec", outpath + "bval", outpath + "dwi.nii", outpath + "mask.nii"])
     diffusion_preprocessing_functions.remove_header(outpath + 'mask.nii', 'mask_bias.nii')
@@ -589,11 +619,13 @@ if args.biasfieldcorrection:
     os.remove(outpath + "dwi.nii")
     shutil.copyfile("N4CorrectedDWI.nii", outpath + "dwi.nii")
 
+    os.chdir(outpath)
+
     # Clean up Extra Files
     if args.no_cleanup is False:
         shutil.rmtree("N4BiasCorrection")
 
-    os.chdir(outpath)
+    log_file.write("Completed Bias Field Correction\n")
 ################################################################################
 
 
@@ -615,4 +647,8 @@ if (args.software == 'FSL'):
 
     if(args.mask == "None"):
         subprocess.call(["dwi2mask", "-fslgrad", "bvec", "bval", "dwi.nii", "mask.nii"])
+
+    log_file.write("Completed Interpolation\n")
 ################################################################################
+
+log_file.close()
