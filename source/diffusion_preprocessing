@@ -594,17 +594,15 @@ if args.biasfieldcorrection:
     if os.path.exists(outpath + "mask.nii") is True and args.software != 'FSL':
         subprocess.call(["mrresize", "-interp", "nearest", "-voxel",
                          (voxel_size[0]+","+voxel_size[1]+","+voxel_size[2]),
-                         "mask.nii", "mask_up.nii"])
+                         outpath + "mask.nii", outpath + "mask_up.nii"])
 
-        os.remove("mask.nii")
-        shutil.move("mask_up.nii", "mask.nii")
-
+        os.remove(outpath + "mask.nii")
+        shutil.move(outpath + "mask_up.nii", outpath + "mask.nii")
 
     if os.path.exists(outpath + "mask.nii") is False:
         subprocess.call(["dwi2mask", "-fslgrad", outpath + "bvec", outpath + "bval", outpath + "dwi.nii", outpath + "mask.nii"])
+
     diffusion_preprocessing_functions.remove_header(outpath + 'mask.nii', 'mask_bias.nii')
-
-
 
     print "Calculating Bias Field"
     subprocess.call(["N4BiasFieldCorrection", "-d", "3",
