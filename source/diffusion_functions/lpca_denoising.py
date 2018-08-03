@@ -23,7 +23,7 @@ def lpca_denoising(data_path, bvals_path, bvecs_path, out_path, kernel_size=5, n
     # Perform PCA Denoising
     count = 0.0
     percent_prev = 0.0
-    
+
     num_vox = data.shape[0] * data.shape[1] * data.shape[2]
     for i in range (data.shape[0]):
         for j in range(data.shape[1]):
@@ -147,12 +147,12 @@ def noise_map(data, bvals, kernel_size=3, threshold_factor=2.3):
                 std = np.std(noise[i:i+3,j:j+3,k:k+3])
                 sig = np.mean(signal[i:i+3,j:j+3,k:k+3])
 
-                snr = sig/std
-
                 if sig == 0:
                     snr = 0
-                if std == 0 and sig != 0:
+                elif std == 0 and sig != 0:
                     snr = sig / 0.01
+                else:
+                    snr = sig/std
 
                 # Correct for Rician Noise
                 I0 = scipy.special.jv(0,snr**2/4)
