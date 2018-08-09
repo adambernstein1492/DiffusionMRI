@@ -108,7 +108,7 @@ for subject in subject_dir:
     subprocess.call(["fnirt", "--ref=" + fa_location[0], "--in=FA_temp.nii", "--aff=FA2FA.mat", "--cout=warp_coeffs.nii"])
 
     print("Applying Warp to WM ROIs")
-    subprocess.call(["applywarp", "-i", "WM_parc.nii", "-o", "WM_parc_reg.nii", "-r", fa_location[0], "-w", "warp_coeffs.nii"])
+    subprocess.call(["applywarp", "-i", "WM_parc.nii", "-o", "WM_parc_reg.nii", "-r", fa_location[0], "-w", "warp_coeffs.nii", "-interp=nn"])
     ###########################################################################
 
 
