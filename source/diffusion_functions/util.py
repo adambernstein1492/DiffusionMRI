@@ -144,6 +144,10 @@ def determine_map_order(bval_path, bvec_path):
         if num_high_bval > threshold and num_unique_bvec > threshold:
             order = i
 
+        # Nothing Higher than 6
+        if order > 6:
+            order = 6
+
     return order
 
 
