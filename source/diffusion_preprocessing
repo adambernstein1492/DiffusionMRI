@@ -149,7 +149,11 @@ if os.path.isdir(outpath):
 else:
     os.makedirs(outpath)
 
-shutil.copyfile(args.Image, (outpath + 'dwi.nii'))
+if args.Image[-3:] == '.gz':
+	subprocess.call(["mrconvert", args.Image, outpath + 'dwi.nii'])
+else:
+	shutil.copyfile(args.Image, (outpath + 'dwi.nii'))
+
 shutil.copyfile(args.bval, (outpath + 'bval'))
 shutil.copyfile(args.bvec, (outpath + 'bvec'))
 
