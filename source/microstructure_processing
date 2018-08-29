@@ -90,7 +90,7 @@ if args.Output[-1] != "/":
     outpath = args.Output + "/"
 else:
     outpath = args.Output
-os.mkdir(outpath)
+os.makedirs(outpath)
 
 # Create Temporary Mask
 if args.mask == "None":
