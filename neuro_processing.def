@@ -13,7 +13,7 @@ export SINGULARITY_SHELL="/bin/bash --norc"
 # Set PATH for most Software
 PATH=/software/anaconda2/bin:$PATH
 PATH=/software/mrtrix3/bin:$PATH
-PATH=/software/dcm2niix/bin:$PATH
+PATH=/software/dcm2niix/bin/bin:$PATH
 PATH=/software/DiffusionMRI/source:$PATH
 PATH=/software/ANTs/bin/bin:$PATH
 PATH=/software/TORTOISE/DIFFPREPV31/bin/bin:$PATH

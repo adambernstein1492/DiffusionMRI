@@ -14,7 +14,9 @@ import io_functions.file_finder as file_finder
 
 ### DEFINE INPUTS #############################################################
 parser = argparse.ArgumentParser(description="Estimate Statistics on Parameter Values with FreeSurfer ROIs")
-parser.add_argument("-i", "--subject_dir", nargs='+', type=str, help="Subject Directory containing dwi, microstructure, and structural data", default="None")
+parser.add_argument("-m", "--microstruct_dir", nargs='+', type=str, help="Subject Directory containing microstructure data", default="None")
+parser.add_argument("-s", "--structural_dir", nargs='+', type=str, help="Subject Directory containing structural data", default="None")
+parser.add_argument("-d", "--dwi_dir", nargs='+', type=str, help="Subject Directory containing dwi data", default="None")
 parser.add_argument("-o", "--output", type=str, help="Output Filename", default="None")
 
 args = parser.parse_args()
@@ -34,114 +36,109 @@ present_dir = os.getcwd()
 outpath = args.output[:-4] + '_temp/'
 os.makedirs(outpath)
 
-subject_dir = []
-for i in range(len(args.subject_dir)):
-    subject_dir.append(os.path.abspath(args.subject_dir[i]) + '/')
-
 os.environ["FSLOUTPUTTYPE"] = "NIFTI"
 
 Subject_ROIs = {}
-for subject in subject_dir:
-    # Copy parcellated images and ensure they are in standard space
-    ## FreeSurefer Parcellation
-    subprocess.call(["mri_convert", (subject + "FreeSurfer/mri/aparc+aseg.mgz"), (outpath + "parc.nii")])
-    subprocess.call(["fslreorient2std", (outpath + "parc.nii"), (outpath + "parc_std.nii")])
-    os.remove(outpath + "parc.nii")
-    shutil.move(outpath + "parc_std.nii", outpath + "GM_parc.nii")
+# Copy parcellated images and ensure they are in standard space
+## FreeSurefer Parcellation
+subprocess.call(["mri_convert", (args.structural_dir + "/mri/aparc+aseg.mgz"), (outpath + "parc.nii")])
+subprocess.call(["fslreorient2std", (outpath + "parc.nii"), (outpath + "parc_std.nii")])
+os.remove(outpath + "parc.nii")
+shutil.move(outpath + "parc_std.nii", outpath + "GM_parc.nii")
 
-    ## T1 Image (for reg)
-    subprocess.call(["mri_convert", (subject + "FreeSurfer/mri/orig.mgz"), (outpath + "t1.nii")])
-    subprocess.call(["fslreorient2std", (outpath + "t1.nii"), (outpath + "t1_std.nii")])
-    os.remove(outpath + "t1.nii")
-    shutil.move(outpath + "t1_std.nii", outpath + "t1.nii")
+## T1 Image (for reg)
+subprocess.call(["mri_convert", (args.structural_dir + "/mri/orig.mgz"), (outpath + "t1.nii")])
+subprocess.call(["fslreorient2std", (outpath + "t1.nii"), (outpath + "t1_std.nii")])
+os.remove(outpath + "t1.nii")
+shutil.move(outpath + "t1_std.nii", outpath + "t1.nii")
 
-    ## DWI (for reg)
-    shutil.copyfile((subject + "DiffPreproc/dwi.nii"), (outpath + "dwi.nii"))
-    subprocess.call(["fslreorient2std", (outpath + "dwi.nii"), (outpath + "dwi_std.nii")])
-    os.remove(outpath + "dwi.nii")
-    shutil.move(outpath + "dwi_std.nii", outpath + "dwi.nii")
+## DWI (for reg)
+shutil.copyfile((args.dwi_dir + /dwi.nii"), (outpath + "dwi.nii"))
+subprocess.call(["fslreorient2std", (outpath + "dwi.nii"), (outpath + "dwi_std.nii")])
+os.remove(outpath + "dwi.nii")
+shutil.move(outpath + "dwi_std.nii", outpath + "dwi.nii")
 
-    ## WM Templates
-    shutil.copyfile(file_location + "/Atlases/ICBM_81_FA.nii", outpath + "FA_temp.nii")
-    shutil.copyfile(file_location + "/Atlases/ICBM_81_Parc.nii", outpath + "WM_parc.nii")
+## WM Templates
+shutil.copyfile(file_location + "/Atlases/ICBM_81_FA.nii", outpath + "FA_temp.nii")
+shutil.copyfile(file_location + "/Atlases/ICBM_81_Parc.nii", outpath + "WM_parc.nii")
 
-    outpath = os.path.abspath(outpath) + '/'
-    os.chdir(outpath)
-    ###########################################################################
-
-
-
-    ### REGISTER T1 TO DWI ####################################################
-    # Run BET on T1
-    subprocess.call(["bet", "t1.nii", "brain.nii", "-f", "0.5", "-R"])
-
-    # Register dwi to T1
-    subprocess.call(["epi_reg", "--epi=dwi.nii", "--t1=t1.nii", "--t1brain=brain.nii", "--out=dwi2t1"])
-
-    # Convert Registration Matrix to MRTrix Format
-    subprocess.call(["transformconvert", "dwi2t1.mat", "dwi.nii", "t1.nii", "flirt_import", "dwi2t1_mrtrix.txt"])
-
-    # Apply Inverse Transform to Parcellation
-    subprocess.call(["transformcalc", "dwi2t1_mrtrix.txt", "invert", "t12dwi_mrtrix.txt"])
-    subprocess.call(["mrtransform", "-template", "dwi.nii", "-interp", "nearest", "-linear", "t12dwi_mrtrix.txt", "GM_parc.nii", "GM_parc_reg.nii"])
-
-    # Remove large, unnecessary files
-    os.remove('dwi2t1.nii')
-    os.remove('dwi2t1_fast_wmedge.nii')
-    os.remove('dwi2t1_fast_wmseg.nii')
-    os.remove('dwi2t1_init.mat')
-    os.remove('brain.nii')
-
-    # Can now remove T1 and DWI to save more room
-    os.remove('dwi.nii')
-    ###########################################################################
+outpath = os.path.abspath(outpath) + '/'
+os.chdir(outpath)
+###########################################################################
 
 
 
-    ### REGISTER ICBM TO SUBJECT ##############################################
-    # Find FA file
-    fa_location = file_finder.scan_for_FA(subject + 'MicroStructure', [])
-    print("Running FLIRT")
-    subprocess.call(["flirt", "-in", "FA_temp.nii", "-ref", fa_location[0], "-omat", "FA2FA.mat"])
+### REGISTER T1 TO DWI ####################################################
+# Run BET on T1
+subprocess.call(["bet", "t1.nii", "brain.nii", "-f", "0.5", "-R"])
 
-    print("Running FNIRT")
-    subprocess.call(["fnirt", "--ref=" + fa_location[0], "--in=FA_temp.nii", "--aff=FA2FA.mat", "--cout=warp_coeffs.nii"])
+# Register dwi to T1
+subprocess.call(["epi_reg", "--epi=dwi.nii", "--t1=t1.nii", "--t1brain=brain.nii", "--out=dwi2t1"])
 
-    print("Applying Warp to WM ROIs")
-    subprocess.call(["applywarp", "-i", "WM_parc.nii", "-o", "WM_parc_reg.nii", "-r", fa_location[0], "-w", "warp_coeffs.nii", "-interp=nn"])
-    ###########################################################################
+# Convert Registration Matrix to MRTrix Format
+subprocess.call(["transformconvert", "dwi2t1.mat", "dwi.nii", "t1.nii", "flirt_import", "dwi2t1_mrtrix.txt"])
+
+# Apply Inverse Transform to Parcellation
+subprocess.call(["transformcalc", "dwi2t1_mrtrix.txt", "invert", "t12dwi_mrtrix.txt"])
+subprocess.call(["mrtransform", "-template", "dwi.nii", "-interp", "nearest", "-linear", "t12dwi_mrtrix.txt", "GM_parc.nii", "GM_parc_reg.nii"])
+
+# Remove large, unnecessary files
+os.remove('dwi2t1.nii')
+os.remove('dwi2t1_fast_wmedge.nii')
+os.remove('dwi2t1_fast_wmseg.nii')
+os.remove('dwi2t1_init.mat')
+os.remove('brain.nii')
+
+# Can now remove T1 and DWI to save more room
+os.remove('dwi.nii')
+###########################################################################
 
 
 
-    ### PERFORM ROI ANALYSIS FOR ALL PARAMETER MAPS ###########################
-    GM_LUT_location = file_location + "/config/fs_default_gm.txt"
-    WM_LUT_location = file_location + "/config/ICBM_82_LUT.txt"
+### REGISTER ICBM TO SUBJECT ##############################################
+# Find FA file
+fa_location = file_finder.scan_for_FA(args.microstruct_dir, [])
+print("Running FLIRT")
+subprocess.call(["flirt", "-in", "FA_temp.nii", "-ref", fa_location[0], "-omat", "FA2FA.mat"])
 
-    param_stats = {}
-    # Find All Parameter maps for given subject (Assumes 'MicroStructure' Folder)
-    parameter_maps = file_finder.scan_for_nifti((subject+'MicroStructure'), [])
+print("Running FNIRT")
+subprocess.call(["fnirt", "--ref=" + fa_location[0], "--in=FA_temp.nii", "--aff=FA2FA.mat", "--cout=warp_coeffs.nii"])
 
-    for param_map in parameter_maps:
-        # Load in Parameter maps
-        param = nib.load(param_map)
+print("Applying Warp to WM ROIs")
+subprocess.call(["applywarp", "-i", "WM_parc.nii", "-o", "WM_parc_reg.nii", "-r", fa_location[0], "-w", "warp_coeffs.nii", "-interp=nn"])
+###########################################################################
 
-        # Only take 3D Images, not 4D or greater (avoiding DEC maps ect...)
-        if len(param.shape) == 3:
-            # Copy parameter map
-            shutil.copyfile(param_map, (outpath + os.path.split(param_map)[1]))
 
-            # Reorient to std
-            subprocess.call(["fslreorient2std", param_map, (outpath + os.path.split(param_map)[1])])
 
-            # Transform Current Parameter Map
-            param_stats[os.path.split(param_map)[1][:-4]] = roi_functions.calc_roi_stats(outpath + os.path.split(param_map)[1], GM_LUT_location, WM_LUT_location)
+### PERFORM ROI ANALYSIS FOR ALL PARAMETER MAPS ###########################
+GM_LUT_location = file_location + "/config/fs_default_gm.txt"
+WM_LUT_location = file_location + "/config/ICBM_82_LUT.txt"
 
-    subject_path,subject_name = os.path.split(subject[:-1])
-    Subject_ROIs["subj" + subject_name] = param_stats
+param_stats = {}
+# Find All Parameter maps for given subject (Assumes 'MicroStructure' Folder)
+parameter_maps = file_finder.scan_for_nifti(args.microstruct_dir, [])
 
-    os.chdir(present_dir)
+for param_map in parameter_maps:
+    # Load in Parameter maps
+    param = nib.load(param_map)
 
-    shutil.rmtree(outpath)
+    # Only take 3D Images, not 4D or greater (avoiding DEC maps ect...)
+    if len(param.shape) == 3:
+        # Copy parameter map
+        shutil.copyfile(param_map, (outpath + os.path.split(param_map)[1]))
+
+        # Reorient to std
+        subprocess.call(["fslreorient2std", param_map, (outpath + os.path.split(param_map)[1])])
+
+        # Transform Current Parameter Map
+        param_stats[os.path.split(param_map)[1][:-4]] = roi_functions.calc_roi_stats(outpath + os.path.split(param_map)[1], GM_LUT_location, WM_LUT_location)
+
+subject_path,subject_name = os.path.split(subject[:-1])
+Subject_ROIs["subj" + subject_name] = param_stats
+
+os.chdir(present_dir)
+
+shutil.rmtree(outpath)
 
 #shutil.rmtree(outpath)
 sio.savemat(args.output, Subject_ROIs,long_field_names=True)
