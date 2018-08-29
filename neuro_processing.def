@@ -35,6 +35,8 @@ export FSFAST_HOME=/software/freesurfer/fsfast
 export SUBJECTS_DIR=/software/freesurfer/subjects
 export MINC_BIN_DIR=/software/freesurfer/mni/bin
 export MINC_LIB_DIR=/software/freesurfer/mni/lib
+export MNI_PERL5LIB=$FREESURFER_HOME/mni/share/perl5
+export PERL5LIB=$FREESURFER_HOME/mni/share/perl5
 export FSL_DIR=/software/fsl
 export MNI_DIR=/software/freesurfer/mni
 export MNI_DATAPATH=/software/freesurfer/mni/data
@@ -51,16 +53,23 @@ export PATH
 
 
 %runscript
-
 exec "$@"`
-
-
-
 
 %post
     ### UPDATE AND INSTALL DEPENDENCIES ########################################
     apt-get update -y && apt-get upgrade -y
-    apt-get install build-essential cmake wget tcsh git g++ python python-numpy libeigen3-dev zlib1g-dev libqt4-opengl-dev libgl1-mesa-dev dc bc -y
+    apt-get install build-essential wget tcsh git g++ python python-numpy libeigen3-dev zlib1g-dev libqt4-opengl-dev libgl1-mesa-dev dc bc -y
+
+	## INSTALL CMAKE
+	wget https://cmake.org/files/v3.12/cmake-3.12.1.tar.gz
+	tar -xvf cmake-3.12.1.tar.gz
+	cd cmake-3.12.1
+	./bootstrap
+	make 
+	make install
+
+	cd ..
+	rm -rf cmake-3.12.1*
 
     mkdir /software
     cd /software
