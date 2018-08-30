@@ -304,6 +304,9 @@ if args.software == "FSL":
                          "--data_is_shelled",
                          "-v"])
 
+        os.remove(outpath + "dwi.nii")
+        shutil.copyfile("dwi_eddy.nii", outpath + "dwi.nii")
+
         # Replace old bvec file with rotated_bvec file
         os.remove(outpath + "bvec")
         shutil.copyfile("dwi_eddy.eddy_rotated_bvecs", outpath + "bvec")
