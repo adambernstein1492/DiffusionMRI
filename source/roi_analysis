@@ -41,19 +41,20 @@ os.environ["FSLOUTPUTTYPE"] = "NIFTI"
 Subject_ROIs = {}
 # Copy parcellated images and ensure they are in standard space
 ## FreeSurefer Parcellation
-subprocess.call(["mri_convert", (args.structural_dir + "/mri/aparc+aseg.mgz"), (outpath + "parc.nii")])
+print args.structural_dir
+subprocess.call(["mri_convert", (args.structural_dir[0] + "/mri/aparc+aseg.mgz"), (outpath + "parc.nii")])
 subprocess.call(["fslreorient2std", (outpath + "parc.nii"), (outpath + "parc_std.nii")])
 os.remove(outpath + "parc.nii")
 shutil.move(outpath + "parc_std.nii", outpath + "GM_parc.nii")
 
 ## T1 Image (for reg)
-subprocess.call(["mri_convert", (args.structural_dir + "/mri/orig.mgz"), (outpath + "t1.nii")])
+subprocess.call(["mri_convert", (args.structural_dir[0] + "/mri/orig.mgz"), (outpath + "t1.nii")])
 subprocess.call(["fslreorient2std", (outpath + "t1.nii"), (outpath + "t1_std.nii")])
 os.remove(outpath + "t1.nii")
 shutil.move(outpath + "t1_std.nii", outpath + "t1.nii")
 
 ## DWI (for reg)
-shutil.copyfile((args.dwi_dir + "/dwi.nii"), (outpath + "dwi.nii"))
+shutil.copyfile((args.dwi_dir[0] + "/dwi.nii"), (outpath + "dwi.nii"))
 subprocess.call(["fslreorient2std", (outpath + "dwi.nii"), (outpath + "dwi_std.nii")])
 os.remove(outpath + "dwi.nii")
 shutil.move(outpath + "dwi_std.nii", outpath + "dwi.nii")
@@ -97,7 +98,7 @@ os.remove('dwi.nii')
 
 ### REGISTER ICBM TO SUBJECT ##############################################
 # Find FA file
-fa_location = file_finder.scan_for_FA(args.microstruct_dir, [])
+fa_location = file_finder.scan_for_FA(args.microstruct_dir[0], [])
 print("Running FLIRT")
 subprocess.call(["flirt", "-in", "FA_temp.nii", "-ref", fa_location[0], "-omat", "FA2FA.mat"])
 
