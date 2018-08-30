@@ -53,7 +53,7 @@ os.remove(outpath + "t1.nii")
 shutil.move(outpath + "t1_std.nii", outpath + "t1.nii")
 
 ## DWI (for reg)
-shutil.copyfile((args.dwi_dir + /dwi.nii"), (outpath + "dwi.nii"))
+shutil.copyfile((args.dwi_dir + "/dwi.nii"), (outpath + "dwi.nii"))
 subprocess.call(["fslreorient2std", (outpath + "dwi.nii"), (outpath + "dwi_std.nii")])
 os.remove(outpath + "dwi.nii")
 shutil.move(outpath + "dwi_std.nii", outpath + "dwi.nii")

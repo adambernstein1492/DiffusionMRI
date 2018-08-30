@@ -152,7 +152,6 @@ else:
 if args.Image[-3:] == '.gz':
 	subprocess.call(["mrconvert", args.Image, outpath + 'dwi.nii'])
 else:
-	print "I'm Here"
 	shutil.copyfile(args.Image, (outpath + 'dwi.nii'))
 
 shutil.copyfile(args.bval, (outpath + 'bval'))
