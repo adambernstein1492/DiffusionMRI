@@ -180,15 +180,8 @@ diffusion_preprocessing_functions.organize_by_bval("dwi.nii", "bval", "bvec")
 
 
 # Set Voxel sizes
-if args.voxel_size == "None":
-    voxel_size = []
-    voxels = nib.load('dwi.nii').header.get_zooms()
-    voxel_size.append(str(voxels[0]))
-    voxel_size.append(str(voxels[1]))
-    voxel_size.append(str(voxels[2]))
-
-else:
-     voxel_size = args.voxel_size
+if args.voxel_size != "None":
+    voxel_size = args.voxel_size
 
 # Create Log File
 log_file = open("log.txt", "w+")
@@ -636,7 +629,7 @@ if args.biasfieldcorrection:
 
 
 ### INTERPOLATE DWI IF INDICATED ###############################################
-if (args.software == 'FSL'):
+if ((args.software == 'FSL') and (args.voxel_size != "None")):
     subprocess.call(["mrresize", "-voxel", (voxel_size[0] + "," + voxel_size[1] + "," + voxel_size[2]), "dwi.nii", "dwi_resize.nii"])
     while True:
         try:
@@ -650,8 +643,10 @@ if (args.software == 'FSL'):
             break
     shutil.move('dwi_resize.nii', 'dwi.nii')
 
-    if(args.mask == "None"):
-        subprocess.call(["dwi2mask", "-fslgrad", "bvec", "bval", "dwi.nii", "mask.nii"])
+    if args.mask == "None":
+    		    subprocess.call(["bet", outpath + "dwi", "brain", "-m", "-f", "0.3", "-R"])
+    		    os.remove("brain.nii")
+    		    shutil.move("brain_mask.nii", outpath + "mask.nii")
 
     log_file.write("Completed Interpolation\n")
 ################################################################################
