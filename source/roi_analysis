@@ -32,6 +32,8 @@ file_location = os.path.dirname(__file__)
 
 
 ### SET UP OUTPUT DIRECTORY ###################################################
+microstruct = os.path.abspath(args.microstruct_dir[0])
+
 present_dir = os.getcwd()
 outpath = args.output[:-4] + '_temp/'
 os.makedirs(outpath)
@@ -98,7 +100,7 @@ os.remove('dwi.nii')
 
 ### REGISTER ICBM TO SUBJECT ##############################################
 # Find FA file
-fa_location = file_finder.scan_for_FA(args.microstruct_dir[0], [])
+fa_location = file_finder.scan_for_FA(microstruct, [])
 print("Running FLIRT")
 subprocess.call(["flirt", "-in", "FA_temp.nii", "-ref", fa_location[0], "-omat", "FA2FA.mat"])
 
@@ -106,7 +108,7 @@ print("Running FNIRT")
 subprocess.call(["fnirt", "--ref=" + fa_location[0], "--in=FA_temp.nii", "--aff=FA2FA.mat", "--cout=warp_coeffs.nii"])
 
 print("Applying Warp to WM ROIs")
-subprocess.call(["applywarp", "-i", "WM_parc.nii", "-o", "WM_parc_reg.nii", "-r", fa_location[0], "-w", "warp_coeffs.nii", "-interp=nn"])
+subprocess.call(["applywarp", "-i", "WM_parc.nii", "-o", "WM_parc_reg.nii", "-r", fa_location[0], "-w", "warp_coeffs.nii", "--interp=nn"])
 ###########################################################################
 
 
@@ -117,7 +119,7 @@ WM_LUT_location = file_location + "/config/ICBM_82_LUT.txt"
 
 param_stats = {}
 # Find All Parameter maps for given subject (Assumes 'MicroStructure' Folder)
-parameter_maps = file_finder.scan_for_nifti(args.microstruct_dir, [])
+parameter_maps = file_finder.scan_for_nifti(microstruct, [])
 
 for param_map in parameter_maps:
     # Load in Parameter maps
@@ -134,8 +136,7 @@ for param_map in parameter_maps:
         # Transform Current Parameter Map
         param_stats[os.path.split(param_map)[1][:-4]] = roi_functions.calc_roi_stats(outpath + os.path.split(param_map)[1], GM_LUT_location, WM_LUT_location)
 
-subject_path,subject_name = os.path.split(subject[:-1])
-Subject_ROIs["subj" + subject_name] = param_stats
+Subject_ROIs["ROI"]= param_stats
 
 os.chdir(present_dir)
 
