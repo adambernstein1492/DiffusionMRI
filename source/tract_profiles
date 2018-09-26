@@ -17,13 +17,11 @@ parser.add_argument("-i", "--dwi", type=str, help="Input dMRI", default="None");
 parser.add_argument("-b", "--bval", type=str, help="bval file", default="None")
 parser.add_argument("-v", "--bvec", type=str, help="bvec file", default="None")
 parser.add_argument("-m", "--mask", type=str, help="mask file", default="None")
-parser.add_argument("-p", "--parameters", type=str, help="Directory Containing MicroStructural Parameters", default="None")
 parser.add_argument("-s", "--t1", type=str, help="T1-weighted Image Path", default="None")
 parser.add_argument("-o", "--output", type=str, help="Output Directory", default="None")
 
 args = parser.parse_args()
 file_location = os.path.dirname(__file__)
-parameter_maps = file_finder.scan_for_nifti(os.path.abspath(args.parameters), [])
 ###############################################################################
 
 
@@ -152,30 +150,6 @@ for roi_name in end_roi:
 
     subprocess.call(["applywarp", "-i", current_roi_file, "-r", "T1.nii.gz", "-o", roi_name + ".nii", "-w", "MNI_T1_warpcoef.nii", "--interp=nn"])
     subprocess.call(["mrtransform","-interp", "nearest", "-linear", "t12dwi_mrtrix.txt", roi_name + ".nii", roi_name + "_reg.mif"])
-
-###############################################################################
-
-
-
-### DWI PROCESSING ############################################################
-# Convert to mif
-subprocess.call(["mrconvert", "dwi.nii", "-fslgrad", "bvec", "bval", "dwi.mif"])
-
-# Upsample
-subprocess.call(["mrresize", "-voxel", "1,1,1", "dwi.mif", "dwi_up.mif"])
-subprocess.call(["mrresize", "-interp", "nearest", "-voxel", "1,1,1", "mask.nii", "mask_up.nii"])
-
-while True:
-    try:
-        os.remove('dwi.nii')
-        os.remove('mask.nii')
-    except:
-        continue
-    else:
-        break
-
-os.rename("mask_up.nii", "mask.nii")
-os.rename("dwi_up.mif", "dwi.mif")
 ###############################################################################
 
 
@@ -185,40 +159,29 @@ os.chdir("Tracts")
 
 # Create Each Specified Track
 for i in range(len(tract_names)):
-    subprocess.call(["tckgen", "-algorithm", "Tensor_Det", "-seed_image", "../" + start_roi[i] + "_reg.mif",
-                     "-include", "../" + end_roi[i] + "_reg.mif", "-exclude", "../MidLine_reg.mif",
-                     "-maxlength", "250", "-rk4", "-stop", "-seeds", "500k", "-select", "5000",
-                     "-seed_unidirectional", "../dwi.mif", tract_names[i]])
-
-# Generate Track-wise Parameter Data
-track_values = {}
-for parameter in parameter_maps:
-    track_means = []
-    track_stds = []
-
-    param_path, param_name = os.path.split(parameter)
-    count = 0.0
-    percent_prev = 0.0
-
-    for track in tract_names:
-        subprocess.call(["tcksample", track, parameter, "values.txt", "-force", "-quiet"])
-        mean, std = connectome_functions.track_stats(os.path.abspath("values.txt"))
-
-        track_means.append(mean)
-        track_stds.append(std)
-
-        # Update Progress
-        count += 1.0
-        percent = np.around((count / float(len(tract_names)) * 100), decimals = 1)
-        if(percent != percent_prev):
-            util.progress_update(param_name + ": ", percent)
-            percent_prev = percent
-
-    track_values[param_name[:-4] + "_mean"] = track_means
-    track_values[param_name[:-4] + "_std"] = track_stds
-
-# Save MATLAB File
-sio.savemat("../TrackProfiles.mat", track_values)
+    if((tract_names[i] == "ForcepsMajor.tck") or (tract_names[i] == "ForcepsMinor.tck")):
+        subprocess.call(["tckgen", "-algorithm", "Tensor_Det",
+                         "-fslgrad", "../bvec", "../bval",
+                         "-seed_image", "../" + start_roi[i] + "_reg.mif",
+                         "-include", "../" + end_roi[i] + "_reg.mif",
+                         "-maxlength", "250",
+                         "-rk4",
+                         "-seeds", "500k",
+                         "-select", "5k",
+                         "-mask", "../mask.nii",
+                         "../dwi.nii", tract_names[i]])
+    else:
+        subprocess.call(["tckgen", "-algorithm", "Tensor_Det",
+                         "-fslgrad", "../bvec", "../bval",
+                         "-seed_image", "../" + start_roi[i] + "_reg.mif",
+                         "-include", "../" + end_roi[i] + "_reg.mif",
+                         "-exclude", "../MidLine_reg.mif",
+                         "-maxlength", "250",
+                         "-rk4",
+                         "-seeds", "500k",
+                         "-select", "5k",
+                         "-mask", "../mask.nii",
+                         "../dwi.nii", tract_names[i]])
 ################################################################################
 
 
@@ -228,7 +191,7 @@ os.chdir("..")
 os.remove("brain.nii")
 os.remove("bval")
 os.remove("bvec")
-os.remove("dwi.mif")
+os.remove("dwi.nii")
 os.remove("dwi2t1.mat")
 os.remove("dwi2t1.nii")
 os.remove("dwi2t1_fast_wmedge.nii")
@@ -243,13 +206,14 @@ os.remove("MNI_T1_warpcoef.nii")
 os.remove("T1.nii.gz")
 os.remove("t12dwi_mrtrix.txt")
 os.remove("Tracts/values.txt")
-os.remove("MidLine.nii")
-os.remove("MidLine_reg.nii")
+
+os.remove("MidLine.nii", "ROIs/MidLine.nii")
+os.remove("MidLine_reg.nii", "ROIs/MidLine_reg.nii")
 
 for i in start_roi:
     while True:
         try:
-            os.remove(i + '.nii')
+            shutil.move(i + '.nii')
             os.remove(i + '_reg.mif')
         except:
             continue
