@@ -205,7 +205,6 @@ os.remove("MNI_T1_to_T1.log")
 os.remove("MNI_T1_warpcoef.nii")
 os.remove("T1.nii.gz")
 os.remove("t12dwi_mrtrix.txt")
-os.remove("Tracts/values.txt")
 
 os.remove("MidLine.nii", "ROIs/MidLine.nii")
 os.remove("MidLine_reg.nii", "ROIs/MidLine_reg.nii")
