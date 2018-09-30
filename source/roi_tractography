@@ -66,7 +66,7 @@ tract_names = ["LeftCingulumCingulateGyrus.tck",
                "LeftAnteriorThalamicRadiation.tck",
                "RightAnteriorThalamicRadiation.tck",
                "LeftSuperiorLongitudinalFasciculus.tck",
-               "RightSuperiorLongitudinalFasiculus.tck",
+               "RightSuperiorLongitudinalFasciculus.tck",
                "LeftInferiorLongitudinalFasciculus.tck",
                "RightInferiorLongitudinalFasciculus.tck",
                "LeftInferiorFrontoOccipitalFasciculus.tck",
@@ -206,8 +206,8 @@ os.remove("MNI_T1_warpcoef.nii")
 os.remove("T1.nii.gz")
 os.remove("t12dwi_mrtrix.txt")
 
-os.remove("MidLine.nii", "ROIs/MidLine.nii")
-os.remove("MidLine_reg.nii", "ROIs/MidLine_reg.nii")
+os.remove("MidLine.nii")
+os.remove("MidLine_reg.mif")
 
 for i in start_roi:
     while True:
