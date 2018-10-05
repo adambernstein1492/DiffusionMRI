@@ -18,6 +18,7 @@ parser.add_argument("-m", "--microstruct_dir", nargs='+', type=str, help="Subjec
 parser.add_argument("-s", "--structural_dir", nargs='+', type=str, help="Subject Directory containing structural data", default="None")
 parser.add_argument("-d", "--dwi_dir", nargs='+', type=str, help="Subject Directory containing dwi data", default="None")
 parser.add_argument("-o", "--output", type=str, help="Output Filename", default="None")
+parser.add_argument("-c", "--no_cleanup", action="store_true", help="Keeps all intermediate files", default=False)
 
 args = parser.parse_args()
 file_location = os.path.dirname(__file__)
@@ -86,14 +87,16 @@ subprocess.call(["transformcalc", "dwi2t1_mrtrix.txt", "invert", "t12dwi_mrtrix.
 subprocess.call(["mrtransform", "-template", "dwi.nii", "-interp", "nearest", "-linear", "t12dwi_mrtrix.txt", "GM_parc.nii", "GM_parc_reg.nii"])
 
 # Remove large, unnecessary files
-os.remove('dwi2t1.nii')
-os.remove('dwi2t1_fast_wmedge.nii')
-os.remove('dwi2t1_fast_wmseg.nii')
-os.remove('dwi2t1_init.mat')
-os.remove('brain.nii')
+if args.no_cleanup is False:
+    os.remove('dwi2t1.nii')
+    os.remove('dwi2t1_fast_wmedge.nii')
+    os.remove('dwi2t1_fast_wmseg.nii')
+    os.remove('dwi2t1_init.mat')
+    os.remove('brain.nii')
 
 # Can now remove T1 and DWI to save more room
-os.remove('dwi.nii')
+if args.no_cleanup is False:
+    os.remove('dwi.nii')
 ###########################################################################
 
 
@@ -140,7 +143,8 @@ Subject_ROIs["ROI"]= param_stats
 
 os.chdir(present_dir)
 
-shutil.rmtree(outpath)
+if args.no_cleanup is False:
+    shutil.rmtree(outpath)
 
 #shutil.rmtree(outpath)
 sio.savemat(args.output, Subject_ROIs,long_field_names=True)
