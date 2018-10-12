@@ -126,7 +126,7 @@ def check_diffusion_input(dwi_path, bval_path, bvec_path, mask_path):
             print "Error: Mask must be a 3-D NIFTI file"
             quit()
 
-        if mask.shape != dwi.shape[0:3]:
+        if mask.shape[0:3] != dwi.shape[0:3]:
             print "Error: Mask must have same dimensions as the dwi"
             quit()
 

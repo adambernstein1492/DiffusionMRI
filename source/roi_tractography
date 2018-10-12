@@ -19,6 +19,7 @@ parser.add_argument("-v", "--bvec", type=str, help="bvec file", default="None")
 parser.add_argument("-m", "--mask", type=str, help="mask file", default="None")
 parser.add_argument("-s", "--t1", type=str, help="T1-weighted Image Path", default="None")
 parser.add_argument("-o", "--output", type=str, help="Output Directory", default="None")
+parser.add_argument("-r", "--resume", type=str, help="Resume from last point given log file", default="None")
 
 args = parser.parse_args()
 file_location = os.path.dirname(__file__)
@@ -32,26 +33,32 @@ file_location = os.path.dirname(__file__)
 
 
 ### SET UP OUTPUT DIRECTORY ###################################################
-if args.output[-1] != '/':
-    outpath = args.output + '/'
+if args.resume == 'None':
+    if args.output[-1] != '/':
+        outpath = args.output + '/'
+    else:
+        outpath = args.output
+
+    os.makedirs(outpath)
+    os.environ["FSLOUTPUTTYPE"] = "NIFTI"
+
+    # Copy T1
+    shutil.copyfile(file_location + "/Atlases/MNI152_T1_1mm.nii.gz", (outpath + "MNI_T1.nii.gz"))
+    shutil.copyfile(args.t1, (outpath + "T1.nii.gz"))
+
+    # Copy DWI files
+    shutil.copyfile(args.dwi, (outpath + "dwi.nii"))
+    shutil.copyfile(args.bval, (outpath + "bval"))
+    shutil.copyfile(args.bvec, (outpath + "bvec"))
+    shutil.copyfile(args.mask, (outpath + "mask.nii"))
+
+    os.mkdir(outpath + "Tracts_DTIDet")
+    os.mkdir(outpath + "Tracts_DTIProb")
+    os.mkdir(outpath + "Tracts_iFOD2")
+    os.chdir(outpath)
 else:
-    outpath = args.output
-
-os.makedirs(outpath)
-os.environ["FSLOUTPUTTYPE"] = "NIFTI"
-
-# Copy T1
-shutil.copyfile(file_location + "/Atlases/MNI152_T1_1mm.nii.gz", (outpath + "MNI_T1.nii.gz"))
-shutil.copyfile(args.t1, (outpath + "T1.nii.gz"))
-
-# Copy DWI files
-shutil.copyfile(args.dwi, (outpath + "dwi.nii"))
-shutil.copyfile(args.bval, (outpath + "bval"))
-shutil.copyfile(args.bvec, (outpath + "bvec"))
-shutil.copyfile(args.mask, (outpath + "mask.nii"))
-
-os.mkdir(outpath + "Tracts")
-os.chdir(outpath)
+    os.chdir(os.path.abspath(args.resume))
+    print os.getcwd()
 ###############################################################################
 
 
@@ -115,73 +122,169 @@ end_roi =   ["L_CCG_2",
              "FMin_2"]
 
 
+# Create Log File
+log_file = open("log.txt", "w+")
+
+
+# Open Existing Log file to see where to start
+checkpoint = 0
+with open("log.txt") as f:
+    lines = f.readlines()
+    checkpoint = int(lines[-1:][0][0])
+
 ### REGISTER MNI to DWI #######################################################
-# Run FLIRT on MNI T1 to subject T1 Space
-subprocess.call(["flirt", "-in", "MNI_T1.nii.gz", "-ref", "T1.nii.gz", "-omat", "MNI_2_T1.mat", "-v"])
+if checkpoint < 1:
+    # Run FLIRT on MNI T1 to subject T1 Space
+    subprocess.call(["flirt", "-in", "MNI_T1.nii.gz", "-ref", "T1.nii.gz", "-omat", "MNI_2_T1.mat", "-v"])
 
-# Run FNIRT on MNI T1 to subject T1 Space
-subprocess.call(["fnirt", "--ref=T1.nii.gz", "--in=MNI_T1.nii.gz", "--aff=MNI_2_T1.mat", "-v"])
+    # Run FNIRT on MNI T1 to subject T1 Space
+    subprocess.call(["fnirt", "--ref=T1.nii.gz", "--in=MNI_T1.nii.gz", "--aff=MNI_2_T1.mat", "-v"])
 
-# Run BET on T1
-subprocess.call(["bet", "T1.nii.gz", "brain.nii", "-f", "0.5", "-R"])
+    log_file.write("1. MNI to T1\n")
 
-# Register dwi to T1
-subprocess.call(["epi_reg", "--epi=dwi.nii", "--t1=T1.nii.gz", "--t1brain=brain.nii", "--out=dwi2t1"])
+if checkpoint < 2:
+    # Run BET on T1
+    subprocess.call(["bet", "T1.nii.gz", "brain.nii", "-f", "0.5", "-R"])
 
-# Convert Registration Matrix to MRTrix Format
-subprocess.call(["transformconvert", "dwi2t1.mat", "dwi.nii", "T1.nii.gz", "flirt_import", "dwi2t1_mrtrix.txt"])
+    # Register dwi to T1
+    subprocess.call(["epi_reg", "--epi=dwi.nii", "--t1=T1.nii.gz", "--t1brain=brain.nii", "--out=dwi2t1"])
 
-# Apply Inverse Transform to T1
-subprocess.call(["transformcalc", "dwi2t1_mrtrix.txt", "invert", "t12dwi_mrtrix.txt"])
+    # Convert Registration Matrix to MRTrix Format
+    subprocess.call(["transformconvert", "dwi2t1.mat", "dwi.nii", "T1.nii.gz", "flirt_import", "dwi2t1_mrtrix.txt", "-force"])
 
-subprocess.call(["mrtransform", "-linear", "t12dwi_mrtrix.txt", "T1.nii.gz", "T1_reg.nii"])
+    # Apply Inverse Transform to T1
+    subprocess.call(["transformcalc", "dwi2t1_mrtrix.txt", "invert", "t12dwi_mrtrix.txt", "-force"])
 
-subprocess.call(["applywarp", "-i", file_location + "/Tractography_ROIs/MidLine.nii", "-r", "T1.nii.gz", "-o", "MidLine.nii", "-w", "MNI_T1_warpcoef.nii", "--interp=nn"])
-subprocess.call(["mrtransform", "-interp", "nearest", "-linear", "t12dwi_mrtrix.txt", "MidLine.nii", "MidLine_reg.mif"])
+    subprocess.call(["mrtransform", "-linear", "t12dwi_mrtrix.txt", "T1.nii.gz", "T1_reg.nii", "-force"])
 
-for roi_name in start_roi:
-    current_roi_file = file_location + "/Tractography_ROIs/" + roi_name
+    subprocess.call(["applywarp", "-i", file_location + "/Tractography_ROIs/MidLine.nii", "-r", "T1.nii.gz", "-o", "MidLine.nii", "-w", "MNI_T1_warpcoef.nii", "--interp=nn"])
+    subprocess.call(["mrtransform", "-interp", "nearest", "-linear", "t12dwi_mrtrix.txt", "MidLine.nii", "MidLine_reg.mif", "-force"])
 
-    subprocess.call(["applywarp", "-i", current_roi_file, "-r", "T1.nii.gz", "-o", roi_name + ".nii", "-w", "MNI_T1_warpcoef.nii", "--interp=nn"])
-    subprocess.call(["mrtransform", "-interp", "nearest", "-linear", "t12dwi_mrtrix.txt", roi_name + ".nii", roi_name + "_reg.mif"])
+    log_file.write("2. T1 to DWI\n")
 
-for roi_name in end_roi:
-    current_roi_file = file_location + "/Tractography_ROIs/" + roi_name
+if checkpoint < 3:
+    for roi_name in start_roi:
+        current_roi_file = file_location + "/Tractography_ROIs/" + roi_name
 
-    subprocess.call(["applywarp", "-i", current_roi_file, "-r", "T1.nii.gz", "-o", roi_name + ".nii", "-w", "MNI_T1_warpcoef.nii", "--interp=nn"])
-    subprocess.call(["mrtransform","-interp", "nearest", "-linear", "t12dwi_mrtrix.txt", roi_name + ".nii", roi_name + "_reg.mif"])
+        subprocess.call(["applywarp", "-i", current_roi_file, "-r", "T1.nii.gz", "-o", roi_name + ".nii", "-w", "MNI_T1_warpcoef.nii", "--interp=nn"])
+        subprocess.call(["mrtransform", "-interp", "nearest", "-linear", "t12dwi_mrtrix.txt", roi_name + ".nii", roi_name + "_reg.mif", "-force"])
+
+    for roi_name in end_roi:
+        current_roi_file = file_location + "/Tractography_ROIs/" + roi_name
+
+        subprocess.call(["applywarp", "-i", current_roi_file, "-r", "T1.nii.gz", "-o", roi_name + ".nii", "-w", "MNI_T1_warpcoef.nii", "--interp=nn"])
+        subprocess.call(["mrtransform","-interp", "nearest", "-linear", "t12dwi_mrtrix.txt", roi_name + ".nii", roi_name + "_reg.mif", "-force"])
+
+    log_file.write("3. Apply Warps to ROIs\n")
 ###############################################################################
 
 
 
 ### Tractography ##############################################################
-os.chdir("Tracts")
+if checkpoint < 4:
+    os.chdir("Tracts_DTIDet")
 
-# Create Each Specified Track
-for i in range(len(tract_names)):
-    if((tract_names[i] == "ForcepsMajor.tck") or (tract_names[i] == "ForcepsMinor.tck")):
-        subprocess.call(["tckgen", "-algorithm", "Tensor_Det",
-                         "-fslgrad", "../bvec", "../bval",
-                         "-seed_image", "../" + start_roi[i] + "_reg.mif",
-                         "-include", "../" + end_roi[i] + "_reg.mif",
-                         "-maxlength", "250",
-                         "-rk4",
-                         "-seeds", "500k",
-                         "-select", "5k",
-                         "-mask", "../mask.nii",
-                         "../dwi.nii", tract_names[i]])
-    else:
-        subprocess.call(["tckgen", "-algorithm", "Tensor_Det",
-                         "-fslgrad", "../bvec", "../bval",
-                         "-seed_image", "../" + start_roi[i] + "_reg.mif",
-                         "-include", "../" + end_roi[i] + "_reg.mif",
-                         "-exclude", "../MidLine_reg.mif",
-                         "-maxlength", "250",
-                         "-rk4",
-                         "-seeds", "500k",
-                         "-select", "5k",
-                         "-mask", "../mask.nii",
-                         "../dwi.nii", tract_names[i]])
+    # Create Each Specified Track
+    for i in range(len(tract_names)):
+        if((tract_names[i] == "ForcepsMajor.tck") or (tract_names[i] == "ForcepsMinor.tck")):
+            subprocess.call(["tckgen", "-algorithm", "Tensor_Det",
+                             "-fslgrad", "../bvec", "../bval",
+                             "-seed_image", "../" + start_roi[i] + "_reg.mif",
+                             "-include", "../" + end_roi[i] + "_reg.mif",
+                             "-maxlength", "125",
+                             "-rk4",
+                             "-cutoff", "0.05",
+                             "-seeds", "500k",
+                             "-select", "5k",
+                             "-mask", "../mask.nii",
+                             "../dwi.nii", tract_names[i],
+                             "-force"])
+        else:
+            subprocess.call(["tckgen", "-algorithm", "Tensor_Det",
+                             "-fslgrad", "../bvec", "../bval",
+                             "-seed_image", "../" + start_roi[i] + "_reg.mif",
+                             "-include", "../" + end_roi[i] + "_reg.mif",
+                             "-exclude", "../MidLine_reg.mif",
+                             "-maxlength", "125",
+                             "-rk4",
+                             "-cutoff", "0.05",
+                             "-seeds", "500k",
+                             "-select", "5k",
+                             "-mask", "../mask.nii",
+                             "../dwi.nii", tract_names[i],
+                             "-force"])
+
+    log_file.write("4. DTI Deterministic Tractography\n")
+
+
+if checkpoint < 5:
+    os.chdir("../Tracts_DTIProb")
+
+    # Create Each Specified Track
+    for i in range(len(tract_names)):
+        if((tract_names[i] == "ForcepsMajor.tck") or (tract_names[i] == "ForcepsMinor.tck")):
+            subprocess.call(["tckgen", "-algorithm", "Tensor_Prob",
+                             "-fslgrad", "../bvec", "../bval",
+                             "-seed_image", "../" + start_roi[i] + "_reg.mif",
+                             "-include", "../" + end_roi[i] + "_reg.mif",
+                             "-maxlength", "125",
+                             "-cutoff", "0.05",
+                             "-seeds", "500k",
+                             "-select", "5k",
+                             "-mask", "../mask.nii",
+                             "../dwi.nii", tract_names[i],
+                             "-force"])
+        else:
+            subprocess.call(["tckgen", "-algorithm", "Tensor_Prob",
+                             "-fslgrad", "../bvec", "../bval",
+                             "-seed_image", "../" + start_roi[i] + "_reg.mif",
+                             "-include", "../" + end_roi[i] + "_reg.mif",
+                             "-exclude", "../MidLine_reg.mif",
+                             "-maxlength", "125",
+                             "-cutoff", "0.05",
+                             "-seeds", "500k",
+                             "-select", "5k",
+                             "-mask", "../mask.nii",
+                             "../dwi.nii", tract_names[i],
+                             "-force"])
+
+    log_file.write("5. DTI Probabilistic Tractography\n")
+
+
+if checkpoint < 6:
+    os.chdir("../Tracts_iFOD2")
+    subprocess.call("dwi2response", "dhollander", "-fslgrad", "../bvec", "../bval", "../dwi.nii", "../response_wm.txt", "../response_gm.txt", "../response_csf.txt")
+    subprocess.call("dwi2fod", "msmt_csd", "-fslgrad", "../bvec", "../bval", "../dwi.nii", "../response_wm.txt", "../wmfod.mif", "../response_gm.txt", "../gmfod.mif", "../response_csf.txt", "../csffod.mif", "-mask", "../mask.nii")
+
+    # Create Each Specified Track
+    for i in range(len(tract_names)):
+        if((tract_names[i] == "ForcepsMajor.tck") or (tract_names[i] == "ForcepsMinor.tck")):
+            subprocess.call(["tckgen", "-algorithm", "iFOD2",
+                             "-fslgrad", "../bvec", "../bval",
+                             "-seed_image", "../" + start_roi[i] + "_reg.mif",
+                             "-include", "../" + end_roi[i] + "_reg.mif",
+                             "-maxlength", "125",
+                             "-cutoff", "0.05",
+                             "-seeds", "1M",
+                             "-select", "10k",
+                             "-mask", "../mask.nii",
+                             "wmfod.mif", tract_names[i],
+                             "-force"])
+        else:
+            subprocess.call(["tckgen", "-algorithm", "iFOD2",
+                             "-fslgrad", "../bvec", "../bval",
+                             "-seed_image", "../" + start_roi[i] + "_reg.mif",
+                             "-include", "../" + end_roi[i] + "_reg.mif",
+                             "-exclude", "../MidLine_reg.mif",
+                             "-maxlength", "125",
+                             "-cutoff", "0.05",
+                             "-seeds", "1M",
+                             "-select", "10k",
+                             "-mask", "../mask.nii",
+                             "wmfod.mif", tract_names[i],
+                             "-force"])
+
+    log_file.write("6. CSD Probabilistic Tractography\n")
 ################################################################################
 
 
@@ -205,27 +308,5 @@ os.remove("MNI_T1_to_T1.log")
 os.remove("MNI_T1_warpcoef.nii")
 os.remove("T1.nii.gz")
 os.remove("t12dwi_mrtrix.txt")
-
-os.remove("MidLine.nii")
-os.remove("MidLine_reg.mif")
-
-for i in start_roi:
-    while True:
-        try:
-            shutil.move(i + '.nii')
-            os.remove(i + '_reg.mif')
-        except:
-            continue
-        else:
-            break
-
-for i in end_roi:
-    while True:
-        try:
-            os.remove(i + '.nii')
-            #os.remove(i + '_reg.mif')
-        except:
-            continue
-        else:
-            break
+log_file.close()
 ################################################################################
