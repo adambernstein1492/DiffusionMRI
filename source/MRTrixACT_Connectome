@@ -125,7 +125,7 @@ subprocess.call(["dwi2fod", "msmt_csd", "dwi.mif", "RF_WM.txt", "WM_FODs.mif", "
 
 # Tractography
 subprocess.call(["tckgen", "WM_FODs.mif", "orig_tracts.tck", "-act", "5TT.mif", "-backtrack", "-crop_at_gmwmi", "-seed_dynamic", "WM_FODs.mif", "-maxlength", "250", "-select", args.numbertracts, "-cutoff", "0.06"])
-subprocess.call(["tcksift", "orig_tracts.tck", "WM_FODs.mif", "SIFT.tck", "-act", "5TT.mif", "-term_number", "5M"])
+subprocess.call(["tcksift", "orig_tracts.tck", "WM_FODs.mif", "SIFT.tck", "-act", "5TT.mif", "-term_number", args.filteredtracts])
 ###############################################################################
 
 

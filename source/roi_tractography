@@ -58,7 +58,6 @@ if args.resume == 'None':
     os.chdir(outpath)
 else:
     os.chdir(os.path.abspath(args.resume))
-    print os.getcwd()
 ###############################################################################
 
 
@@ -121,16 +120,14 @@ end_roi =   ["L_CCG_2",
              "FMaj_2",
              "FMin_2"]
 
-
-# Create Log File
-log_file = open("log.txt", "w+")
-
-
 # Open Existing Log file to see where to start
 checkpoint = 0
-with open("log.txt") as f:
-    lines = f.readlines()
-    checkpoint = int(lines[-1:][0][0])
+if args.resume != "None":
+    with open("log.txt") as f:
+        lines = f.readlines()
+        checkpoint = int(lines[-1:][0][0])
+
+print checkpoint
 
 ### REGISTER MNI to DWI #######################################################
 if checkpoint < 1:
@@ -140,7 +137,9 @@ if checkpoint < 1:
     # Run FNIRT on MNI T1 to subject T1 Space
     subprocess.call(["fnirt", "--ref=T1.nii.gz", "--in=MNI_T1.nii.gz", "--aff=MNI_2_T1.mat", "-v"])
 
+    log_file = open("log.txt", "r+")
     log_file.write("1. MNI to T1\n")
+    log_file.close()
 
 if checkpoint < 2:
     # Run BET on T1
@@ -160,7 +159,9 @@ if checkpoint < 2:
     subprocess.call(["applywarp", "-i", file_location + "/Tractography_ROIs/MidLine.nii", "-r", "T1.nii.gz", "-o", "MidLine.nii", "-w", "MNI_T1_warpcoef.nii", "--interp=nn"])
     subprocess.call(["mrtransform", "-interp", "nearest", "-linear", "t12dwi_mrtrix.txt", "MidLine.nii", "MidLine_reg.mif", "-force"])
 
+    log_file = open("log.txt", "r+")
     log_file.write("2. T1 to DWI\n")
+    log_file.close()
 
 if checkpoint < 3:
     for roi_name in start_roi:
@@ -175,7 +176,9 @@ if checkpoint < 3:
         subprocess.call(["applywarp", "-i", current_roi_file, "-r", "T1.nii.gz", "-o", roi_name + ".nii", "-w", "MNI_T1_warpcoef.nii", "--interp=nn"])
         subprocess.call(["mrtransform","-interp", "nearest", "-linear", "t12dwi_mrtrix.txt", roi_name + ".nii", roi_name + "_reg.mif", "-force"])
 
+    log_file = open("log.txt", "r+")
     log_file.write("3. Apply Warps to ROIs\n")
+    log_file.close()
 ###############################################################################
 
 
@@ -214,11 +217,14 @@ if checkpoint < 4:
                              "../dwi.nii", tract_names[i],
                              "-force"])
 
+    log_file = open("log.txt", "r+")
     log_file.write("4. DTI Deterministic Tractography\n")
+    log_file.close()
+    os.chdir("../")
 
 
 if checkpoint < 5:
-    os.chdir("../Tracts_DTIProb")
+    os.chdir("Tracts_DTIProb")
 
     # Create Each Specified Track
     for i in range(len(tract_names)):
@@ -248,13 +254,16 @@ if checkpoint < 5:
                              "../dwi.nii", tract_names[i],
                              "-force"])
 
+    log_file = open("log.txt", "r+")
     log_file.write("5. DTI Probabilistic Tractography\n")
+    log_file.close()
+    os.chdir("../")
 
 
 if checkpoint < 6:
-    os.chdir("../Tracts_iFOD2")
-    subprocess.call("dwi2response", "dhollander", "-fslgrad", "../bvec", "../bval", "../dwi.nii", "../response_wm.txt", "../response_gm.txt", "../response_csf.txt")
-    subprocess.call("dwi2fod", "msmt_csd", "-fslgrad", "../bvec", "../bval", "../dwi.nii", "../response_wm.txt", "../wmfod.mif", "../response_gm.txt", "../gmfod.mif", "../response_csf.txt", "../csffod.mif", "-mask", "../mask.nii")
+    os.chdir("Tracts_iFOD2")
+    subprocess.call(["dwi2response", "dhollander", "-fslgrad", "../bvec", "../bval", "../dwi.nii", "../response_wm.txt", "../response_gm.txt", "../response_csf.txt", "-force"])
+    subprocess.call(["dwi2fod", "msmt_csd", "-fslgrad", "../bvec", "../bval", "../dwi.nii", "../response_wm.txt", "../wmfod.mif", "../response_gm.txt", "../gmfod.mif", "../response_csf.txt", "../csffod.mif", "-mask", "../mask.nii", "-force"])
 
     # Create Each Specified Track
     for i in range(len(tract_names)):
@@ -268,7 +277,7 @@ if checkpoint < 6:
                              "-seeds", "1M",
                              "-select", "10k",
                              "-mask", "../mask.nii",
-                             "wmfod.mif", tract_names[i],
+                             "../wmfod.mif", tract_names[i],
                              "-force"])
         else:
             subprocess.call(["tckgen", "-algorithm", "iFOD2",
@@ -281,10 +290,13 @@ if checkpoint < 6:
                              "-seeds", "1M",
                              "-select", "10k",
                              "-mask", "../mask.nii",
-                             "wmfod.mif", tract_names[i],
+                             "../wmfod.mif", tract_names[i],
                              "-force"])
 
+    log_file = open("log.txt", "r+")
     log_file.write("6. CSD Probabilistic Tractography\n")
+    log_file.close()
+    os.chdir("../")
 ################################################################################
 
 
@@ -308,5 +320,4 @@ os.remove("MNI_T1_to_T1.log")
 os.remove("MNI_T1_warpcoef.nii")
 os.remove("T1.nii.gz")
 os.remove("t12dwi_mrtrix.txt")
-log_file.close()
 ################################################################################
