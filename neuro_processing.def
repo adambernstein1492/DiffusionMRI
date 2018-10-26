@@ -58,18 +58,18 @@ exec "$@"`
 %post
     ### UPDATE AND INSTALL DEPENDENCIES ########################################
     apt-get update -y && apt-get upgrade -y
-    apt-get install build-essential wget tcsh git g++ python python-numpy libeigen3-dev zlib1g-dev libqt4-opengl-dev libgl1-mesa-dev dc bc -y
+    apt-get install build-essential bison flex wget tcsh git g++ python python-numpy libeigen3-dev zlib1g-dev libqt4-opengl-dev libgl1-mesa-dev dc bc -y
 
-	## INSTALL CMAKE
-	wget https://cmake.org/files/v3.12/cmake-3.12.1.tar.gz
-	tar -xvf cmake-3.12.1.tar.gz
-	cd cmake-3.12.1
-	./bootstrap
-	make 
-	make install
+  	## INSTALL CMAKE
+  	wget https://cmake.org/files/v3.12/cmake-3.12.1.tar.gz
+  	tar -xvf cmake-3.12.1.tar.gz
+  	cd cmake-3.12.1
+  	./bootstrap
+  	make
+  	make install
 
-	cd ..
-	rm -rf cmake-3.12.1*
+  	cd ..
+  	rm -rf cmake-3.12.1*
 
     mkdir /software
     cd /software
@@ -87,10 +87,18 @@ exec "$@"`
     /software/anaconda2/bin/pip install dipy
     /software/anaconda2/bin/conda install -c conda-forge python-spams=2.6 -y
 
+    ### INSTALL MCELL ##########################################################
+    git clone https://github.com/mcellteam/mcell
+    cd mcell
+    mkdir build
+    cmake ..
+    make
+    cd /software
+
 
     ### INSTALL FSL ############################################################
     wget https://fsl.fmrib.ox.ac.uk/fsldownloads/fsl-5.0.10-centos6_64.tar.gz -O FSL.tar.gz
-    tar xzvf FSL.tar.gz
+    tar -xzvf FSL.tar.gz
     rm FSL.tar.gz
     #/software/fsl/etc/fslconf/fslpython_install.sh -f /software/fsl
 
