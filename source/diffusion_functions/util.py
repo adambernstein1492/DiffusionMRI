@@ -29,10 +29,10 @@ def remove_nan(image_file):
     shutil.move(os.path.split(image_file)[0] + "tmp.nii", image_file)
 
 def progress_update(message, percent):
-    print "\r" + message + "%10.1f %%" % percent,
+    print("\r" + message + "%10.1f %%" % percent,)
 
     if(percent == 100):
-        print "\n"
+        print("\n")
 
 def factn(number, n):
     fact_n = 1.0
@@ -100,34 +100,34 @@ def check_diffusion_input(dwi_path, bval_path, bvec_path, mask_path):
     try:
         dwi = nib.load(dwi_path)
     except:
-        print "Error: Image must be a 4-D NIFTI file"
+        print("Error: Image must be a 4-D NIFTI file")
         quit()
 
     try:
         length = dwi.shape[3]
     except:
-        print "Error: Image must be a 4-D NIFTI file"
+        print("Error: Image must be a 4-D NIFTI file")
         quit()
 
     try:
         bval,bvec = dipy.io.read_bvals_bvecs(bval_path, bvec_path)
     except:
-        print "Error: Cannot read in bval and bvecs files"
+        print("Error: Cannot read in bval and bvecs files")
         quit()
 
     if dwi.shape[3] != bval.shape[0] or dwi.shape[3] != bvec.shape[0] or bvec.shape[1] != 3:
-        print "Error: bvals, bvecs and dwi dimensions are not in agreement"
+        print("Error: bvals, bvecs and dwi dimensions are not in agreement")
         quit()
 
     if mask_path != "None":
         try:
             mask = nib.load(mask_path)
         except:
-            print "Error: Mask must be a 3-D NIFTI file"
+            print("Error: Mask must be a 3-D NIFTI file")
             quit()
 
         if mask.shape[0:3] != dwi.shape[0:3]:
-            print "Error: Mask must have same dimensions as the dwi"
+            print("Error: Mask must have same dimensions as the dwi")
             quit()
 
 def determine_map_order(bval_path, bvec_path):

@@ -44,7 +44,7 @@ if args.biasfieldcorrection:
     try:
         subprocess.call(["which", "N4BiasFieldCorrection"])
     except:
-         print "Error: N4 not found on path"
+         print("Error: N4 not found on path")
          quit()
 
 
@@ -54,14 +54,14 @@ if args.eddycurrentcorrection:
         try:
             subprocess.call(["which", "eddy_openmp"])
         except:
-            print "Error: eddy not found on path"
+            print("Error: eddy not found on path")
             quit()
     if args.software == "TORTOISE_DRBUDDI" or args.software == "TORTOISE_STANDARD":
         try:
             subprocess.call(["which", "ImportNIFTI"])
             subprocess.call(["which", "DIFFPREP"])
         except:
-            print "Error: DIFFPREP not found on path"
+            print("Error: DIFFPREP not found on path")
             quit()
 
 
@@ -71,51 +71,51 @@ if args.epidistortion != "None":
         try:
             subprocess.call(["which", "topup"])
         except:
-            print "Error: TOPUP not found on path"
+            print("Error: TOPUP not found on path")
             quit()
     if args.software == "TORTOISE_DRBUDDI":
         try:
             subprocess.call(["which", "DR_BUDDI_withoutGUI"])
         except:
-            print "Error: DR_BUDDI not found on path"
+            print("Error: DR_BUDDI not found on path")
             quit()
 
     # Check for Correct input type
     if args.software == "TORTOISE_DRBUDDI" and args.epidistortion[0] == "None":
-        print "Error: You must specify a Reverse Phase Encode Image to run DRBUDDI"
+        print("Error: You must specify a Reverse Phase Encode Image to run DRBUDDI")
         quit()
 
     if(args.software == "TORTOISE_DRBUDDI" and (args.epidistortion[1] != "b0" and args.epidistortion[1] != "All")):
-        print "Error: The second argument for epidistortion must be either 'All' or 'b0'"
+        print("Error: The second argument for epidistortion must be either 'All' or 'b0'")
         quit()
 
     if args.software == "TORTOISE_DRBUDDI":
         if args.structural == "None":
-            print "Error: You must specify a structural image to run DRBUDDI"
+            print("Error: You must specify a structural image to run DRBUDDI")
             quit()
 
         try:
             rpe = nib.load(args.epidistortion[0])
         except:
-            print "Error: Input for DRBUDDI must be a NIFTI"
+            print("Error: Input for DRBUDDI must be a NIFTI")
             quit()
 
         dwi = nib.load(args.Image)
         if dwi.shape[0:3] != rpe.shape[0:3]:
-            print "Error: Image and RPE must both be the same size"
-            print "DWI size: " + str(dwi.shape)
-            print "RPE size: " + str(rpe.shape)
+            print("Error: Image and RPE must both be the same size")
+            print("DWI size: " + str(dwi.shape))
+            print("RPE size: " + str(rpe.shape))
             quit()
 
     if (args.software is "TORTOISE_STANDARD" or args.software is "TORTOISE_DRBUDDI") and args.structural != "None":
         try:
             t2 = nib.load(args.epidistortion[0])
         except:
-            print "Error: Structural input for distortion correction must be an anatomical NIFTI"
+            print("Error: Structural input for distortion correction must be an anatomical NIFTI")
             quit()
 
         if len(t2.shape) != 3:
-            print "Error: Anatomical Image must be 3D"
+            print("Error: Anatomical Image must be 3D")
             quit()
 
 if args.mask != "None":
@@ -123,18 +123,18 @@ if args.mask != "None":
         mask = nib.load(args.mask)
         dwi = nib.load(args.Image)
     except:
-        print "Error: Mask image must be a NIFTI file"
+        print("Error: Mask image must be a NIFTI file")
         quit()
 
     if dwi.shape[0:3] != mask.shape[0:3]:
-        print "Error: Mask image must be the same size as the Image"
+        print("Error: Mask image must be the same size as the Image")
         quit()
 
 if args.voxel_size != "None" and args.software is "FSL":
     try:
         subprocess.call(["which", "mrresize"])
     except:
-        print "Error: Must have MRtrix3 installed to regrid the image"
+        print("Error: Must have MRtrix3 installed to regrid the image")
         quit()
 ################################################################################
 
@@ -194,7 +194,7 @@ if args.software is "FSL" and args.gibbs_ringing_correction:
     os.makedirs("GibbsRingingCorrection")
     os.chdir("GibbsRingingCorrection")
 
-    print "Running Gibbs Ringing Correction"
+    print("Running Gibbs Ringing Correction")
     subprocess.call(["mrdegibbs", outpath + "dwi.nii", "dwi_unring.nii"])
 
     os.remove(outpath + "dwi.nii")
@@ -213,7 +213,6 @@ if args.software is "FSL" and args.gibbs_ringing_correction:
 ### FSL DISTORTION CORRECTION ##################################################
 if args.software == "FSL":
 
-    print
     os.environ["FSLOUTPUTTYPE"] = "NIFTI"
 
     # Run TOPUP if specified
@@ -225,7 +224,7 @@ if args.software == "FSL":
         diffusion_preprocessing_functions.write_index_acqp(outpath + 'dwi.nii', outpath + 'bval', outpath + 'bvec', outpath + 'rpe.nii')
         topup_config = file_location + "/config/b02b0.cnf"
 
-        print "Running TOPUP"
+        print("Running TOPUP")
         subprocess.call(["topup", "--imain=B0s.nii",
                          "--datain=acqp.txt",
                          "--config=" + topup_config,
@@ -247,7 +246,7 @@ if args.software == "FSL":
             os.makedirs("EDDY")
             os.chdir("EDDY")
 
-            print "Running EDDY"
+            print("Running EDDY")
             subprocess.call(["eddy_openmp", "--imain=" + outpath + "dwi.nii",
                              "--mask=" + outpath + "mask.nii",
                              "--index=" + outpath + "TOPUP/index.txt",
@@ -281,12 +280,12 @@ if args.software == "FSL":
         # Create ACQP and INDEX text files
         diffusion_preprocessing_functions.no_topup_index_acqp(outpath + 'bval', outpath + 'bvec')
 
-    	if args.mask == "None":
+        if arts.mask == "None":
     		    subprocess.call(["bet", outpath + "dwi", "brain", "-m", "-f", "0.3", "-R"])
     		    os.remove("brain.nii")
     		    shutil.move("brain_mask.nii", outpath + "mask.nii")
 
-        print "Running EDDY"
+        print("Running EDDY")
         subprocess.call(["eddy_openmp", "--imain=" + outpath + "dwi.nii",
                          "--mask=" + outpath + "mask.nii",
                          "--index=index.txt",
@@ -567,7 +566,7 @@ if args.software == "TORTOISE_STANDARD":
 if args.denoising:
     os.makedirs("LPCADenoising")
 
-    print "Running Denoising"
+    print("Running Denoising")
     lpca_denoising.lpca_denoising("dwi.nii", "bval", "bvec", "LPCADenoising/dwi_denoised.nii")
 
     os.remove("dwi.nii")
@@ -588,7 +587,7 @@ if args.biasfieldcorrection:
 
     diffusion_preprocessing_functions.create_avg_b0(outpath + "dwi.nii", outpath + "bval", outpath + "bvec")
 
-    print "Matching Mask and DWI header info"
+    print("Matching Mask and DWI header info")
     diffusion_preprocessing_functions.remove_header('mean_b0.nii', 'mean_b0_bias.nii')
 
     if os.path.exists(outpath + "mask.nii") is True and args.software != 'FSL':
@@ -604,14 +603,14 @@ if args.biasfieldcorrection:
 
     diffusion_preprocessing_functions.remove_header(outpath + 'mask.nii', 'mask_bias.nii')
 
-    print "Calculating Bias Field"
+    print("Calculating Bias Field")
     subprocess.call(["N4BiasFieldCorrection", "-d", "3",
                      "-i", "mean_b0_bias.nii",
                      "-x", "mask_bias.nii",
                      "-v",
                      "-o", "[bias_correct.nii,field.nii]"])
 
-    print "Applying Bias Field"
+    print("Applying Bias Field")
     diffusion_preprocessing_functions.apply_bias_field(outpath + "dwi.nii", "field.nii")
 
     os.remove(outpath + "dwi.nii")

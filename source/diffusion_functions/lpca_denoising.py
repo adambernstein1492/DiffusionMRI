@@ -3,7 +3,7 @@ import nibabel as nib
 import dipy.io
 import scipy.special
 import scipy.ndimage
-import util
+from .util import progress_update
 
 
 def lpca_denoising(data_path, bvals_path, bvecs_path, out_path, kernel_size=5, noise_map_kernel_size=3, threshold_factor=2.3):
@@ -48,7 +48,7 @@ def lpca_denoising(data_path, bvals_path, bvecs_path, out_path, kernel_size=5, n
                 count += 1.0
                 percent = np.around((count / num_vox * 100), decimals = 1)
                 if(percent != percent_prev):
-                    util.progress_update("Denoising: ", percent)
+                    progress_update("Denoising: ", percent)
                     percent_prev = percent
 
     # Set final image value
@@ -59,7 +59,7 @@ def lpca_denoising(data_path, bvals_path, bvecs_path, out_path, kernel_size=5, n
     denoised_img = nib.Nifti1Image(data_denoised, data_nii.affine, data_nii.header)
     nib.save(denoised_img, out_path)
 
-    print "Done Denoising"
+    print("Done Denoising")
 
 
 
@@ -166,7 +166,7 @@ def noise_map(data, bvals, kernel_size=3, threshold_factor=2.3):
     # Filter the Noise Map
     noise_map = (scipy.ndimage.filters.gaussian_filter(noise_map,7.5)) ** 2
 
-    print "Done making noise map"
+    print("Done making noise map")
     return (noise_map * threshold_factor ** 2)
 
 
