@@ -280,7 +280,7 @@ if args.software == "FSL":
         # Create ACQP and INDEX text files
         diffusion_preprocessing_functions.no_topup_index_acqp(outpath + 'bval', outpath + 'bvec')
 
-        if arts.mask == "None":
+        if args.mask == "None":
     		    subprocess.call(["bet", outpath + "dwi", "brain", "-m", "-f", "0.3", "-R"])
     		    os.remove("brain.nii")
     		    shutil.move("brain_mask.nii", outpath + "mask.nii")
